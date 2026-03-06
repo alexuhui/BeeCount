@@ -1,3 +1,5 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -111,7 +113,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get voiceRecordingPermissionDeniedTitle => '需要麦克风权限';
 
   @override
-  String get voiceRecordingPermissionDeniedMessage => '语音记账功能需要使用麦克风权限。请在系统设置中允许蜜蜂记账访问麦克风。';
+  String get voiceRecordingPermissionDeniedMessage =>
+      '语音记账功能需要使用麦克风权限。请在系统设置中允许蜜蜂记账访问麦克风。';
 
   @override
   String voiceRecordingStartFailed(String error) {
@@ -281,7 +284,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchBatchMode => '批量操作';
 
   @override
-  String searchBatchModeWithCount(Object selected, Object total) {
+  String searchBatchModeWithCount(int selected, int total) {
     return '批量操作 ($selected/$total)';
   }
 
@@ -295,7 +298,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchDeselectAll => '取消全选';
 
   @override
-  String searchSelectedCount(Object count) {
+  String searchSelectedCount(int count) {
     return '已选择 $count 项';
   }
 
@@ -309,7 +312,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchBatchDeleteConfirmTitle => '确认删除';
 
   @override
-  String searchBatchDeleteConfirmMessage(Object count) {
+  String searchBatchDeleteConfirmMessage(int count) {
     return '确定要删除选中的 $count 笔记账吗?\n此操作无法撤销。';
   }
 
@@ -317,7 +320,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchBatchSetNoteTitle => '批量设置备注';
 
   @override
-  String searchBatchSetNoteMessage(Object count) {
+  String searchBatchSetNoteMessage(int count) {
     return '将为选中的 $count 笔记账设置相同的备注';
   }
 
@@ -325,37 +328,37 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchBatchSetNoteHint => '输入备注内容 (留空则清空备注)';
 
   @override
-  String searchBatchDeleteSuccess(Object count) {
+  String searchBatchDeleteSuccess(int count) {
     return '成功删除 $count 笔记账';
   }
 
   @override
-  String searchBatchDeleteFailed(Object error) {
+  String searchBatchDeleteFailed(String error) {
     return '删除失败: $error';
   }
 
   @override
-  String searchBatchSetNoteSuccess(Object count) {
+  String searchBatchSetNoteSuccess(int count) {
     return '成功为 $count 笔记账设置备注';
   }
 
   @override
-  String searchBatchSetNoteFailed(Object error) {
+  String searchBatchSetNoteFailed(String error) {
     return '设置备注失败: $error';
   }
 
   @override
-  String searchBatchChangeCategorySuccess(Object count) {
+  String searchBatchChangeCategorySuccess(int count) {
     return '成功为 $count 笔记账调整分类';
   }
 
   @override
-  String searchBatchChangeCategoryFailed(Object error) {
+  String searchBatchChangeCategoryFailed(String error) {
     return '调整分类失败: $error';
   }
 
   @override
-  String searchResultsCount(Object count) {
+  String searchResultsCount(int count) {
     return '共 $count 条结果';
   }
 
@@ -458,7 +461,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ledgersClear => '清空账本';
 
   @override
-  String ledgersClearMessage(Object name) {
+  String ledgersClearMessage(String name) {
     return '确定要清空账本\"$name\"的所有账单吗？此操作不可恢复。\\n账本本身会保留，仅删除账单数据。';
   }
 
@@ -475,7 +478,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ledgersDeleteConfirm => '删除账本';
 
   @override
-  String get ledgersDeleteMessage => '确定要删除该账本及其全部记录吗？此操作不可恢复。\\n若云端存在备份，也会一并删除。';
+  String get ledgersDeleteMessage =>
+      '确定要删除该账本及其全部记录吗？此操作不可恢复。\\n若云端存在备份，也会一并删除。';
 
   @override
   String get ledgersDeleted => '已删除';
@@ -496,7 +500,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ledgersDeleteLocalTitle => '删除本地账本';
 
   @override
-  String ledgersDeleteLocalMessage(Object name) {
+  String ledgersDeleteLocalMessage(String name) {
     return '确定要删除本地账本\"$name\"吗？\\n云端备份会保留，您可以随时恢复。';
   }
 
@@ -745,10 +749,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get importCategoryNotSelected => '未选择\"分类\"列，请点击\"上一步\"返回并设置\"分类\"的列，再继续。';
+  String get importCategoryNotSelected =>
+      '未选择\"分类\"列，请点击\"上一步\"返回并设置\"分类\"的列，再继续。';
 
   @override
-  String get importCategoryMappingDescription => '请将左侧\"源分类名\"映射到系统内已有分类（或保持原名自动创建/合并）';
+  String get importCategoryMappingDescription =>
+      '请将左侧\"源分类名\"映射到系统内已有分类（或保持原名自动创建/合并）';
 
   @override
   String get importKeepOriginalName => '保持原名（自动创建/合并）';
@@ -783,7 +789,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importInProgress => '正在导入…';
 
   @override
-  String importProgressDetail(Object done, Object fail, Object ok, Object total) {
+  String importProgressDetail(
+      Object done, Object fail, Object ok, Object total) {
     return '已完成：$done/$total，成功 $ok，失败 $fail';
   }
 
@@ -1069,7 +1076,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sharePosterSaveSuccess => '已保存到相册';
 
   @override
-  String get shareGuidanceCopyText => '用蜜蜂记账记录生活，开源免费无广告！🐝 下载地址：https://github.com/TNT-Likely/BeeCount';
+  String get shareGuidanceCopyText =>
+      '用蜜蜂记账记录生活，开源免费无广告！🐝 下载地址：https://github.com/TNT-Likely/BeeCount';
 
   @override
   String get shareGuidanceCopied => '文案已复制';
@@ -1359,7 +1367,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mineImportProgressTitle => '后台导入中…';
 
   @override
-  String mineImportProgressSubtitle(Object done, Object fail, Object ok, Object total) {
+  String mineImportProgressSubtitle(
+      Object done, Object fail, Object ok, Object total) {
     return '进度：$done/$total，成功 $ok，失败 $fail';
   }
 
@@ -1456,7 +1465,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryMigrationDescription => '分类迁移说明';
 
   @override
-  String get categoryMigrationDescriptionContent => '• 将指定分类的所有交易记录迁移到另一个分类\n• 迁移后，原分类的交易数据将全部转移到目标分类\n• 此操作不可撤销，请谨慎选择';
+  String get categoryMigrationDescriptionContent =>
+      '• 将指定分类的所有交易记录迁移到另一个分类\n• 迁移后，原分类的交易数据将全部转移到目标分类\n• 此操作不可撤销，请谨慎选择';
 
   @override
   String get categoryMigrationTypeLabel => '选择类型';
@@ -1573,7 +1583,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryClearUnusedTitle => '清空未使用分类';
 
   @override
-  String categoryClearUnusedMessage(Object count) {
+  String categoryClearUnusedMessage(int count) {
     return '确定要删除 $count 个未使用的分类吗？此操作无法撤销。';
   }
 
@@ -1584,7 +1594,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryClearUnusedEmpty => '没有未使用的分类';
 
   @override
-  String categoryClearUnusedSuccess(Object count) {
+  String categoryClearUnusedSuccess(int count) {
     return '已删除 $count 个分类';
   }
 
@@ -1604,7 +1614,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryShareScopeAll => '全部分类';
 
   @override
-  String categoryShareSuccess(Object path) {
+  String categoryShareSuccess(String path) {
     return '已保存到 $path';
   }
 
@@ -1692,10 +1702,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryParentRequiredTitle => '错误';
 
   @override
-  String get categoryExpenseList => '餐饮-交通-购物-娱乐-居家-家庭-通讯-水电-住房-医疗-教育-宠物-运动-数码-旅行-烟酒-母婴-美容-维修-社交-学习-汽车-打车-地铁-外卖-物业-停车-捐赠-送礼-纳税-饮料-服装-零食-发红包-水果-游戏-书-爱人-装修-日用品-彩票-股票-社保-快递-工作';
+  String get categoryExpenseList =>
+      '餐饮-交通-购物-娱乐-居家-家庭-通讯-水电-住房-医疗-教育-宠物-运动-数码-旅行-烟酒-母婴-美容-维修-社交-学习-汽车-打车-地铁-外卖-物业-停车-捐赠-送礼-纳税-饮料-服装-零食-发红包-水果-游戏-书-爱人-装修-日用品-彩票-股票-社保-快递-工作';
 
   @override
-  String get categoryIncomeList => '工资-理财-收红包-奖金-报销-兼职-收礼-利息-退款-投资收益-二手转卖-社会保障-退税退费-公积金';
+  String get categoryIncomeList =>
+      '工资-理财-收红包-奖金-报销-兼职-收礼-利息-退款-投资收益-二手转卖-社会保障-退税退费-公积金';
 
   @override
   String get categoryExpenseDining => '餐饮-早餐-午餐-晚餐-美团外卖-饿了么外卖-京东外卖-餐厅-美食';
@@ -1904,7 +1916,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fontSettingsPreview => '实时预览';
 
   @override
-  String get fontSettingsPreviewText => '今天吃饭花了 23.50 元，记一笔；\n本月已记账 45 天，共 320 条记录；\n坚持就是胜利！';
+  String get fontSettingsPreviewText =>
+      '今天吃饭花了 23.50 元，记一笔；\n本月已记账 45 天，共 320 条记录；\n坚持就是胜利！';
 
   @override
   String fontSettingsCurrentLevel(Object level, Object scale) {
@@ -1918,7 +1931,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fontSettingsCustomAdjust => '自定义调整';
 
   @override
-  String get fontSettingsDescription => '说明：此设置确保所有设备在1.0倍时显示效果一致，设备差异已自动补偿；调整数值可在一致基础上进行个性化缩放。';
+  String get fontSettingsDescription =>
+      '说明：此设置确保所有设备在1.0倍时显示效果一致，设备差异已自动补偿；调整数值可在一致基础上进行个性化缩放。';
 
   @override
   String get fontSettingsExtraSmall => '极小';
@@ -2133,10 +2147,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reminderDescription => '提示：开启记账提醒后，系统会在每天指定时间发送通知提醒您记录收支。';
 
   @override
-  String get reminderIOSInstructions => '🍎 iOS通知设置：\n• 设置 > 通知 > 蜜蜂记账\n• 开启\"允许通知\"\n• 设置通知样式：横幅或提醒\n• 开启声音和震动\n\n⚠️ 重要提示：\n• iOS本地通知依赖应用进程\n• 请勿在任务管理器中划掉应用\n• 应用在后台或前台时通知正常\n• 完全关闭应用会导致通知失效\n\n💡 使用建议：\n• 日常使用后直接按Home键退出\n• iOS会自动管理后台应用\n• 保持应用在后台即可收到提醒';
+  String get reminderIOSInstructions =>
+      '🍎 iOS通知设置：\n• 设置 > 通知 > 蜜蜂记账\n• 开启\"允许通知\"\n• 设置通知样式：横幅或提醒\n• 开启声音和震动\n\n⚠️ 重要提示：\n• iOS本地通知依赖应用进程\n• 请勿在任务管理器中划掉应用\n• 应用在后台或前台时通知正常\n• 完全关闭应用会导致通知失效\n\n💡 使用建议：\n• 日常使用后直接按Home键退出\n• iOS会自动管理后台应用\n• 保持应用在后台即可收到提醒';
 
   @override
-  String get reminderAndroidInstructions => '如果通知无法正常工作，请检查：\n• 已允许应用发送通知\n• 关闭应用的电池优化/省电模式\n• 允许应用在后台运行和自启动\n• Android 12+需要精确闹钟权限\n\n📱 小米手机特殊设置：\n• 设置 > 应用管理 > 蜜蜂记账 > 通知管理\n• 点击\"记账提醒\"渠道\n• 设置重要性为\"紧急\"或\"高\"\n• 开启\"横幅通知\"、\"声音\"、\"震动\"\n• 安全中心 > 应用管理 > 权限 > 自启动\n\n🔒 锁定后台方法：\n• 最近任务中找到蜜蜂记账\n• 向下拉动应用卡片显示锁定图标\n• 点击锁定图标防止被清理';
+  String get reminderAndroidInstructions =>
+      '如果通知无法正常工作，请检查：\n• 已允许应用发送通知\n• 关闭应用的电池优化/省电模式\n• 允许应用在后台运行和自启动\n• Android 12+需要精确闹钟权限\n\n📱 小米手机特殊设置：\n• 设置 > 应用管理 > 蜜蜂记账 > 通知管理\n• 点击\"记账提醒\"渠道\n• 设置重要性为\"紧急\"或\"高\"\n• 开启\"横幅通知\"、\"声音\"、\"震动\"\n• 安全中心 > 应用管理 > 权限 > 自启动\n\n🔒 锁定后台方法：\n• 最近任务中找到蜜蜂记账\n• 向下拉动应用卡片显示锁定图标\n• 点击锁定图标防止被清理';
 
   @override
   String get categoryDetailLoadFailed => '加载失败';
@@ -2181,7 +2197,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryMigrationConfirmTitle => '确认迁移';
 
   @override
-  String categoryMigrationConfirmMessage(Object count, Object fromName, Object toName) {
+  String categoryMigrationConfirmMessage(
+      Object count, Object fromName, Object toName) {
     return '确定要将「$fromName」的 $count 笔交易迁移到「$toName」吗？\n\n此操作不可撤销！';
   }
 
@@ -2192,7 +2209,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryMigrationCompleteTitle => '迁移完成';
 
   @override
-  String categoryMigrationCompleteMessage(Object count, Object fromName, Object toName) {
+  String categoryMigrationCompleteMessage(
+      Object count, Object fromName, Object toName) {
     return '成功将 $count 笔交易从「$fromName」迁移到「$toName」。';
   }
 
@@ -2246,10 +2264,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cloudMultiDeviceWarningTitle => '多设备同步提示';
 
   @override
-  String get cloudMultiDeviceWarningMessage => '当前暂不支持多设备协同编辑。如需在新设备使用，请先清空新设备的本地数据，然后从云端下载账本。';
+  String get cloudMultiDeviceWarningMessage =>
+      '当前暂不支持多设备协同编辑。如需在新设备使用，请先清空新设备的本地数据，然后从云端下载账本。';
 
   @override
-  String get cloudMultiDeviceWarningDetail => '多设备同步说明：\n\n1. 目前不支持多设备同时编辑同一账本\n2. 如果在设备A编辑后，切换到设备B使用：\n   • 需要在设备B上清空所有账本\n   • 然后从云端下载最新数据\n3. 未来版本将支持真正的多设备协同';
+  String get cloudMultiDeviceWarningDetail =>
+      '多设备同步说明：\n\n1. 目前不支持多设备同时编辑同一账本\n2. 如果在设备A编辑后，切换到设备B使用：\n   • 需要在设备B上清空所有账本\n   • 然后从云端下载最新数据\n3. 未来版本将支持真正的多设备协同';
 
   @override
   String get cloudWebdavUrlLabel => 'WebDAV 服务器地址';
@@ -2423,7 +2443,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportTitle => '导出';
 
   @override
-  String get exportDescription => '支持导出的数据类型：\n• 交易记录（收入/支出/转账）\n• 分类信息\n• 账户信息\n\n点击下方按钮选择保存位置，开始导出当前账本为 CSV 文件。';
+  String get exportDescription =>
+      '支持导出的数据类型：\n• 交易记录（收入/支出/转账）\n• 分类信息\n• 账户信息\n\n点击下方按钮选择保存位置，开始导出当前账本为 CSV 文件。';
 
   @override
   String get exportButtonIOS => '导出并分享';
@@ -2702,7 +2723,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get updateCannotOpenLink => '无法打开链接';
 
   @override
-  String get updateManualVisit => '请手动在浏览器中访问：\\nhttps://github.com/TNT-Likely/BeeCount/releases';
+  String get updateManualVisit =>
+      '请手动在浏览器中访问：\\nhttps://github.com/TNT-Likely/BeeCount/releases';
 
   @override
   String get updateNoLocalApkTitle => '未找到更新包';
@@ -2787,10 +2809,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get updateNoLocalApkFoundMessage => '没有找到已下载的更新包文件。\n\n请先通过\"检查更新\"下载新版本。';
+  String get updateNoLocalApkFoundMessage =>
+      '没有找到已下载的更新包文件。\n\n请先通过\"检查更新\"下载新版本。';
 
   @override
-  String updateInstallPackageFoundMessage(String fileName, String fileSize, String time) {
+  String updateInstallPackageFoundMessage(
+      String fileName, String fileSize, String time) {
     return '找到更新包：\n\n文件名：$fileName\n大小：${fileSize}MB\n下载时间：$time\n\n是否立即安装？';
   }
 
@@ -2824,7 +2848,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get updateCachedVersionTitle => '发现已下载版本';
 
   @override
-  String get updateCachedVersionMessage => '已找到之前下载的安装包...点击\\\"确定\\\"立即安装，点击\\\"取消\\\"关闭...';
+  String get updateCachedVersionMessage =>
+      '已找到之前下载的安装包...点击\\\"确定\\\"立即安装，点击\\\"取消\\\"关闭...';
 
   @override
   String get updateConfirmDownload => '立即下载并安装';
@@ -2861,7 +2886,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get updateMirrorSettingTitle => '下载加速器';
 
   @override
-  String get updateNotificationPermissionGuideText => '下载进度通知被关闭，但不影响下载功能。如需查看进度：';
+  String get updateNotificationPermissionGuideText =>
+      '下载进度通知被关闭，但不影响下载功能。如需查看进度：';
 
   @override
   String get updateNotificationGuideStep1 => '进入系统设置 > 应用管理';
@@ -3031,7 +3057,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get recurringTransactionUsageTitle => '使用说明';
 
   @override
-  String get recurringTransactionUsageContent => '周期记账会在每次冷启动进入App时自动扫描并生成账单。设置日期后，系统会在该日期之后的冷启动时创建对应账单。例如：设置11月27日，则会在11月27日之后的首次启动时自动记账。';
+  String get recurringTransactionUsageContent =>
+      '周期记账会在每次冷启动进入App时自动扫描并生成账单。设置日期后，系统会在该日期之后的冷启动时创建对应账单。例如：设置11月27日，则会在11月27日之后的首次启动时自动记账。';
 
   @override
   String get ledgerSelectTitle => '选择账本';
@@ -3046,7 +3073,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncNotLoggedInMessage => '未登录';
 
   @override
-  String get syncCloudBackupCorruptedMessage => '云端备份内容无法解析，可能是早期版本编码问题造成的损坏。请点击\\\"上传当前账本到云端\\\"覆盖修复。';
+  String get syncCloudBackupCorruptedMessage =>
+      '云端备份内容无法解析，可能是早期版本编码问题造成的损坏。请点击\\\"上传当前账本到云端\\\"覆盖修复。';
 
   @override
   String get syncNoCloudBackupMessage => '云端暂无备份';
@@ -3578,7 +3606,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aboutWidget => '关于小组件';
 
   @override
-  String get widgetDescription => '小组件会自动同步显示今日和本月的收支数据，每30分钟自动刷新一次。打开应用后会立即更新数据。';
+  String get widgetDescription =>
+      '小组件会自动同步显示今日和本月的收支数据，每30分钟自动刷新一次。打开应用后会立即更新数据。';
 
   @override
   String get appName => '蜜蜂记账';
@@ -3611,7 +3640,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get featureDescription => '功能说明';
 
   @override
-  String get featureDescriptionContent => '截图支付页面后，系统会自动识别金额和商家信息，并创建支出记录。\n\n⚡ 识别速度约 2-3 秒（部分设备可能更长）\n🤖 智能匹配分类\n📝 自动填写备注\n\n⚠️ 注意：\n• 不同设备截图入库速度不同，识别延迟可能 5-10 秒\n• 部分设备可能无法正常工作，取决于系统实现\n• 识别成功后会自动跳过已处理的截图\n• 受Android分区存储限制（Android 10+），应用无法删除系统截图，需手动清理相册';
+  String get featureDescriptionContent =>
+      '截图支付页面后，系统会自动识别金额和商家信息，并创建支出记录。\n\n⚡ 识别速度约 2-3 秒（部分设备可能更长）\n🤖 智能匹配分类\n📝 自动填写备注\n\n⚠️ 注意：\n• 不同设备截图入库速度不同，识别延迟可能 5-10 秒\n• 部分设备可能无法正常工作，取决于系统实现\n• 识别成功后会自动跳过已处理的截图\n• 受Android分区存储限制（Android 10+），应用无法删除系统截图，需手动清理相册';
 
   @override
   String get autoBilling => '自动记账';
@@ -3638,13 +3668,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get autoBillingBatteryGuideTitle => '电池优化设置';
 
   @override
-  String get autoBillingBatteryDesc => '自动记账需要应用在后台保持运行。部分手机会在锁屏后自动清理后台应用，导致自动记账功能失效。建议关闭电池优化以确保功能正常工作。';
+  String get autoBillingBatteryDesc =>
+      '自动记账需要应用在后台保持运行。部分手机会在锁屏后自动清理后台应用，导致自动记账功能失效。建议关闭电池优化以确保功能正常工作。';
 
   @override
   String get autoBillingCheckBattery => '检查电池优化状态';
 
   @override
-  String get autoBillingBatteryWarning => '⚠️ 未关闭电池优化，应用可能会被系统自动清理，导致自动记账失效。建议点击上方\"去设置\"按钮关闭电池优化。';
+  String get autoBillingBatteryWarning =>
+      '⚠️ 未关闭电池优化，应用可能会被系统自动清理，导致自动记账失效。建议点击上方\"去设置\"按钮关闭电池优化。';
 
   @override
   String get enableFailed => '启用失败';
@@ -3653,7 +3685,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get disableFailed => '禁用失败';
 
   @override
-  String get iosAutoFeatureDesc => '通过iOS\"快捷指令\"应用，实现截图后自动识别支付信息并记账。设置后，每次截图都会自动触发识别。';
+  String get iosAutoFeatureDesc =>
+      '通过iOS\"快捷指令\"应用，实现截图后自动识别支付信息并记账。设置后，每次截图都会自动触发识别。';
 
   @override
   String get iosAutoShortcutConfigTitle => '配置步骤：';
@@ -3677,13 +3710,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get iosAutoShortcutStep6 => '完成！支付时双击手机背部即可快速记账';
 
   @override
-  String get iosAutoShortcutRecommendedTip => '✅ 推荐：在\"轻点背面\"中绑定快捷指令后，支付时双击手机背部即可自动截图并识别记账，无需手动截图。';
+  String get iosAutoShortcutRecommendedTip =>
+      '✅ 推荐：在\"轻点背面\"中绑定快捷指令后，支付时双击手机背部即可自动截图并识别记账，无需手动截图。';
 
   @override
   String get iosAutoBackTapTitle => '💡 双击背部快速触发（推荐）';
 
   @override
-  String get iosAutoBackTapDesc => '设置 > 辅助功能 > 触控 > 轻点背面\n• 选择\"轻点两下\"或\"轻点三下\"\n• 选择刚创建的快捷指令\n• 完成后，支付时双击手机背面即可自动记账，无需截图';
+  String get iosAutoBackTapDesc =>
+      '设置 > 辅助功能 > 触控 > 轻点背面\n• 选择\"轻点两下\"或\"轻点三下\"\n• 选择刚创建的快捷指令\n• 完成后，支付时双击手机背面即可自动记账，无需截图';
 
   @override
   String get iosAutoTutorialTitle => '视频教程';
@@ -3806,7 +3841,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cloudSyncPageSubtitle => '管理云服务和数据同步';
 
   @override
-  String get cloudSyncHint => '云同步只会同步账本数据（包括交易记录关联的账户、分类、标签），不包括未关联的分类、标签、账户，也不包括附件。附件请通过数据管理单独导入导出。';
+  String get cloudSyncHint =>
+      '云同步只会同步账本数据（包括交易记录关联的账户、分类、标签），不包括未关联的分类、标签、账户，也不包括附件。附件请通过数据管理单独导入导出。';
 
   @override
   String get dataManagement => '数据管理';
@@ -3821,7 +3857,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dataManagementPageSubtitle => '管理账单数据和分类';
 
   @override
-  String get dataManagementAttachmentHint => '还原数据时，请先导入附件包，再导入账本数据（CSV或云同步），以确保附件正确关联。';
+  String get dataManagementAttachmentHint =>
+      '还原数据时，请先导入附件包，再导入账本数据（CSV或云同步），以确保附件正确关联。';
 
   @override
   String get smartBilling => '智能记账';
@@ -3845,7 +3882,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get smartBillingImageBillingDesc => '从相册选择支付截图进行识别';
 
   @override
-  String get smartBillingImageBillingGuide => '在首页长按底部中间的 + 按钮，选择「相册」即可使用图片记账功能。配置AI后可智能识别账单信息，未配置时仍可通过OCR识别文字。';
+  String get smartBillingImageBillingGuide =>
+      '在首页长按底部中间的 + 按钮，选择「相册」即可使用图片记账功能。配置AI后可智能识别账单信息，未配置时仍可通过OCR识别文字。';
 
   @override
   String get smartBillingAIOptional => 'AI 识别为可选功能，配置后可提高识别准确度';
@@ -3857,7 +3895,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get smartBillingCameraBillingDesc => '拍摄支付截图进行识别';
 
   @override
-  String get smartBillingCameraBillingGuide => '在首页长按底部中间的 + 按钮，选择「拍照」即可使用拍照记账功能。配置AI后可智能识别账单信息，未配置时仍可通过OCR识别文字。';
+  String get smartBillingCameraBillingGuide =>
+      '在首页长按底部中间的 + 按钮，选择「拍照」即可使用拍照记账功能。配置AI后可智能识别账单信息，未配置时仍可通过OCR识别文字。';
 
   @override
   String get smartBillingVoiceBilling => '语音记账';
@@ -3866,7 +3905,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get smartBillingVoiceBillingDesc => '通过语音输入快速记账';
 
   @override
-  String get smartBillingVoiceBillingGuide => '在首页长按底部中间的 + 按钮，选择「语音」即可使用语音记账功能。语音记账需要通过AI将语音转为文字并提取账单信息。';
+  String get smartBillingVoiceBillingGuide =>
+      '在首页长按底部中间的 + 按钮，选择「语音」即可使用语音记账功能。语音记账需要通过AI将语音转为文字并提取账单信息。';
 
   @override
   String get smartBillingAIRequired => '语音记账必须配置 AI（智谱 GLM API），请先在上方配置 AI 设置';
@@ -4010,7 +4050,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get configImportExportInfoTitle => '功能说明';
 
   @override
-  String get configImportExportInfoMessage => '此功能用于导出和导入应用配置，包括云服务配置、AI配置等。配置文件采用YAML格式，方便查看和编辑。\n\n⚠️ 配置文件包含敏感信息（如API密钥、密码等），请妥善保管。';
+  String get configImportExportInfoMessage =>
+      '此功能用于导出和导入应用配置，包括云服务配置、AI配置等。配置文件采用YAML格式，方便查看和编辑。\n\n⚠️ 配置文件包含敏感信息（如API密钥、密码等），请妥善保管。';
 
   @override
   String get configExportTitle => '导出配置';
@@ -4390,7 +4431,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get iosVersionWarningTitle => '需要 iOS 16.0 或更高版本';
 
   @override
-  String get iosVersionWarningDesc => '截图自动记账功能使用了 iOS 16 引入的 App Intents 框架。您的设备系统版本较低，暂不支持此功能。\n\n请升级到 iOS 16 或更高版本以使用此功能。';
+  String get iosVersionWarningDesc =>
+      '截图自动记账功能使用了 iOS 16 引入的 App Intents 框架。您的设备系统版本较低，暂不支持此功能。\n\n请升级到 iOS 16 或更高版本以使用此功能。';
 
   @override
   String get aiChatTitle => 'AI助手';
@@ -4480,7 +4522,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get donationDescription => '说明';
 
   @override
-  String get donationDescriptionDetail => '感谢您使用蜜蜂记账！如果这个应用对您有帮助，欢迎请开发者喝杯咖啡作为鼓励。您的支持是我持续改进的动力。';
+  String get donationDescriptionDetail =>
+      '感谢您使用蜜蜂记账！如果这个应用对您有帮助，欢迎请开发者喝杯咖啡作为鼓励。您的支持是我持续改进的动力。';
 
   @override
   String get donationNoFeatures => '注: 打赏不会解锁任何功能，所有功能继续完全免费。';
@@ -4503,7 +4546,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiQuickCommandFinancialHealthDesc => '分析收支平衡和储蓄率';
 
   @override
-  String get aiQuickCommandFinancialHealthPrompt => '请根据以下数据分析我的财务健康状况：\n\n[monthlyStats]\n\n[recentTrends]\n\n请从收支平衡、储蓄率、消费趋势等角度给出专业分析和建议。请用简体中文回复。';
+  String get aiQuickCommandFinancialHealthPrompt =>
+      '请根据以下数据分析我的财务健康状况：\n\n[monthlyStats]\n\n[recentTrends]\n\n请从收支平衡、储蓄率、消费趋势等角度给出专业分析和建议。请用简体中文回复。';
 
   @override
   String get aiQuickCommandMonthlyExpenseTitle => '本月支出总结';
@@ -4512,7 +4556,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiQuickCommandMonthlyExpenseDesc => '月度支出分析和建议';
 
   @override
-  String get aiQuickCommandMonthlyExpensePrompt => '请总结我本月的支出情况：\n\n[monthlyStats]\n\n[categoryStats]\n\n请分析主要支出类别，并给出节约开支的建议。请用简体中文回复。';
+  String get aiQuickCommandMonthlyExpensePrompt =>
+      '请总结我本月的支出情况：\n\n[monthlyStats]\n\n[categoryStats]\n\n请分析主要支出类别，并给出节约开支的建议。请用简体中文回复。';
 
   @override
   String get aiQuickCommandCategoryAnalysisTitle => '分类占比分析';
@@ -4521,7 +4566,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiQuickCommandCategoryAnalysisDesc => '各分类支出占比和趋势';
 
   @override
-  String get aiQuickCommandCategoryAnalysisPrompt => '请分析我的各分类支出占比：\n\n[categoryStats]\n\n请指出哪些分类支出过高，并给出优化建议。请用简体中文回复。';
+  String get aiQuickCommandCategoryAnalysisPrompt =>
+      '请分析我的各分类支出占比：\n\n[categoryStats]\n\n请指出哪些分类支出过高，并给出优化建议。请用简体中文回复。';
 
   @override
   String get aiQuickCommandBudgetPlanningTitle => '预算规划建议';
@@ -4530,7 +4576,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiQuickCommandBudgetPlanningDesc => '基于历史数据的预算建议';
 
   @override
-  String get aiQuickCommandBudgetPlanningPrompt => '请基于以下数据帮我制定下月预算：\n\n[monthlyStats]\n\n[recentTrends]\n\n请给出各分类的预算建议和注意事项。请用简体中文回复。';
+  String get aiQuickCommandBudgetPlanningPrompt =>
+      '请基于以下数据帮我制定下月预算：\n\n[monthlyStats]\n\n[recentTrends]\n\n请给出各分类的预算建议和注意事项。请用简体中文回复。';
 
   @override
   String get aiQuickCommandAbnormalExpenseTitle => '异常支出提醒';
@@ -4539,7 +4586,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiQuickCommandAbnormalExpenseDesc => '识别大额或异常支出';
 
   @override
-  String get aiQuickCommandAbnormalExpensePrompt => '请检查我最近是否有异常支出：\n\n[recentTransactions]\n\n[monthlyStats]\n\n请指出可能的异常消费，并分析原因。请用简体中文回复。';
+  String get aiQuickCommandAbnormalExpensePrompt =>
+      '请检查我最近是否有异常支出：\n\n[recentTransactions]\n\n[monthlyStats]\n\n请指出可能的异常消费，并分析原因。请用简体中文回复。';
 
   @override
   String get aiQuickCommandSavingTipsTitle => '省钱小贴士';
@@ -4548,7 +4596,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiQuickCommandSavingTipsDesc => '根据消费习惯给建议';
 
   @override
-  String get aiQuickCommandSavingTipsPrompt => '请根据我的消费习惯给出省钱建议：\n\n[categoryStats]\n\n[recentTrends]\n\n请提供3-5条实用的省钱技巧。请用简体中文回复。';
+  String get aiQuickCommandSavingTipsPrompt =>
+      '请根据我的消费习惯给出省钱建议：\n\n[categoryStats]\n\n[recentTrends]\n\n请提供3-5条实用的省钱技巧。请用简体中文回复。';
 
   @override
   String get billCardUnknownLedger => '未知账本';
@@ -4664,7 +4713,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiUnUseVisionDesc => '仅使用文本模型分析OCR结果';
 
   @override
-  String get aiCustomBaseUrlHelper => 'OpenAI兼容的API地址，如 https://api.openai.com/v1';
+  String get aiCustomBaseUrlHelper =>
+      'OpenAI兼容的API地址，如 https://api.openai.com/v1';
 
   @override
   String get aiTextModelTitle => '文本模型';
@@ -5089,7 +5139,8 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String attachmentExportProgressDetail(int attachmentCount, int iconCount, int current, int total) {
+  String attachmentExportProgressDetail(
+      int attachmentCount, int iconCount, int current, int total) {
     return '正在导出 $attachmentCount 个附件 + $iconCount 个图标 ($current/$total)';
   }
 
@@ -5116,7 +5167,8 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String attachmentImportResult(int imported, int skipped, int overwritten, int failed) {
+  String attachmentImportResult(
+      int imported, int skipped, int overwritten, int failed) {
     return '导入 $imported 张，跳过 $skipped 张，覆盖 $overwritten 张，失败 $failed 张';
   }
 
@@ -5399,7 +5451,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
 class AppLocalizationsZhTw extends AppLocalizationsZh {
-  AppLocalizationsZhTw(): super('zh_TW');
+  AppLocalizationsZhTw() : super('zh_TW');
 
   @override
   String get appTitle => '蜜蜂記帳';
@@ -5506,7 +5558,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get voiceRecordingPermissionDeniedTitle => '需要麥克風權限';
 
   @override
-  String get voiceRecordingPermissionDeniedMessage => '語音記帳功能需要使用麥克風權限。請在系統設定中允許蜜蜂記帳存取麥克風。';
+  String get voiceRecordingPermissionDeniedMessage =>
+      '語音記帳功能需要使用麥克風權限。請在系統設定中允許蜜蜂記帳存取麥克風。';
 
   @override
   String voiceRecordingStartFailed(String error) {
@@ -5676,7 +5729,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get searchBatchMode => '批次操作';
 
   @override
-  String searchBatchModeWithCount(Object selected, Object total) {
+  String searchBatchModeWithCount(int selected, int total) {
     return '批次操作 ($selected/$total)';
   }
 
@@ -5690,7 +5743,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get searchDeselectAll => '取消全選';
 
   @override
-  String searchSelectedCount(Object count) {
+  String searchSelectedCount(int count) {
     return '已選擇 $count 項';
   }
 
@@ -5704,7 +5757,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get searchBatchDeleteConfirmTitle => '確認刪除';
 
   @override
-  String searchBatchDeleteConfirmMessage(Object count) {
+  String searchBatchDeleteConfirmMessage(int count) {
     return '確定要刪除選中的 $count 筆記帳嗎?\n此操作無法復原。';
   }
 
@@ -5712,7 +5765,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get searchBatchSetNoteTitle => '批次設定備註';
 
   @override
-  String searchBatchSetNoteMessage(Object count) {
+  String searchBatchSetNoteMessage(int count) {
     return '將為選中的 $count 筆記帳設定相同的備註';
   }
 
@@ -5720,37 +5773,37 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get searchBatchSetNoteHint => '輸入備註內容 (留空則清空備註)';
 
   @override
-  String searchBatchDeleteSuccess(Object count) {
+  String searchBatchDeleteSuccess(int count) {
     return '成功刪除 $count 筆記帳';
   }
 
   @override
-  String searchBatchDeleteFailed(Object error) {
+  String searchBatchDeleteFailed(String error) {
     return '刪除失敗: $error';
   }
 
   @override
-  String searchBatchSetNoteSuccess(Object count) {
+  String searchBatchSetNoteSuccess(int count) {
     return '成功為 $count 筆記帳設定備註';
   }
 
   @override
-  String searchBatchSetNoteFailed(Object error) {
+  String searchBatchSetNoteFailed(String error) {
     return '設定備註失敗: $error';
   }
 
   @override
-  String searchBatchChangeCategorySuccess(Object count) {
+  String searchBatchChangeCategorySuccess(int count) {
     return '成功為 $count 筆記帳調整分類';
   }
 
   @override
-  String searchBatchChangeCategoryFailed(Object error) {
+  String searchBatchChangeCategoryFailed(String error) {
     return '調整分類失敗: $error';
   }
 
   @override
-  String searchResultsCount(Object count) {
+  String searchResultsCount(int count) {
     return '共 $count 條結果';
   }
 
@@ -5853,7 +5906,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get ledgersClear => '清空當前帳本';
 
   @override
-  String ledgersClearMessage(Object name) {
+  String ledgersClearMessage(String name) {
     return '將刪除該帳本下所有交易記錄，且不可復原。';
   }
 
@@ -5870,7 +5923,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get ledgersDeleteConfirm => '刪除帳本';
 
   @override
-  String get ledgersDeleteMessage => '確定要刪除該帳本及其全部記錄嗎？此操作不可復原。\\n若雲端存在備份，也會一併刪除。';
+  String get ledgersDeleteMessage =>
+      '確定要刪除該帳本及其全部記錄嗎？此操作不可復原。\\n若雲端存在備份，也會一併刪除。';
 
   @override
   String get ledgersDeleted => '已刪除';
@@ -5891,7 +5945,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get ledgersDeleteLocalTitle => '刪除本地帳本';
 
   @override
-  String ledgersDeleteLocalMessage(Object name) {
+  String ledgersDeleteLocalMessage(String name) {
     return '確定要刪除本地帳本「$name」嗎？\n雲端備份會保留，您可以隨時恢復。';
   }
 
@@ -6140,10 +6194,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get importCategoryNotSelected => '未選擇\"分類\"列，請點擊\"上一步\"返回並設定\"分類\"的列，再繼續。';
+  String get importCategoryNotSelected =>
+      '未選擇\"分類\"列，請點擊\"上一步\"返回並設定\"分類\"的列，再繼續。';
 
   @override
-  String get importCategoryMappingDescription => '請將左側\"源分類名\"對應到系統內已有分類（或保持原名自動建立/合併）';
+  String get importCategoryMappingDescription =>
+      '請將左側\"源分類名\"對應到系統內已有分類（或保持原名自動建立/合併）';
 
   @override
   String get importKeepOriginalName => '保持原名（自動建立/合併）';
@@ -6178,7 +6234,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get importInProgress => '正在匯入…';
 
   @override
-  String importProgressDetail(Object done, Object fail, Object ok, Object total) {
+  String importProgressDetail(
+      Object done, Object fail, Object ok, Object total) {
     return '已完成：$done/$total，成功 $ok，失敗 $fail';
   }
 
@@ -6464,7 +6521,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get sharePosterSaveSuccess => '已儲存到相簿';
 
   @override
-  String get shareGuidanceCopyText => '用蜜蜂記帳記錄生活，開源免費無廣告！🐝 下載地址：https://github.com/TNT-Likely/BeeCount';
+  String get shareGuidanceCopyText =>
+      '用蜜蜂記帳記錄生活，開源免費無廣告！🐝 下載地址：https://github.com/TNT-Likely/BeeCount';
 
   @override
   String get shareGuidanceCopied => '文案已複製';
@@ -6754,7 +6812,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get mineImportProgressTitle => '後台匯入中…';
 
   @override
-  String mineImportProgressSubtitle(Object done, Object fail, Object ok, Object total) {
+  String mineImportProgressSubtitle(
+      Object done, Object fail, Object ok, Object total) {
     return '進度：$done/$total，成功 $ok，失敗 $fail';
   }
 
@@ -6851,7 +6910,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get categoryMigrationDescription => '分類遷移說明';
 
   @override
-  String get categoryMigrationDescriptionContent => '• 將指定分類的所有交易記錄遷移到另一個分類\n• 遷移後，原分類的交易資料將全部轉移到目標分類\n• 此操作不可撤銷，請謹慎選擇';
+  String get categoryMigrationDescriptionContent =>
+      '• 將指定分類的所有交易記錄遷移到另一個分類\n• 遷移後，原分類的交易資料將全部轉移到目標分類\n• 此操作不可撤銷，請謹慎選擇';
 
   @override
   String get categoryMigrationTypeLabel => '選擇類型';
@@ -6968,7 +7028,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get categoryClearUnusedTitle => '清空未使用分類';
 
   @override
-  String categoryClearUnusedMessage(Object count) {
+  String categoryClearUnusedMessage(int count) {
     return '確定要刪除 $count 個未使用的分類嗎？此操作無法撤銷。';
   }
 
@@ -6979,7 +7039,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get categoryClearUnusedEmpty => '沒有未使用的分類';
 
   @override
-  String categoryClearUnusedSuccess(Object count) {
+  String categoryClearUnusedSuccess(int count) {
     return '已刪除 $count 個分類';
   }
 
@@ -6999,7 +7059,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get categoryShareScopeAll => '全部分類';
 
   @override
-  String categoryShareSuccess(Object path) {
+  String categoryShareSuccess(String path) {
     return '已儲存到 $path';
   }
 
@@ -7087,10 +7147,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get categoryParentRequiredTitle => '錯誤';
 
   @override
-  String get categoryExpenseList => '餐飲-交通-購物-娛樂-居家-家庭-通訊-水電-住房-醫療-教育-寵物-運動-數碼-旅行-煙酒-母嬰-美容-維修-社交-學習-汽車-打車-地鐵-外賣-物業-停車-捐贈-送禮-納稅-飲料-服裝-零食-發紅包-水果-遊戲-書-愛人-裝修-日用品-彩票-股票-社保-快遞-工作';
+  String get categoryExpenseList =>
+      '餐飲-交通-購物-娛樂-居家-家庭-通訊-水電-住房-醫療-教育-寵物-運動-數碼-旅行-煙酒-母嬰-美容-維修-社交-學習-汽車-打車-地鐵-外賣-物業-停車-捐贈-送禮-納稅-飲料-服裝-零食-發紅包-水果-遊戲-書-愛人-裝修-日用品-彩票-股票-社保-快遞-工作';
 
   @override
-  String get categoryIncomeList => '工資-理財-收紅包-獎金-報銷-兼職-收禮-利息-退款-投資收益-二手轉賣-社會保障-退稅退費-公積金';
+  String get categoryIncomeList =>
+      '工資-理財-收紅包-獎金-報銷-兼職-收禮-利息-退款-投資收益-二手轉賣-社會保障-退稅退費-公積金';
 
   @override
   String get categoryExpenseDining => '餐飲-早餐-午餐-晚餐-美團外賣-餓了麼外賣-京東外賣-餐廳-美食';
@@ -7299,7 +7361,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get fontSettingsPreview => '即時預覽';
 
   @override
-  String get fontSettingsPreviewText => '今天吃飯花了 23.50 元，記一筆；\n本月已記帳 45 天，共 320 條記錄；\n堅持就是勝利！';
+  String get fontSettingsPreviewText =>
+      '今天吃飯花了 23.50 元，記一筆；\n本月已記帳 45 天，共 320 條記錄；\n堅持就是勝利！';
 
   @override
   String fontSettingsCurrentLevel(Object level, Object scale) {
@@ -7313,7 +7376,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get fontSettingsCustomAdjust => '自訂調整';
 
   @override
-  String get fontSettingsDescription => '說明：此設定確保所有裝置在1.0倍時顯示效果一致，裝置差異已自動補償；調整數值可在一致基礎上進行個性化縮放。';
+  String get fontSettingsDescription =>
+      '說明：此設定確保所有裝置在1.0倍時顯示效果一致，裝置差異已自動補償；調整數值可在一致基礎上進行個性化縮放。';
 
   @override
   String get fontSettingsExtraSmall => '極小';
@@ -7528,10 +7592,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get reminderDescription => '提示：開啟記帳提醒後，系統會在每天指定時間發送通知提醒您記錄收支。';
 
   @override
-  String get reminderIOSInstructions => '🍎 iOS通知設定：\n• 設定 > 通知 > 蜜蜂記帳\n• 開啟\"允許通知\"\n• 設定通知樣式：橫幅或提醒\n• 開啟聲音和震動\n\n⚠️ 重要提示：\n• iOS本地通知依賴應用程序進程\n• 請勿在任務管理器中划掉應用\n• 應用在後台或前台時通知正常\n• 完全關閉應用會導致通知失效\n\n💡 使用建議：\n• 日常使用後直接按Home鍵退出\n• iOS會自動管理後台應用\n• 保持應用在後台即可收到提醒';
+  String get reminderIOSInstructions =>
+      '🍎 iOS通知設定：\n• 設定 > 通知 > 蜜蜂記帳\n• 開啟\"允許通知\"\n• 設定通知樣式：橫幅或提醒\n• 開啟聲音和震動\n\n⚠️ 重要提示：\n• iOS本地通知依賴應用程序進程\n• 請勿在任務管理器中划掉應用\n• 應用在後台或前台時通知正常\n• 完全關閉應用會導致通知失效\n\n💡 使用建議：\n• 日常使用後直接按Home鍵退出\n• iOS會自動管理後台應用\n• 保持應用在後台即可收到提醒';
 
   @override
-  String get reminderAndroidInstructions => '如果通知無法正常工作，請檢查：\n• 已允許應用程式發送通知\n• 關閉應用程式的電池最佳化/省電模式\n• 允許應用程式在背景執行和自啟動\n• Android 12+需要精確鬧鐘權限\n\n📱 小米手機特殊設定：\n• 設定 > 應用程式管理 > 蜜蜂記帳 > 通知管理\n• 點擊\"記帳提醒\"頻道\n• 設定重要性為\"緊急\"或\"高\"\n• 開啟\"橫幅通知\"、\"聲音\"、\"震動\"\n• 安全中心 > 應用程式管理 > 權限 > 自啟動\n\n🔒 鎖定背景方法：\n• 最近任務中找到蜜蜂記帳\n• 向下拉動應用程式卡片顯示鎖定圖示\n• 點擊鎖定圖示防止被清理';
+  String get reminderAndroidInstructions =>
+      '如果通知無法正常工作，請檢查：\n• 已允許應用程式發送通知\n• 關閉應用程式的電池最佳化/省電模式\n• 允許應用程式在背景執行和自啟動\n• Android 12+需要精確鬧鐘權限\n\n📱 小米手機特殊設定：\n• 設定 > 應用程式管理 > 蜜蜂記帳 > 通知管理\n• 點擊\"記帳提醒\"頻道\n• 設定重要性為\"緊急\"或\"高\"\n• 開啟\"橫幅通知\"、\"聲音\"、\"震動\"\n• 安全中心 > 應用程式管理 > 權限 > 自啟動\n\n🔒 鎖定背景方法：\n• 最近任務中找到蜜蜂記帳\n• 向下拉動應用程式卡片顯示鎖定圖示\n• 點擊鎖定圖示防止被清理';
 
   @override
   String get categoryDetailLoadFailed => '載入失敗';
@@ -7576,7 +7642,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get categoryMigrationConfirmTitle => '確認遷移';
 
   @override
-  String categoryMigrationConfirmMessage(Object count, Object fromName, Object toName) {
+  String categoryMigrationConfirmMessage(
+      Object count, Object fromName, Object toName) {
     return '確定要將「$fromName」的 $count 筆交易遷移到「$toName」嗎？\n\n此操作不可撤銷！';
   }
 
@@ -7587,7 +7654,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get categoryMigrationCompleteTitle => '遷移完成';
 
   @override
-  String categoryMigrationCompleteMessage(Object count, Object fromName, Object toName) {
+  String categoryMigrationCompleteMessage(
+      Object count, Object fromName, Object toName) {
     return '成功將 $count 筆交易從「$fromName」遷移到「$toName」。';
   }
 
@@ -7641,10 +7709,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get cloudMultiDeviceWarningTitle => '多設備同步提示';
 
   @override
-  String get cloudMultiDeviceWarningMessage => '目前暫不支援多設備協同編輯。如需在新設備使用，請先清空新設備的本機資料，然後從雲端下載帳本。';
+  String get cloudMultiDeviceWarningMessage =>
+      '目前暫不支援多設備協同編輯。如需在新設備使用，請先清空新設備的本機資料，然後從雲端下載帳本。';
 
   @override
-  String get cloudMultiDeviceWarningDetail => '多設備同步說明：\n\n1. 目前不支援多設備同時編輯同一帳本\n2. 如果在設備A編輯後，切換到設備B使用：\n   • 需要在設備B上清空所有帳本\n   • 然後從雲端下載最新資料\n3. 未來版本將支援真正的多設備協同';
+  String get cloudMultiDeviceWarningDetail =>
+      '多設備同步說明：\n\n1. 目前不支援多設備同時編輯同一帳本\n2. 如果在設備A編輯後，切換到設備B使用：\n   • 需要在設備B上清空所有帳本\n   • 然後從雲端下載最新資料\n3. 未來版本將支援真正的多設備協同';
 
   @override
   String get cloudWebdavUrlLabel => 'WebDAV 伺服器地址';
@@ -7818,7 +7888,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get exportTitle => '匯出';
 
   @override
-  String get exportDescription => '支援匯出的資料類型：\n• 交易記錄（收入／支出／轉帳）\n• 分類資訊\n• 帳戶資訊\n\n點擊下方按鈕選擇儲存位置，開始匯出目前帳本為 CSV 檔案。';
+  String get exportDescription =>
+      '支援匯出的資料類型：\n• 交易記錄（收入／支出／轉帳）\n• 分類資訊\n• 帳戶資訊\n\n點擊下方按鈕選擇儲存位置，開始匯出目前帳本為 CSV 檔案。';
 
   @override
   String get exportButtonIOS => '匯出並分享';
@@ -8097,7 +8168,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get updateCannotOpenLink => '無法開啟連結';
 
   @override
-  String get updateManualVisit => '請手動在瀏覽器中存取：\\nhttps://github.com/TNT-Likely/BeeCount/releases';
+  String get updateManualVisit =>
+      '請手動在瀏覽器中存取：\\nhttps://github.com/TNT-Likely/BeeCount/releases';
 
   @override
   String get updateNoLocalApkTitle => '未找到更新包';
@@ -8182,10 +8254,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get updateNoLocalApkFoundMessage => '沒有找到已下載的更新包檔案。\n\n請先透過\"檢查更新\"下載新版本。';
+  String get updateNoLocalApkFoundMessage =>
+      '沒有找到已下載的更新包檔案。\n\n請先透過\"檢查更新\"下載新版本。';
 
   @override
-  String updateInstallPackageFoundMessage(String fileName, String fileSize, String time) {
+  String updateInstallPackageFoundMessage(
+      String fileName, String fileSize, String time) {
     return '找到更新包：\n\n檔案名：$fileName\n大小：${fileSize}MB\n下載時間：$time\n\n是否立即安裝？';
   }
 
@@ -8219,7 +8293,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get updateCachedVersionTitle => '發現已下載版本';
 
   @override
-  String get updateCachedVersionMessage => '已找到之前下載的安裝包...點擊\\\"確定\\\"立即安裝，點擊\\\"取消\\\"關閉...';
+  String get updateCachedVersionMessage =>
+      '已找到之前下載的安裝包...點擊\\\"確定\\\"立即安裝，點擊\\\"取消\\\"關閉...';
 
   @override
   String get updateConfirmDownload => '立即下載並安裝';
@@ -8256,7 +8331,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get updateMirrorSettingTitle => '下載加速器';
 
   @override
-  String get updateNotificationPermissionGuideText => '下載進度通知被關閉，但不影響下載功能。如需檢視進度：';
+  String get updateNotificationPermissionGuideText =>
+      '下載進度通知被關閉，但不影響下載功能。如需檢視進度：';
 
   @override
   String get updateNotificationGuideStep1 => '進入系統設定 > 應用程式管理';
@@ -8426,7 +8502,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get recurringTransactionUsageTitle => '使用說明';
 
   @override
-  String get recurringTransactionUsageContent => '週期記帳會在每次冷啟動進入 App 時自動掃描並產生帳單。設定日期後，系統會在該日期之後的冷啟動時建立對應帳單。例如：設定 11 月 27 日，則會在 11 月 27 日之後的首次啟動時自動記帳。';
+  String get recurringTransactionUsageContent =>
+      '週期記帳會在每次冷啟動進入 App 時自動掃描並產生帳單。設定日期後，系統會在該日期之後的冷啟動時建立對應帳單。例如：設定 11 月 27 日，則會在 11 月 27 日之後的首次啟動時自動記帳。';
 
   @override
   String get ledgerSelectTitle => '選擇帳本';
@@ -8441,7 +8518,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get syncNotLoggedInMessage => '未登入';
 
   @override
-  String get syncCloudBackupCorruptedMessage => '雲端備份內容無法解析，可能是早期版本編碼問題造成的損壞。請點擊\\\"上傳當前帳本到雲端\\\"覆蓋修復。';
+  String get syncCloudBackupCorruptedMessage =>
+      '雲端備份內容無法解析，可能是早期版本編碼問題造成的損壞。請點擊\\\"上傳當前帳本到雲端\\\"覆蓋修復。';
 
   @override
   String get syncNoCloudBackupMessage => '雲端暫無備份';
@@ -8973,7 +9051,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aboutWidget => '關于小組件';
 
   @override
-  String get widgetDescription => '小組件会自動同步顯示今日和本月的收支數據，每30分钟自動刷新一次。打開應用后会立即更新數據。';
+  String get widgetDescription =>
+      '小組件会自動同步顯示今日和本月的收支數據，每30分钟自動刷新一次。打開應用后会立即更新數據。';
 
   @override
   String get appName => '蜜蜂记帳';
@@ -9006,7 +9085,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get featureDescription => '功能說明';
 
   @override
-  String get featureDescriptionContent => '截圖支付頁面後，系統會自動識別金額和商家資訊，並建立支出記錄。\n\n⚡ 識別速度約 2-3 秒\n🤖 智慧配對分類\n📝 自動填寫備註';
+  String get featureDescriptionContent =>
+      '截圖支付頁面後，系統會自動識別金額和商家資訊，並建立支出記錄。\n\n⚡ 識別速度約 2-3 秒\n🤖 智慧配對分類\n📝 自動填寫備註';
 
   @override
   String get autoBilling => '自動記帳';
@@ -9033,13 +9113,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get autoBillingBatteryGuideTitle => '電池最佳化設定';
 
   @override
-  String get autoBillingBatteryDesc => '自動記帳需要應用程式在背景保持執行。部分手機會在鎖屏後自動清理背景應用程式，導致自動記帳功能失效。建議關閉電池最佳化以確保功能正常工作。';
+  String get autoBillingBatteryDesc =>
+      '自動記帳需要應用程式在背景保持執行。部分手機會在鎖屏後自動清理背景應用程式，導致自動記帳功能失效。建議關閉電池最佳化以確保功能正常工作。';
 
   @override
   String get autoBillingCheckBattery => '檢查電池最佳化狀態';
 
   @override
-  String get autoBillingBatteryWarning => '⚠️ 未關閉電池最佳化，應用程式可能會被系統自動清理，導致自動記帳失效。建議點擊上方「前往設定」按鈕關閉電池最佳化。';
+  String get autoBillingBatteryWarning =>
+      '⚠️ 未關閉電池最佳化，應用程式可能會被系統自動清理，導致自動記帳失效。建議點擊上方「前往設定」按鈕關閉電池最佳化。';
 
   @override
   String get enableFailed => '啟用失敗';
@@ -9048,7 +9130,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get disableFailed => '停用失敗';
 
   @override
-  String get iosAutoFeatureDesc => '透過 iOS「捷徑」應用程式，實現截圖後自動識別支付資訊並記帳。設定後，每次截圖都會自動觸發識別。';
+  String get iosAutoFeatureDesc =>
+      '透過 iOS「捷徑」應用程式，實現截圖後自動識別支付資訊並記帳。設定後，每次截圖都會自動觸發識別。';
 
   @override
   String get iosAutoShortcutConfigTitle => '設定步驟（推薦方式 - URL 參數傳遞）：';
@@ -9072,13 +9155,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get iosAutoShortcutStep6 => '完成！支付時雙擊手機背部即可快速記帳';
 
   @override
-  String get iosAutoShortcutRecommendedTip => '✅ 推薦：在「輕點背面」中綁定捷徑後，支付時雙擊手機背部即可自動截圖並識別記帳，無需手動截圖。';
+  String get iosAutoShortcutRecommendedTip =>
+      '✅ 推薦：在「輕點背面」中綁定捷徑後，支付時雙擊手機背部即可自動截圖並識別記帳，無需手動截圖。';
 
   @override
   String get iosAutoBackTapTitle => '💡 雙擊背面快速觸發（推薦）';
 
   @override
-  String get iosAutoBackTapDesc => '設定 > 輔助使用 > 觸控 > 背面輕點\n• 選擇「點兩下」或「點三下」\n• 選擇剛建立的捷徑\n• 完成後，支付時雙擊手機背面即可自動記帳，無需截圖';
+  String get iosAutoBackTapDesc =>
+      '設定 > 輔助使用 > 觸控 > 背面輕點\n• 選擇「點兩下」或「點三下」\n• 選擇剛建立的捷徑\n• 完成後，支付時雙擊手機背面即可自動記帳，無需截圖';
 
   @override
   String get iosAutoTutorialTitle => '影片教學';
@@ -9201,7 +9286,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get cloudSyncPageSubtitle => '管理雲端服務和資料同步';
 
   @override
-  String get cloudSyncHint => '雲同步只會同步帳本資料（包括交易記錄關聯的帳戶、分類、標籤），不包括未關聯的分類、標籤、帳戶，也不包括附件。附件請通過資料管理單獨匯入匯出。';
+  String get cloudSyncHint =>
+      '雲同步只會同步帳本資料（包括交易記錄關聯的帳戶、分類、標籤），不包括未關聯的分類、標籤、帳戶，也不包括附件。附件請通過資料管理單獨匯入匯出。';
 
   @override
   String get dataManagement => '資料管理';
@@ -9216,7 +9302,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get dataManagementPageSubtitle => '管理帳單資料和分類';
 
   @override
-  String get dataManagementAttachmentHint => '還原資料時，請先匯入附件包，再匯入帳本資料（CSV或雲同步），以確保附件正確關聯。';
+  String get dataManagementAttachmentHint =>
+      '還原資料時，請先匯入附件包，再匯入帳本資料（CSV或雲同步），以確保附件正確關聯。';
 
   @override
   String get smartBilling => '智慧記帳';
@@ -9240,7 +9327,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get smartBillingImageBillingDesc => '從相簿選擇支付截圖進行識別';
 
   @override
-  String get smartBillingImageBillingGuide => '在首頁長按底部中間的 + 按鈕，選擇「相簿」即可使用圖片記帳功能。配置AI後可智慧識別帳單資訊，未配置時仍可透過OCR識別文字。';
+  String get smartBillingImageBillingGuide =>
+      '在首頁長按底部中間的 + 按鈕，選擇「相簿」即可使用圖片記帳功能。配置AI後可智慧識別帳單資訊，未配置時仍可透過OCR識別文字。';
 
   @override
   String get smartBillingAIOptional => 'AI 識別為可選功能，配置後可提高識別準確度';
@@ -9252,7 +9340,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get smartBillingCameraBillingDesc => '拍攝支付截圖進行識別';
 
   @override
-  String get smartBillingCameraBillingGuide => '在首頁長按底部中間的 + 按鈕，選擇「拍照」即可使用拍照記帳功能。配置AI後可智慧識別帳單資訊，未配置時仍可透過OCR識別文字。';
+  String get smartBillingCameraBillingGuide =>
+      '在首頁長按底部中間的 + 按鈕，選擇「拍照」即可使用拍照記帳功能。配置AI後可智慧識別帳單資訊，未配置時仍可透過OCR識別文字。';
 
   @override
   String get smartBillingVoiceBilling => '語音記帳';
@@ -9261,7 +9350,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get smartBillingVoiceBillingDesc => '透過語音輸入快速記帳';
 
   @override
-  String get smartBillingVoiceBillingGuide => '在首頁長按底部中間的 + 按鈕，選擇「語音」即可使用語音記帳功能。語音記帳需要透過AI將語音轉為文字並提取帳單資訊。';
+  String get smartBillingVoiceBillingGuide =>
+      '在首頁長按底部中間的 + 按鈕，選擇「語音」即可使用語音記帳功能。語音記帳需要透過AI將語音轉為文字並提取帳單資訊。';
 
   @override
   String get smartBillingAIRequired => '語音記帳必須配置 AI（智譜 GLM API），請先在上方配置 AI 設定';
@@ -9405,7 +9495,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get configImportExportInfoTitle => '功能說明';
 
   @override
-  String get configImportExportInfoMessage => '此功能用於匯出和匯入應用配置，包括雲端服務配置、AI配置等。配置檔案採用YAML格式，方便檢視和編輯。\\n\\n⚠️ 配置檔案包含敏感資訊（如API金鑰、密碼等），請妥善保管。';
+  String get configImportExportInfoMessage =>
+      '此功能用於匯出和匯入應用配置，包括雲端服務配置、AI配置等。配置檔案採用YAML格式，方便檢視和編輯。\\n\\n⚠️ 配置檔案包含敏感資訊（如API金鑰、密碼等），請妥善保管。';
 
   @override
   String get configExportTitle => '匯出配置';
@@ -9785,7 +9876,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get iosVersionWarningTitle => '需要 iOS 16.0 或更高版本';
 
   @override
-  String get iosVersionWarningDesc => '截圖自動記帳功能使用了 iOS 16 引入的 App Intents 框架。您的裝置系統版本較低，暫不支援此功能。\n\n請升級到 iOS 16 或更高版本以使用此功能。';
+  String get iosVersionWarningDesc =>
+      '截圖自動記帳功能使用了 iOS 16 引入的 App Intents 框架。您的裝置系統版本較低，暫不支援此功能。\n\n請升級到 iOS 16 或更高版本以使用此功能。';
 
   @override
   String get aiChatTitle => 'AI助手';
@@ -9875,7 +9967,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get donationDescription => '說明';
 
   @override
-  String get donationDescriptionDetail => '感謝您使用蜜蜂記帳！如果這個應用對您有幫助，歡迎請開發者喝杯咖啡作為鼓勵。您的支持是我持續改進的動力。';
+  String get donationDescriptionDetail =>
+      '感謝您使用蜜蜂記帳！如果這個應用對您有幫助，歡迎請開發者喝杯咖啡作為鼓勵。您的支持是我持續改進的動力。';
 
   @override
   String get donationNoFeatures => '注：打賞不會解鎖任何功能，所有功能繼續完全免費。';
@@ -9898,7 +9991,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aiQuickCommandFinancialHealthDesc => '分析收支平衡和儲蓄率';
 
   @override
-  String get aiQuickCommandFinancialHealthPrompt => '請根據以下資料分析我的財務健康狀況：\n\n[monthlyStats]\n\n[recentTrends]\n\n請從收支平衡、儲蓄率、消費趨勢等角度給出專業分析和建議。請用繁體中文回覆。';
+  String get aiQuickCommandFinancialHealthPrompt =>
+      '請根據以下資料分析我的財務健康狀況：\n\n[monthlyStats]\n\n[recentTrends]\n\n請從收支平衡、儲蓄率、消費趨勢等角度給出專業分析和建議。請用繁體中文回覆。';
 
   @override
   String get aiQuickCommandMonthlyExpenseTitle => '本月支出總結';
@@ -9907,7 +10001,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aiQuickCommandMonthlyExpenseDesc => '月度支出分析和建議';
 
   @override
-  String get aiQuickCommandMonthlyExpensePrompt => '請根據以下資料總結我本月的支出情況：\n\n[monthlyStats]\n\n[categoryStats]\n\n請分析哪些分類佔比最高，並給出優化建議。請用繁體中文回覆。';
+  String get aiQuickCommandMonthlyExpensePrompt =>
+      '請根據以下資料總結我本月的支出情況：\n\n[monthlyStats]\n\n[categoryStats]\n\n請分析哪些分類佔比最高，並給出優化建議。請用繁體中文回覆。';
 
   @override
   String get aiQuickCommandCategoryAnalysisTitle => '分類佔比分析';
@@ -9916,7 +10011,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aiQuickCommandCategoryAnalysisDesc => '分析各分類支出分佈';
 
   @override
-  String get aiQuickCommandCategoryAnalysisPrompt => '請根據以下資料分析我的分類支出情況：\n\n[categoryStats]\n\n請指出是否存在不合理的支出比例，並給出優化建議。請用繁體中文回覆。';
+  String get aiQuickCommandCategoryAnalysisPrompt =>
+      '請根據以下資料分析我的分類支出情況：\n\n[categoryStats]\n\n請指出是否存在不合理的支出比例，並給出優化建議。請用繁體中文回覆。';
 
   @override
   String get aiQuickCommandBudgetPlanningTitle => '預算規劃建議';
@@ -9925,7 +10021,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aiQuickCommandBudgetPlanningDesc => '智能預算推薦';
 
   @override
-  String get aiQuickCommandBudgetPlanningPrompt => '請根據以下資料幫我規劃合理的預算：\n\n[monthlyStats]\n\n[recentTrends]\n\n請給出各分類的具體預算金額和執行建議。請用繁體中文回覆。';
+  String get aiQuickCommandBudgetPlanningPrompt =>
+      '請根據以下資料幫我規劃合理的預算：\n\n[monthlyStats]\n\n[recentTrends]\n\n請給出各分類的具體預算金額和執行建議。請用繁體中文回覆。';
 
   @override
   String get aiQuickCommandAbnormalExpenseTitle => '異常支出提醒';
@@ -9934,7 +10031,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aiQuickCommandAbnormalExpenseDesc => '識別異常消費';
 
   @override
-  String get aiQuickCommandAbnormalExpensePrompt => '請根據以下資料檢查是否有異常支出：\n\n[recentTransactions]\n\n[monthlyStats]\n\n請識別出明顯高於平常的支出，並給出分析。請用繁體中文回覆。';
+  String get aiQuickCommandAbnormalExpensePrompt =>
+      '請根據以下資料檢查是否有異常支出：\n\n[recentTransactions]\n\n[monthlyStats]\n\n請識別出明顯高於平常的支出，並給出分析。請用繁體中文回覆。';
 
   @override
   String get aiQuickCommandSavingTipsTitle => '省錢小貼士';
@@ -9943,7 +10041,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aiQuickCommandSavingTipsDesc => '個性化省錢建議';
 
   @override
-  String get aiQuickCommandSavingTipsPrompt => '請根據以下資料給出實用的省錢建議：\n\n[categoryStats]\n\n[recentTrends]\n\n請給出3-5條具體可行的建議。請用繁體中文回覆。';
+  String get aiQuickCommandSavingTipsPrompt =>
+      '請根據以下資料給出實用的省錢建議：\n\n[categoryStats]\n\n[recentTrends]\n\n請給出3-5條具體可行的建議。請用繁體中文回覆。';
 
   @override
   String get billCardUnknownLedger => '未知帳本';
@@ -10059,7 +10158,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aiUnUseVisionDesc => '僅使用文字模型分析OCR結果';
 
   @override
-  String get aiCustomBaseUrlHelper => 'OpenAI相容的API位址，如 https://api.openai.com/v1';
+  String get aiCustomBaseUrlHelper =>
+      'OpenAI相容的API位址，如 https://api.openai.com/v1';
 
   @override
   String get aiTextModelTitle => '文字模型';
@@ -10484,7 +10584,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String attachmentExportProgressDetail(int attachmentCount, int iconCount, int current, int total) {
+  String attachmentExportProgressDetail(
+      int attachmentCount, int iconCount, int current, int total) {
     return '正在匯出 $attachmentCount 個附件 + $iconCount 個圖標 ($current/$total)';
   }
 
@@ -10511,7 +10612,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String attachmentImportResult(int imported, int skipped, int overwritten, int failed) {
+  String attachmentImportResult(
+      int imported, int skipped, int overwritten, int failed) {
     return '匯入 $imported 張，跳過 $skipped 張，覆蓋 $overwritten 張，失敗 $failed 張';
   }
 

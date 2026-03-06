@@ -260,6 +260,13 @@
   "ledgersNew": "新建账本",
   "ledgersClear": "清空账本",
   "ledgersClearMessage": "确定要清空账本\"{name}\"的所有账单吗？此操作不可恢复。\\n账本本身会保留，仅删除账单数据。",
+  "@ledgersClearMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "ledgerDefaultName": "默认账本",
   "ledgersEdit": "编辑账本",
   "ledgersDelete": "删除账本",
@@ -268,13 +275,6 @@
   "ledgersDeleted": "已删除",
   "ledgersDeleteFailed": "删除失败",
   "ledgersClearTitle": "清空账本",
-  "@ledgersClearMessage": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
   "ledgersClearSuccess": "账本已清空",
   "ledgersDeleteLocal": "仅删除本地账本",
   "ledgersDeleteLocalTitle": "删除本地账本",

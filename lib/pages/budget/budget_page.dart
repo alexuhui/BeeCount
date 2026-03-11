@@ -52,9 +52,34 @@ class BudgetPage extends ConsumerWidget {
       BuildContext context, WidgetRef ref, BudgetOverview? overview) {
     final l10n = AppLocalizations.of(context);
 
-    // 总预算概览卡片
-    _buildTotalBudgetCard(context, ref, overview, l10n);
+    return Column(
+      children: [
+        // 总预算概览卡片（固定在顶部）
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: 16.0.scaled(context, ref),
+            vertical: 8.0.scaled(context, ref),
+          ),
+          child: _buildTotalBudgetCard(context, ref, overview, l10n),
+        ),
 
+        SizedBox(height: 12.0.scaled(context, ref)),
+
+        // 分类预算列表（可滚动）
+        Expanded(
+          child: ListView(
+            padding: EdgeInsets.symmetric(
+              horizontal: 16.0.scaled(context, ref),
+            ),
+            children: [
+              if (overview != null && overview.categoryBudgets.isNotEmpty)
+                _buildCategoryBudgetsCard(context, ref, overview.categoryBudgets, l10n),
+            ],
+          ),
+        ),
+      ],
+    );
+   
     // return ListView(
     //   padding: EdgeInsets.symmetric(
     //     horizontal: 12.0.scaled(context, ref),
@@ -111,7 +136,9 @@ class BudgetPage extends ConsumerWidget {
     BudgetOverview? overview,
     AppLocalizations l10n,
   ) {
-    final budget = overview.totalBudget!;
+    final double budget = overview?.totalBudget?.budget ?? 0;
+    final double used = 0;
+    final double remaining = budget - used;
 
     return SectionCard(
       margin: EdgeInsets.zero,
@@ -138,8 +165,8 @@ class BudgetPage extends ConsumerWidget {
           SizedBox(height: 16.0.scaled(context, ref)),
           // 进度条
           BudgetProgressBar(
-            used: budget.used,
-            budget: budget.budget,
+            used: used,
+            budget: budget,
             showLabel: false,
             height: 12,
           ),
@@ -159,7 +186,7 @@ class BudgetPage extends ConsumerWidget {
                     ),
                   ),
                   Text(
-                    '¥${budget.used.toStringAsFixed(2)}',
+                    '¥${used.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -179,11 +206,11 @@ class BudgetPage extends ConsumerWidget {
                     ),
                   ),
                   Text(
-                    '¥${budget.remaining.toStringAsFixed(2)}',
+                    '¥${remaining.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: budget.remaining >= 0 ? Colors.green : Colors.red,
+                      color: remaining >= 0 ? Colors.green : Colors.red,
                     ),
                   ),
                 ],
@@ -204,7 +231,7 @@ class BudgetPage extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  l10n.budgetDaysRemaining(overview.daysRemaining),
+                  l10n.budgetDaysRemaining(overview?.daysRemaining ?? 0),
                   style: TextStyle(
                     fontSize: 14,
                     color: BeeTokens.textSecondary(context),
@@ -212,7 +239,7 @@ class BudgetPage extends ConsumerWidget {
                 ),
                 Text(
                   l10n.budgetDailyAvailable(
-                      overview.dailyAvailable.toStringAsFixed(0)),
+                    (overview?.dailyAvailable ?? 0).toStringAsFixed(0)),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,

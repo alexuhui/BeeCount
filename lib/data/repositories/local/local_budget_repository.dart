@@ -194,7 +194,7 @@ class LocalBudgetRepository implements BudgetRepository {
   Future<BudgetOverview> getBudgetOverview(int ledgerId, DateTime month) async {
     // 获取总预算
     final totalBudget = await getAllBudget(ledgerId);
-    int totalUsage = 0;
+    BudgetUsage? totalUsage;
 
     if (totalBudget != null) {
       totalUsage = await getBudgetUsage(totalBudget.id, month);
@@ -286,5 +286,10 @@ class LocalBudgetRepository implements BudgetRepository {
     if (v is int) return v.toDouble();
     if (v is num) return v.toDouble();
     return 0.0;
+  }
+  
+  @override
+  Future<Budget?> getAllBudget(int ledgerId) {
+    throw UnimplementedError('local_budget_repository getAllBudget 未实现');
   }
 }

@@ -24,7 +24,7 @@ class BudgetUsage {
 
 /// 预算概览
 class BudgetOverview {
-  final int totalBudget;
+  final BudgetUsage? totalBudget;
   final List<CategoryBudgetUsage> categoryBudgets;
   final int daysRemaining;
   final double dailyAvailable;

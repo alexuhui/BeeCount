@@ -3862,13 +3862,21 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
   late final GeneratedColumn<int> ledgerId = GeneratedColumn<int>(
       'ledger_id', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
-  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  static const VerificationMeta _yearMeta = const VerificationMeta('year');
   @override
-  late final GeneratedColumn<String> type = GeneratedColumn<String>(
-      'type', aliasedName, false,
-      type: DriftSqlType.string,
-      requiredDuringInsert: false,
-      defaultValue: const Constant('total'));
+  late final GeneratedColumn<int> year = GeneratedColumn<int>(
+      'year', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _monthMeta = const VerificationMeta('month');
+  @override
+  late final GeneratedColumn<int> month = GeneratedColumn<int>(
+      'month', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+      'notes', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _categoryIdMeta =
       const VerificationMeta('categoryId');
   @override
@@ -3880,21 +3888,6 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
   late final GeneratedColumn<double> amount = GeneratedColumn<double>(
       'amount', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
-  static const VerificationMeta _periodMeta = const VerificationMeta('period');
-  @override
-  late final GeneratedColumn<String> period = GeneratedColumn<String>(
-      'period', aliasedName, false,
-      type: DriftSqlType.string,
-      requiredDuringInsert: false,
-      defaultValue: const Constant('monthly'));
-  static const VerificationMeta _startDayMeta =
-      const VerificationMeta('startDay');
-  @override
-  late final GeneratedColumn<int> startDay = GeneratedColumn<int>(
-      'start_day', aliasedName, false,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultValue: const Constant(1));
   static const VerificationMeta _enabledMeta =
       const VerificationMeta('enabled');
   @override
@@ -3921,18 +3914,57 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
       type: DriftSqlType.dateTime,
       requiredDuringInsert: false,
       defaultValue: currentDateAndTime);
+  static const VerificationMeta _promptMeta = const VerificationMeta('prompt');
+  @override
+  late final GeneratedColumn<bool> prompt = GeneratedColumn<bool>(
+      'prompt', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("prompt" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _promptDayMeta =
+      const VerificationMeta('promptDay');
+  @override
+  late final GeneratedColumn<int> promptDay = GeneratedColumn<int>(
+      'prompt_day', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _ignoredMeta =
+      const VerificationMeta('ignored');
+  @override
+  late final GeneratedColumn<bool> ignored = GeneratedColumn<bool>(
+      'ignored', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("ignored" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _isMonthlyFixedExpenseMeta =
+      const VerificationMeta('isMonthlyFixedExpense');
+  @override
+  late final GeneratedColumn<bool> isMonthlyFixedExpense =
+      GeneratedColumn<bool>('is_monthly_fixed_expense', aliasedName, false,
+          type: DriftSqlType.bool,
+          requiredDuringInsert: false,
+          defaultConstraints: GeneratedColumn.constraintIsAlways(
+              'CHECK ("is_monthly_fixed_expense" IN (0, 1))'),
+          defaultValue: const Constant(true));
   @override
   List<GeneratedColumn> get $columns => [
         id,
         ledgerId,
-        type,
+        year,
+        month,
+        notes,
         categoryId,
         amount,
-        period,
-        startDay,
         enabled,
         createdAt,
-        updatedAt
+        updatedAt,
+        prompt,
+        promptDay,
+        ignored,
+        isMonthlyFixedExpense
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3953,9 +3985,21 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
     } else if (isInserting) {
       context.missing(_ledgerIdMeta);
     }
-    if (data.containsKey('type')) {
+    if (data.containsKey('year')) {
       context.handle(
-          _typeMeta, type.isAcceptableOrUnknown(data['type']!, _typeMeta));
+          _yearMeta, year.isAcceptableOrUnknown(data['year']!, _yearMeta));
+    } else if (isInserting) {
+      context.missing(_yearMeta);
+    }
+    if (data.containsKey('month')) {
+      context.handle(
+          _monthMeta, month.isAcceptableOrUnknown(data['month']!, _monthMeta));
+    } else if (isInserting) {
+      context.missing(_monthMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+          _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
     }
     if (data.containsKey('category_id')) {
       context.handle(
@@ -3969,14 +4013,6 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
     } else if (isInserting) {
       context.missing(_amountMeta);
     }
-    if (data.containsKey('period')) {
-      context.handle(_periodMeta,
-          period.isAcceptableOrUnknown(data['period']!, _periodMeta));
-    }
-    if (data.containsKey('start_day')) {
-      context.handle(_startDayMeta,
-          startDay.isAcceptableOrUnknown(data['start_day']!, _startDayMeta));
-    }
     if (data.containsKey('enabled')) {
       context.handle(_enabledMeta,
           enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta));
@@ -3988,6 +4024,24 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
     if (data.containsKey('updated_at')) {
       context.handle(_updatedAtMeta,
           updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('prompt')) {
+      context.handle(_promptMeta,
+          prompt.isAcceptableOrUnknown(data['prompt']!, _promptMeta));
+    }
+    if (data.containsKey('prompt_day')) {
+      context.handle(_promptDayMeta,
+          promptDay.isAcceptableOrUnknown(data['prompt_day']!, _promptDayMeta));
+    }
+    if (data.containsKey('ignored')) {
+      context.handle(_ignoredMeta,
+          ignored.isAcceptableOrUnknown(data['ignored']!, _ignoredMeta));
+    }
+    if (data.containsKey('is_monthly_fixed_expense')) {
+      context.handle(
+          _isMonthlyFixedExpenseMeta,
+          isMonthlyFixedExpense.isAcceptableOrUnknown(
+              data['is_monthly_fixed_expense']!, _isMonthlyFixedExpenseMeta));
     }
     return context;
   }
@@ -4002,22 +4056,31 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, Budget> {
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       ledgerId: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}ledger_id'])!,
-      type: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}type'])!,
+      year: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}year'])!,
+      month: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}month'])!,
+      notes: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}notes']),
       categoryId: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}category_id']),
       amount: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}amount'])!,
-      period: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}period'])!,
-      startDay: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}start_day'])!,
       enabled: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}enabled'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      prompt: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}prompt'])!,
+      promptDay: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}prompt_day']),
+      ignored: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}ignored'])!,
+      isMonthlyFixedExpense: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool,
+          data['${effectivePrefix}is_monthly_fixed_expense'])!,
     );
   }
 
@@ -4032,21 +4095,19 @@ class Budget extends DataClass implements Insertable<Budget> {
 
   /// 关联账本ID
   final int ledgerId;
+  final int year;
 
-  /// 预算类型：total-总预算, category-分类预算
-  final String type;
+  /// 预算月份（1-12）
+  final int month;
 
-  /// 关联分类ID（仅分类预算有值）
+  /// 预算备注信息: 用于记录预算的备注信息，如预算的来源、使用场景等。
+  final String? notes;
+
+  /// 关联分类ID，每个预算必须关联一个分类
   final int? categoryId;
 
   /// 预算金额
   final double amount;
-
-  /// 预算周期：monthly-月度, weekly-周度, yearly-年度
-  final String period;
-
-  /// 周期起始日（1-31，月度预算；1-7，周度预算）
-  final int startDay;
 
   /// 是否启用
   final bool enabled;
@@ -4056,32 +4117,56 @@ class Budget extends DataClass implements Insertable<Budget> {
 
   /// 更新时间
   final DateTime updatedAt;
+
+  /// 是否提示用户支付
+  final bool prompt;
+
+  /// 提示日期
+  final int? promptDay;
+
+  /// 是否不再提示（用户已支付）
+  final bool ignored;
+
+  /// 是否月度固定支出
+  final bool isMonthlyFixedExpense;
   const Budget(
       {required this.id,
       required this.ledgerId,
-      required this.type,
+      required this.year,
+      required this.month,
+      this.notes,
       this.categoryId,
       required this.amount,
-      required this.period,
-      required this.startDay,
       required this.enabled,
       required this.createdAt,
-      required this.updatedAt});
+      required this.updatedAt,
+      required this.prompt,
+      this.promptDay,
+      required this.ignored,
+      required this.isMonthlyFixedExpense});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['ledger_id'] = Variable<int>(ledgerId);
-    map['type'] = Variable<String>(type);
+    map['year'] = Variable<int>(year);
+    map['month'] = Variable<int>(month);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
     if (!nullToAbsent || categoryId != null) {
       map['category_id'] = Variable<int>(categoryId);
     }
     map['amount'] = Variable<double>(amount);
-    map['period'] = Variable<String>(period);
-    map['start_day'] = Variable<int>(startDay);
     map['enabled'] = Variable<bool>(enabled);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['prompt'] = Variable<bool>(prompt);
+    if (!nullToAbsent || promptDay != null) {
+      map['prompt_day'] = Variable<int>(promptDay);
+    }
+    map['ignored'] = Variable<bool>(ignored);
+    map['is_monthly_fixed_expense'] = Variable<bool>(isMonthlyFixedExpense);
     return map;
   }
 
@@ -4089,16 +4174,23 @@ class Budget extends DataClass implements Insertable<Budget> {
     return BudgetsCompanion(
       id: Value(id),
       ledgerId: Value(ledgerId),
-      type: Value(type),
+      year: Value(year),
+      month: Value(month),
+      notes:
+          notes == null && nullToAbsent ? const Value.absent() : Value(notes),
       categoryId: categoryId == null && nullToAbsent
           ? const Value.absent()
           : Value(categoryId),
       amount: Value(amount),
-      period: Value(period),
-      startDay: Value(startDay),
       enabled: Value(enabled),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      prompt: Value(prompt),
+      promptDay: promptDay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(promptDay),
+      ignored: Value(ignored),
+      isMonthlyFixedExpense: Value(isMonthlyFixedExpense),
     );
   }
 
@@ -4108,14 +4200,19 @@ class Budget extends DataClass implements Insertable<Budget> {
     return Budget(
       id: serializer.fromJson<int>(json['id']),
       ledgerId: serializer.fromJson<int>(json['ledgerId']),
-      type: serializer.fromJson<String>(json['type']),
+      year: serializer.fromJson<int>(json['year']),
+      month: serializer.fromJson<int>(json['month']),
+      notes: serializer.fromJson<String?>(json['notes']),
       categoryId: serializer.fromJson<int?>(json['categoryId']),
       amount: serializer.fromJson<double>(json['amount']),
-      period: serializer.fromJson<String>(json['period']),
-      startDay: serializer.fromJson<int>(json['startDay']),
       enabled: serializer.fromJson<bool>(json['enabled']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      prompt: serializer.fromJson<bool>(json['prompt']),
+      promptDay: serializer.fromJson<int?>(json['promptDay']),
+      ignored: serializer.fromJson<bool>(json['ignored']),
+      isMonthlyFixedExpense:
+          serializer.fromJson<bool>(json['isMonthlyFixedExpense']),
     );
   }
   @override
@@ -4124,53 +4221,72 @@ class Budget extends DataClass implements Insertable<Budget> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'ledgerId': serializer.toJson<int>(ledgerId),
-      'type': serializer.toJson<String>(type),
+      'year': serializer.toJson<int>(year),
+      'month': serializer.toJson<int>(month),
+      'notes': serializer.toJson<String?>(notes),
       'categoryId': serializer.toJson<int?>(categoryId),
       'amount': serializer.toJson<double>(amount),
-      'period': serializer.toJson<String>(period),
-      'startDay': serializer.toJson<int>(startDay),
       'enabled': serializer.toJson<bool>(enabled),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'prompt': serializer.toJson<bool>(prompt),
+      'promptDay': serializer.toJson<int?>(promptDay),
+      'ignored': serializer.toJson<bool>(ignored),
+      'isMonthlyFixedExpense': serializer.toJson<bool>(isMonthlyFixedExpense),
     };
   }
 
   Budget copyWith(
           {int? id,
           int? ledgerId,
-          String? type,
+          int? year,
+          int? month,
+          Value<String?> notes = const Value.absent(),
           Value<int?> categoryId = const Value.absent(),
           double? amount,
-          String? period,
-          int? startDay,
           bool? enabled,
           DateTime? createdAt,
-          DateTime? updatedAt}) =>
+          DateTime? updatedAt,
+          bool? prompt,
+          Value<int?> promptDay = const Value.absent(),
+          bool? ignored,
+          bool? isMonthlyFixedExpense}) =>
       Budget(
         id: id ?? this.id,
         ledgerId: ledgerId ?? this.ledgerId,
-        type: type ?? this.type,
+        year: year ?? this.year,
+        month: month ?? this.month,
+        notes: notes.present ? notes.value : this.notes,
         categoryId: categoryId.present ? categoryId.value : this.categoryId,
         amount: amount ?? this.amount,
-        period: period ?? this.period,
-        startDay: startDay ?? this.startDay,
         enabled: enabled ?? this.enabled,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
+        prompt: prompt ?? this.prompt,
+        promptDay: promptDay.present ? promptDay.value : this.promptDay,
+        ignored: ignored ?? this.ignored,
+        isMonthlyFixedExpense:
+            isMonthlyFixedExpense ?? this.isMonthlyFixedExpense,
       );
   Budget copyWithCompanion(BudgetsCompanion data) {
     return Budget(
       id: data.id.present ? data.id.value : this.id,
       ledgerId: data.ledgerId.present ? data.ledgerId.value : this.ledgerId,
-      type: data.type.present ? data.type.value : this.type,
+      year: data.year.present ? data.year.value : this.year,
+      month: data.month.present ? data.month.value : this.month,
+      notes: data.notes.present ? data.notes.value : this.notes,
       categoryId:
           data.categoryId.present ? data.categoryId.value : this.categoryId,
       amount: data.amount.present ? data.amount.value : this.amount,
-      period: data.period.present ? data.period.value : this.period,
-      startDay: data.startDay.present ? data.startDay.value : this.startDay,
       enabled: data.enabled.present ? data.enabled.value : this.enabled,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      prompt: data.prompt.present ? data.prompt.value : this.prompt,
+      promptDay: data.promptDay.present ? data.promptDay.value : this.promptDay,
+      ignored: data.ignored.present ? data.ignored.value : this.ignored,
+      isMonthlyFixedExpense: data.isMonthlyFixedExpense.present
+          ? data.isMonthlyFixedExpense.value
+          : this.isMonthlyFixedExpense,
     );
   }
 
@@ -4179,121 +4295,174 @@ class Budget extends DataClass implements Insertable<Budget> {
     return (StringBuffer('Budget(')
           ..write('id: $id, ')
           ..write('ledgerId: $ledgerId, ')
-          ..write('type: $type, ')
+          ..write('year: $year, ')
+          ..write('month: $month, ')
+          ..write('notes: $notes, ')
           ..write('categoryId: $categoryId, ')
           ..write('amount: $amount, ')
-          ..write('period: $period, ')
-          ..write('startDay: $startDay, ')
           ..write('enabled: $enabled, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('prompt: $prompt, ')
+          ..write('promptDay: $promptDay, ')
+          ..write('ignored: $ignored, ')
+          ..write('isMonthlyFixedExpense: $isMonthlyFixedExpense')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, ledgerId, type, categoryId, amount,
-      period, startDay, enabled, createdAt, updatedAt);
+  int get hashCode => Object.hash(
+      id,
+      ledgerId,
+      year,
+      month,
+      notes,
+      categoryId,
+      amount,
+      enabled,
+      createdAt,
+      updatedAt,
+      prompt,
+      promptDay,
+      ignored,
+      isMonthlyFixedExpense);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Budget &&
           other.id == this.id &&
           other.ledgerId == this.ledgerId &&
-          other.type == this.type &&
+          other.year == this.year &&
+          other.month == this.month &&
+          other.notes == this.notes &&
           other.categoryId == this.categoryId &&
           other.amount == this.amount &&
-          other.period == this.period &&
-          other.startDay == this.startDay &&
           other.enabled == this.enabled &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.prompt == this.prompt &&
+          other.promptDay == this.promptDay &&
+          other.ignored == this.ignored &&
+          other.isMonthlyFixedExpense == this.isMonthlyFixedExpense);
 }
 
 class BudgetsCompanion extends UpdateCompanion<Budget> {
   final Value<int> id;
   final Value<int> ledgerId;
-  final Value<String> type;
+  final Value<int> year;
+  final Value<int> month;
+  final Value<String?> notes;
   final Value<int?> categoryId;
   final Value<double> amount;
-  final Value<String> period;
-  final Value<int> startDay;
   final Value<bool> enabled;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<bool> prompt;
+  final Value<int?> promptDay;
+  final Value<bool> ignored;
+  final Value<bool> isMonthlyFixedExpense;
   const BudgetsCompanion({
     this.id = const Value.absent(),
     this.ledgerId = const Value.absent(),
-    this.type = const Value.absent(),
+    this.year = const Value.absent(),
+    this.month = const Value.absent(),
+    this.notes = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.amount = const Value.absent(),
-    this.period = const Value.absent(),
-    this.startDay = const Value.absent(),
     this.enabled = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.prompt = const Value.absent(),
+    this.promptDay = const Value.absent(),
+    this.ignored = const Value.absent(),
+    this.isMonthlyFixedExpense = const Value.absent(),
   });
   BudgetsCompanion.insert({
     this.id = const Value.absent(),
     required int ledgerId,
-    this.type = const Value.absent(),
+    required int year,
+    required int month,
+    this.notes = const Value.absent(),
     this.categoryId = const Value.absent(),
     required double amount,
-    this.period = const Value.absent(),
-    this.startDay = const Value.absent(),
     this.enabled = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.prompt = const Value.absent(),
+    this.promptDay = const Value.absent(),
+    this.ignored = const Value.absent(),
+    this.isMonthlyFixedExpense = const Value.absent(),
   })  : ledgerId = Value(ledgerId),
+        year = Value(year),
+        month = Value(month),
         amount = Value(amount);
   static Insertable<Budget> custom({
     Expression<int>? id,
     Expression<int>? ledgerId,
-    Expression<String>? type,
+    Expression<int>? year,
+    Expression<int>? month,
+    Expression<String>? notes,
     Expression<int>? categoryId,
     Expression<double>? amount,
-    Expression<String>? period,
-    Expression<int>? startDay,
     Expression<bool>? enabled,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<bool>? prompt,
+    Expression<int>? promptDay,
+    Expression<bool>? ignored,
+    Expression<bool>? isMonthlyFixedExpense,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (ledgerId != null) 'ledger_id': ledgerId,
-      if (type != null) 'type': type,
+      if (year != null) 'year': year,
+      if (month != null) 'month': month,
+      if (notes != null) 'notes': notes,
       if (categoryId != null) 'category_id': categoryId,
       if (amount != null) 'amount': amount,
-      if (period != null) 'period': period,
-      if (startDay != null) 'start_day': startDay,
       if (enabled != null) 'enabled': enabled,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (prompt != null) 'prompt': prompt,
+      if (promptDay != null) 'prompt_day': promptDay,
+      if (ignored != null) 'ignored': ignored,
+      if (isMonthlyFixedExpense != null)
+        'is_monthly_fixed_expense': isMonthlyFixedExpense,
     });
   }
 
   BudgetsCompanion copyWith(
       {Value<int>? id,
       Value<int>? ledgerId,
-      Value<String>? type,
+      Value<int>? year,
+      Value<int>? month,
+      Value<String?>? notes,
       Value<int?>? categoryId,
       Value<double>? amount,
-      Value<String>? period,
-      Value<int>? startDay,
       Value<bool>? enabled,
       Value<DateTime>? createdAt,
-      Value<DateTime>? updatedAt}) {
+      Value<DateTime>? updatedAt,
+      Value<bool>? prompt,
+      Value<int?>? promptDay,
+      Value<bool>? ignored,
+      Value<bool>? isMonthlyFixedExpense}) {
     return BudgetsCompanion(
       id: id ?? this.id,
       ledgerId: ledgerId ?? this.ledgerId,
-      type: type ?? this.type,
+      year: year ?? this.year,
+      month: month ?? this.month,
+      notes: notes ?? this.notes,
       categoryId: categoryId ?? this.categoryId,
       amount: amount ?? this.amount,
-      period: period ?? this.period,
-      startDay: startDay ?? this.startDay,
       enabled: enabled ?? this.enabled,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      prompt: prompt ?? this.prompt,
+      promptDay: promptDay ?? this.promptDay,
+      ignored: ignored ?? this.ignored,
+      isMonthlyFixedExpense:
+          isMonthlyFixedExpense ?? this.isMonthlyFixedExpense,
     );
   }
 
@@ -4306,20 +4475,20 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
     if (ledgerId.present) {
       map['ledger_id'] = Variable<int>(ledgerId.value);
     }
-    if (type.present) {
-      map['type'] = Variable<String>(type.value);
+    if (year.present) {
+      map['year'] = Variable<int>(year.value);
+    }
+    if (month.present) {
+      map['month'] = Variable<int>(month.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
     }
     if (categoryId.present) {
       map['category_id'] = Variable<int>(categoryId.value);
     }
     if (amount.present) {
       map['amount'] = Variable<double>(amount.value);
-    }
-    if (period.present) {
-      map['period'] = Variable<String>(period.value);
-    }
-    if (startDay.present) {
-      map['start_day'] = Variable<int>(startDay.value);
     }
     if (enabled.present) {
       map['enabled'] = Variable<bool>(enabled.value);
@@ -4330,6 +4499,19 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (prompt.present) {
+      map['prompt'] = Variable<bool>(prompt.value);
+    }
+    if (promptDay.present) {
+      map['prompt_day'] = Variable<int>(promptDay.value);
+    }
+    if (ignored.present) {
+      map['ignored'] = Variable<bool>(ignored.value);
+    }
+    if (isMonthlyFixedExpense.present) {
+      map['is_monthly_fixed_expense'] =
+          Variable<bool>(isMonthlyFixedExpense.value);
+    }
     return map;
   }
 
@@ -4338,14 +4520,18 @@ class BudgetsCompanion extends UpdateCompanion<Budget> {
     return (StringBuffer('BudgetsCompanion(')
           ..write('id: $id, ')
           ..write('ledgerId: $ledgerId, ')
-          ..write('type: $type, ')
+          ..write('year: $year, ')
+          ..write('month: $month, ')
+          ..write('notes: $notes, ')
           ..write('categoryId: $categoryId, ')
           ..write('amount: $amount, ')
-          ..write('period: $period, ')
-          ..write('startDay: $startDay, ')
           ..write('enabled: $enabled, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('prompt: $prompt, ')
+          ..write('promptDay: $promptDay, ')
+          ..write('ignored: $ignored, ')
+          ..write('isMonthlyFixedExpense: $isMonthlyFixedExpense')
           ..write(')'))
         .toString();
   }
@@ -6759,26 +6945,34 @@ typedef $$TransactionTagsTableProcessedTableManager = ProcessedTableManager<
 typedef $$BudgetsTableCreateCompanionBuilder = BudgetsCompanion Function({
   Value<int> id,
   required int ledgerId,
-  Value<String> type,
+  required int year,
+  required int month,
+  Value<String?> notes,
   Value<int?> categoryId,
   required double amount,
-  Value<String> period,
-  Value<int> startDay,
   Value<bool> enabled,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
+  Value<bool> prompt,
+  Value<int?> promptDay,
+  Value<bool> ignored,
+  Value<bool> isMonthlyFixedExpense,
 });
 typedef $$BudgetsTableUpdateCompanionBuilder = BudgetsCompanion Function({
   Value<int> id,
   Value<int> ledgerId,
-  Value<String> type,
+  Value<int> year,
+  Value<int> month,
+  Value<String?> notes,
   Value<int?> categoryId,
   Value<double> amount,
-  Value<String> period,
-  Value<int> startDay,
   Value<bool> enabled,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
+  Value<bool> prompt,
+  Value<int?> promptDay,
+  Value<bool> ignored,
+  Value<bool> isMonthlyFixedExpense,
 });
 
 class $$BudgetsTableFilterComposer
@@ -6796,20 +6990,20 @@ class $$BudgetsTableFilterComposer
   ColumnFilters<int> get ledgerId => $composableBuilder(
       column: $table.ledgerId, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<String> get type => $composableBuilder(
-      column: $table.type, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get year => $composableBuilder(
+      column: $table.year, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get month => $composableBuilder(
+      column: $table.month, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get categoryId => $composableBuilder(
       column: $table.categoryId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get amount => $composableBuilder(
       column: $table.amount, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get period => $composableBuilder(
-      column: $table.period, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get startDay => $composableBuilder(
-      column: $table.startDay, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get enabled => $composableBuilder(
       column: $table.enabled, builder: (column) => ColumnFilters(column));
@@ -6819,6 +7013,19 @@ class $$BudgetsTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get prompt => $composableBuilder(
+      column: $table.prompt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get promptDay => $composableBuilder(
+      column: $table.promptDay, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get ignored => $composableBuilder(
+      column: $table.ignored, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isMonthlyFixedExpense => $composableBuilder(
+      column: $table.isMonthlyFixedExpense,
+      builder: (column) => ColumnFilters(column));
 }
 
 class $$BudgetsTableOrderingComposer
@@ -6836,20 +7043,20 @@ class $$BudgetsTableOrderingComposer
   ColumnOrderings<int> get ledgerId => $composableBuilder(
       column: $table.ledgerId, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get type => $composableBuilder(
-      column: $table.type, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get year => $composableBuilder(
+      column: $table.year, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get month => $composableBuilder(
+      column: $table.month, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+      column: $table.notes, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get categoryId => $composableBuilder(
       column: $table.categoryId, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get amount => $composableBuilder(
       column: $table.amount, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get period => $composableBuilder(
-      column: $table.period, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get startDay => $composableBuilder(
-      column: $table.startDay, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get enabled => $composableBuilder(
       column: $table.enabled, builder: (column) => ColumnOrderings(column));
@@ -6859,6 +7066,19 @@ class $$BudgetsTableOrderingComposer
 
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get prompt => $composableBuilder(
+      column: $table.prompt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get promptDay => $composableBuilder(
+      column: $table.promptDay, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get ignored => $composableBuilder(
+      column: $table.ignored, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isMonthlyFixedExpense => $composableBuilder(
+      column: $table.isMonthlyFixedExpense,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$BudgetsTableAnnotationComposer
@@ -6876,20 +7096,20 @@ class $$BudgetsTableAnnotationComposer
   GeneratedColumn<int> get ledgerId =>
       $composableBuilder(column: $table.ledgerId, builder: (column) => column);
 
-  GeneratedColumn<String> get type =>
-      $composableBuilder(column: $table.type, builder: (column) => column);
+  GeneratedColumn<int> get year =>
+      $composableBuilder(column: $table.year, builder: (column) => column);
+
+  GeneratedColumn<int> get month =>
+      $composableBuilder(column: $table.month, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
 
   GeneratedColumn<int> get categoryId => $composableBuilder(
       column: $table.categoryId, builder: (column) => column);
 
   GeneratedColumn<double> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
-
-  GeneratedColumn<String> get period =>
-      $composableBuilder(column: $table.period, builder: (column) => column);
-
-  GeneratedColumn<int> get startDay =>
-      $composableBuilder(column: $table.startDay, builder: (column) => column);
 
   GeneratedColumn<bool> get enabled =>
       $composableBuilder(column: $table.enabled, builder: (column) => column);
@@ -6899,6 +7119,18 @@ class $$BudgetsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get prompt =>
+      $composableBuilder(column: $table.prompt, builder: (column) => column);
+
+  GeneratedColumn<int> get promptDay =>
+      $composableBuilder(column: $table.promptDay, builder: (column) => column);
+
+  GeneratedColumn<bool> get ignored =>
+      $composableBuilder(column: $table.ignored, builder: (column) => column);
+
+  GeneratedColumn<bool> get isMonthlyFixedExpense => $composableBuilder(
+      column: $table.isMonthlyFixedExpense, builder: (column) => column);
 }
 
 class $$BudgetsTableTableManager extends RootTableManager<
@@ -6926,50 +7158,66 @@ class $$BudgetsTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
             Value<int> ledgerId = const Value.absent(),
-            Value<String> type = const Value.absent(),
+            Value<int> year = const Value.absent(),
+            Value<int> month = const Value.absent(),
+            Value<String?> notes = const Value.absent(),
             Value<int?> categoryId = const Value.absent(),
             Value<double> amount = const Value.absent(),
-            Value<String> period = const Value.absent(),
-            Value<int> startDay = const Value.absent(),
             Value<bool> enabled = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
+            Value<bool> prompt = const Value.absent(),
+            Value<int?> promptDay = const Value.absent(),
+            Value<bool> ignored = const Value.absent(),
+            Value<bool> isMonthlyFixedExpense = const Value.absent(),
           }) =>
               BudgetsCompanion(
             id: id,
             ledgerId: ledgerId,
-            type: type,
+            year: year,
+            month: month,
+            notes: notes,
             categoryId: categoryId,
             amount: amount,
-            period: period,
-            startDay: startDay,
             enabled: enabled,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            prompt: prompt,
+            promptDay: promptDay,
+            ignored: ignored,
+            isMonthlyFixedExpense: isMonthlyFixedExpense,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required int ledgerId,
-            Value<String> type = const Value.absent(),
+            required int year,
+            required int month,
+            Value<String?> notes = const Value.absent(),
             Value<int?> categoryId = const Value.absent(),
             required double amount,
-            Value<String> period = const Value.absent(),
-            Value<int> startDay = const Value.absent(),
             Value<bool> enabled = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
+            Value<bool> prompt = const Value.absent(),
+            Value<int?> promptDay = const Value.absent(),
+            Value<bool> ignored = const Value.absent(),
+            Value<bool> isMonthlyFixedExpense = const Value.absent(),
           }) =>
               BudgetsCompanion.insert(
             id: id,
             ledgerId: ledgerId,
-            type: type,
+            year: year,
+            month: month,
+            notes: notes,
             categoryId: categoryId,
             amount: amount,
-            period: period,
-            startDay: startDay,
             enabled: enabled,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            prompt: prompt,
+            promptDay: promptDay,
+            ignored: ignored,
+            isMonthlyFixedExpense: isMonthlyFixedExpense,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

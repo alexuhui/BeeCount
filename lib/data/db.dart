@@ -146,27 +146,26 @@ class TransactionAttachments extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-// 预算表
+/// 预算表
 class Budgets extends Table {
   IntColumn get id => integer().autoIncrement()();
 
   /// 关联账本ID
   IntColumn get ledgerId => integer()();
 
-  /// 预算类型：total-总预算, category-分类预算
-  TextColumn get type => text().withDefault(const Constant('total'))();
+  // 预算年份，e.g., 2024
+  IntColumn get year => integer()();
+  /// 预算月份（1-12）
+  IntColumn get month => integer()();
+  
+  /// 预算备注信息: 用于记录预算的备注信息，如预算的来源、使用场景等。
+  TextColumn get notes => text().nullable()();
 
-  /// 关联分类ID（仅分类预算有值）
+  /// 关联分类ID，每个预算必须关联一个分类
   IntColumn get categoryId => integer().nullable()();
 
   /// 预算金额
   RealColumn get amount => real()();
-
-  /// 预算周期：monthly-月度, weekly-周度, yearly-年度
-  TextColumn get period => text().withDefault(const Constant('monthly'))();
-
-  /// 周期起始日（1-31，月度预算；1-7，周度预算）
-  IntColumn get startDay => integer().withDefault(const Constant(1))();
 
   /// 是否启用
   BoolColumn get enabled => boolean().withDefault(const Constant(true))();
@@ -176,6 +175,15 @@ class Budgets extends Table {
 
   /// 更新时间
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  /// 是否提示用户支付
+  BoolColumn get prompt => boolean().withDefault(const Constant(false))();
+  /// 提示日期
+  IntColumn get promptDay => integer().nullable()();
+  /// 是否不再提示（用户已支付）
+  BoolColumn get ignored => boolean().withDefault(const Constant(false))();
+  /// 是否月度固定支出
+  BoolColumn get isMonthlyFixedExpense => boolean().withDefault(const Constant(true))();
 }
 
 @DriftDatabase(tables: [

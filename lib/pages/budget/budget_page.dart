@@ -52,25 +52,23 @@ class BudgetPage extends ConsumerWidget {
       BuildContext context, WidgetRef ref, BudgetOverview? overview) {
     final l10n = AppLocalizations.of(context);
 
-    if (overview == null || overview.totalBudget == null) {
-      return _buildEmptyState(context, ref, l10n);
-    }
+    // 总预算概览卡片
+    _buildTotalBudgetCard(context, ref, overview, l10n);
 
-    return ListView(
-      padding: EdgeInsets.symmetric(
-        horizontal: 12.0.scaled(context, ref),
-        vertical: 8.0.scaled(context, ref),
-      ),
-      children: [
-        // 总预算概览卡片
-        _buildTotalBudgetCard(context, ref, overview, l10n),
-        SizedBox(height: 12.0.scaled(context, ref)),
-        // 分类预算列表
-        if (overview.categoryBudgets.isNotEmpty)
-          _buildCategoryBudgetsCard(
-              context, ref, overview.categoryBudgets, l10n),
-      ],
-    );
+    // return ListView(
+    //   padding: EdgeInsets.symmetric(
+    //     horizontal: 12.0.scaled(context, ref),
+    //     vertical: 8.0.scaled(context, ref),
+    //   ),
+    //   children: [
+        
+    //     SizedBox(height: 12.0.scaled(context, ref)),
+    //     // 分类预算列表
+    //     if (overview.categoryBudgets.isNotEmpty)
+    //       _buildCategoryBudgetsCard(
+    //           context, ref, overview.categoryBudgets, l10n),
+    //   ],
+    // );
   }
 
   Widget _buildEmptyState(
@@ -110,7 +108,7 @@ class BudgetPage extends ConsumerWidget {
   Widget _buildTotalBudgetCard(
     BuildContext context,
     WidgetRef ref,
-    BudgetOverview overview,
+    BudgetOverview? overview,
     AppLocalizations l10n,
   ) {
     final budget = overview.totalBudget!;
@@ -276,7 +274,7 @@ class BudgetPage extends ConsumerWidget {
   }
 
   Future<void> _editTotalBudget(BuildContext context, WidgetRef ref) async {
-    final budget = await ref.read(totalBudgetProvider.future);
+    final budget = await ref.read(basicBudgetProvider.future);
     if (budget != null && context.mounted) {
       Navigator.push(
         context,
@@ -289,7 +287,7 @@ class BudgetPage extends ConsumerWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const BudgetEditPage(isCategory: true),
+        builder: (_) => const BudgetEditPage(),
       ),
     );
   }

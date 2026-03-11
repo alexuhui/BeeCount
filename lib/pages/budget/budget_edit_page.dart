@@ -15,11 +15,9 @@ import '../../widgets/ui/ui.dart';
 /// 预算编辑页面
 class BudgetEditPage extends ConsumerStatefulWidget {
   final Budget? budget;
-  final bool isCategory;
 
   const BudgetEditPage({
     this.budget,
-    this.isCategory = false,
     super.key,
   });
 
@@ -33,7 +31,15 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
   int? _selectedCategoryId;
   String? _selectedCategoryName;
   String? _selectedCategoryIcon;
-  int _startDay = 1;
+  int _year = DateTime.now().year;
+  int _month = DateTime.now().month;
+  /// 是否到期提示支付
+  bool _prompt = false;
+  /// 提示支付时间（天）
+  int? _promptDay;
+  /// 是否月度固定支出
+  bool _isMonthlyFixedExpense = false;
+
   bool _isLoading = false;
   bool _hasTotalBudget = false; // 是否已存在总预算
 
@@ -43,27 +49,10 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
   void initState() {
     super.initState();
     if (_isEditing) {
-      _type = widget.budget!.type;
       _amountController.text = widget.budget!.amount.toStringAsFixed(0);
       _selectedCategoryId = widget.budget!.categoryId;
-      _startDay = widget.budget!.startDay;
-    } else {
-      _type = widget.isCategory ? 'category' : 'total';
-      // 检查是否已存在总预算
-      _checkTotalBudgetExists();
-    }
-  }
-
-  Future<void> _checkTotalBudgetExists() async {
-    final totalBudget = await ref.read(totalBudgetProvider.future);
-    if (mounted && totalBudget != null) {
-      setState(() {
-        _hasTotalBudget = true;
-        // 如果已存在总预算，默认选择分类预算
-        if (_type == 'total') {
-          _type = 'category';
-        }
-      });
+      _year = widget.budget!.year;
+      _month = widget.budget!.month;
     }
   }
 
@@ -127,16 +116,16 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
                         SizedBox(height: 12.0.scaled(context, ref)),
                         Row(
                           children: [
-                            Expanded(
-                              child: _buildTypeOption(
-                                context,
-                                l10n.budgetTypeTotalLabel,
-                                'total',
-                                Icons.account_balance_wallet_outlined,
-                                disabled: _hasTotalBudget, // 已有总预算时禁用
-                              ),
-                            ),
-                            SizedBox(width: 12.0.scaled(context, ref)),
+                            // Expanded(
+                            //   child: _buildTypeOption(
+                            //     context,
+                            //     l10n.budgetTypeTotalLabel,
+                            //     'total',
+                            //     Icons.account_balance_wallet_outlined,
+                            //     disabled: _hasTotalBudget, // 已有总预算时禁用
+                            //   ),
+                            // ),
+                            // SizedBox(width: 12.0.scaled(context, ref)),
                             Expanded(
                               child: _buildTypeOption(
                                 context,
@@ -510,15 +499,24 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
         await repo.updateBudget(
           widget.budget!.id,
           amount: amount,
-          startDay: _startDay,
+          year: _year,
+          month: _month,
+          /// 是否到期提示支付
+          prompt: _prompt,
+          /// 提示支付时间（天）
+          promptDay: _promptDay,
         );
       } else {
         await repo.createBudget(
           ledgerId: ledgerId,
-          type: _type,
           categoryId: _selectedCategoryId,
           amount: amount,
-          startDay: _startDay,
+          year: _year,
+          month: _month,
+          prompt: _prompt,
+          promptDay: _promptDay,
+          /// 是否月度固定支出
+          isMonthlyFixedExpense: _isMonthlyFixedExpense,
         );
       }
 

@@ -7,14 +7,14 @@ import '../providers.dart';
 /// 预算刷新触发器
 final budgetRefreshProvider = StateProvider<int>((ref) => 0);
 
-/// 当前账本的总预算
-final totalBudgetProvider = FutureProvider<Budget?>((ref) async {
+/// 当前账本的基础预算
+final basicBudgetProvider = FutureProvider<Budget?>((ref) async {
   ref.watch(budgetRefreshProvider);
 
   final ledgerId = ref.watch(currentLedgerIdProvider);
   final repo = ref.watch(repositoryProvider);
 
-  return repo.getTotalBudget(ledgerId);
+  return repo.getAllBudget(ledgerId);
 });
 
 /// 当前账本的所有预算

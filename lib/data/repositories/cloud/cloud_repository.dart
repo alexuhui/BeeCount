@@ -1204,11 +1204,14 @@ class CloudRepository extends BaseRepository {
   @override
   Future<int> createBudget({
     required int ledgerId,
-    required String type,
     int? categoryId,
     required double amount,
     String period = 'monthly',
-    int startDay = 1,
+    required int year,
+    required int month,
+    required bool prompt,
+    int? promptDay,
+    required bool isMonthlyFixedExpense,
   }) async {
     throw UnimplementedError('预算功能在云端模式下暂不可用');
   }
@@ -1217,8 +1220,11 @@ class CloudRepository extends BaseRepository {
   Future<void> updateBudget(
     int id, {
     double? amount,
-    int? startDay,
     bool? enabled,
+    int? year,
+    int? month,
+    bool? prompt,
+    int? promptDay,
   }) async {
     throw UnimplementedError('预算功能在云端模式下暂不可用');
   }
@@ -1229,7 +1235,7 @@ class CloudRepository extends BaseRepository {
   }
 
   @override
-  Future<Budget?> getTotalBudget(int ledgerId) async {
+  Future<Budget?> getAllBudget(int ledgerId) async {
     throw UnimplementedError('预算功能在云端模式下暂不可用');
   }
 
@@ -1274,6 +1280,21 @@ class CloudRepository extends BaseRepository {
   @override
   Stream<List<Budget>> watchBudgets(int ledgerId) {
     throw UnimplementedError('预算功能在云端模式下暂不可用');
+  }
+
+  @override
+  Future<Budget?> getBudgetByMonth(int ledgerId, int year, int month) {
+     throw UnimplementedError('预算功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Future<Budget?> getMonthlyFixedExpenseBudget(int ledgerId, int year) {
+     throw UnimplementedError('预算功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Future<Budget?> getPromptBudgetByMonth(int ledgerId, int year, int month) {
+     throw UnimplementedError('预算功能在云端模式下暂不可用');
   }
 
   // ============================================

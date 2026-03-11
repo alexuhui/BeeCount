@@ -24,13 +24,13 @@ class BudgetUsage {
 
 /// 预算概览
 class BudgetOverview {
-  final BudgetUsage? totalBudget;
+  final int totalBudget;
   final List<CategoryBudgetUsage> categoryBudgets;
   final int daysRemaining;
   final double dailyAvailable;
 
   const BudgetOverview({
-    this.totalBudget,
+    required this.totalBudget,
     this.categoryBudgets = const [],
     required this.daysRemaining,
     required this.dailyAvailable,
@@ -61,29 +61,48 @@ abstract class BudgetRepository {
   /// 创建预算
   Future<int> createBudget({
     required int ledgerId,
-    required String type,
     int? categoryId,
     required double amount,
-    String period = 'monthly',
-    int startDay = 1,
+    // String period = 'monthly',
+    // int startDay = 1,
+    required int year,
+    required int month,
+    /// 是否到期提示支付
+    required bool prompt,
+    /// 提示支付时间（天）
+    int? promptDay,
+    /// 是否月度固定支出
+    required bool isMonthlyFixedExpense,
   });
 
   /// 更新预算
   Future<void> updateBudget(
     int id, {
     double? amount,
-    int? startDay,
     bool? enabled,
+    int? year,
+    int? month,
+    /// 是否到期提示支付
+    bool? prompt,
+    /// 提示支付时间（天）
+    int? promptDay,
   });
 
   /// 删除预算
   Future<void> deleteBudget(int id);
 
   /// 获取账本的总预算
-  Future<Budget?> getTotalBudget(int ledgerId);
+  Future<Budget?> getAllBudget(int ledgerId);
 
   /// 获取账本的所有分类预算
   Future<List<Budget>> getCategoryBudgets(int ledgerId);
+
+  /// 获取指定月份的预算
+  Future<Budget?> getBudgetByMonth(int ledgerId, int year, int month);
+  /// 获取指定月份的提示预算
+  Future<Budget?> getPromptBudgetByMonth(int ledgerId, int year, int month);
+  /// 获取指定年份的月度固定支出预算
+  Future<Budget?> getMonthlyFixedExpenseBudget(int ledgerId, int year);
 
   /// 获取指定分类的预算
   Future<Budget?> getBudgetByCategory(int ledgerId, int categoryId);

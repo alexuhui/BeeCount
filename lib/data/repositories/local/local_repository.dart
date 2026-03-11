@@ -1057,35 +1057,42 @@ class LocalRepository extends BaseRepository {
   @override
   Future<int> createBudget({
     required int ledgerId,
-    required String type,
     int? categoryId,
     required double amount,
-    String period = 'monthly',
-    int startDay = 1,
+    required int year,
+    required int month,
+    required bool prompt,
+    int? promptDay,
+    required bool isMonthlyFixedExpense,
   }) =>
       _budgetRepo.createBudget(
         ledgerId: ledgerId,
-        type: type,
         categoryId: categoryId,
         amount: amount,
-        period: period,
-        startDay: startDay,
+        year: year,
+        month: month,
+        prompt: prompt,
+        promptDay: promptDay,
+        isMonthlyFixedExpense: isMonthlyFixedExpense,
       );
 
   @override
   Future<void> updateBudget(
     int id, {
     double? amount,
-    int? startDay,
     bool? enabled,
+    int? month,
+    bool? prompt,
+    int? promptDay,
+    int? year,
   }) =>
-      _budgetRepo.updateBudget(id, amount: amount, startDay: startDay, enabled: enabled);
+      _budgetRepo.updateBudget(id, amount: amount, enabled: enabled, month: month, prompt: prompt, promptDay: promptDay, year: year);
 
   @override
   Future<void> deleteBudget(int id) => _budgetRepo.deleteBudget(id);
 
   @override
-  Future<Budget?> getTotalBudget(int ledgerId) => _budgetRepo.getTotalBudget(ledgerId);
+  Future<Budget?> getAllBudget(int ledgerId) => _budgetRepo.getAllBudget(ledgerId);
 
   @override
   Future<List<Budget>> getCategoryBudgets(int ledgerId) =>
@@ -1094,6 +1101,21 @@ class LocalRepository extends BaseRepository {
   @override
   Future<Budget?> getBudgetByCategory(int ledgerId, int categoryId) =>
       _budgetRepo.getBudgetByCategory(ledgerId, categoryId);
+
+  @override
+  Future<Budget?> getBudgetByMonth(int ledgerId, int year, int month) {
+    throw UnimplementedError('getBudgetByMonth 未实现');
+  }
+
+  @override
+  Future<Budget?> getMonthlyFixedExpenseBudget(int ledgerId, int year) {
+    throw UnimplementedError('getMonthlyFixedExpenseBudget 未实现');
+  }
+
+  @override
+  Future<Budget?> getPromptBudgetByMonth(int ledgerId, int year, int month) {
+    throw UnimplementedError('getPromptBudgetByMonth 未实现');
+  }
 
   @override
   Future<List<Budget>> getAllBudgets(int ledgerId) => _budgetRepo.getAllBudgets(ledgerId);

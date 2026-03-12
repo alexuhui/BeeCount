@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart' as d;
 
+import '../../../services/system/logger_service.dart';
 import '../../db.dart';
 import '../budget_repository.dart';
 
@@ -74,12 +75,30 @@ class LocalBudgetRepository implements BudgetRepository {
 
   @override
   Future<Budget?> getTotalBudget(int ledgerId) async {
-    // 使用 .get() 然后取第一个，避免多条脏数据时报错
+    // 使用 .get() 获取所有分类的预算，再归结为总预算
     final budgets = await (db.select(db.budgets)
-          ..where((b) => b.ledgerId.equals(ledgerId) & b.type.equals('total') & b.enabled.equals(true))
+          ..where((b) => b.ledgerId.equals(ledgerId) & b.enabled.equals(true))
           ..orderBy([(b) => d.OrderingTerm(expression: b.createdAt)]))
         .get();
-    return budgets.firstOrNull;
+    // 计算总预算
+    double totalBudget = 0;
+    
+    for (final budget in budgets) {
+      totalBudget += budget.amount;
+    }
+
+    return Budget(
+      id: 0,
+      ledgerId: ledgerId,
+      type: 'total',
+      categoryId: null,
+      amount: totalBudget,
+      period: 'monthly',
+      startDay: 1,
+      enabled: true,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
   }
 
   @override
@@ -202,19 +221,31 @@ class LocalBudgetRepository implements BudgetRepository {
   @override
   Future<BudgetOverview> getBudgetOverview(int ledgerId, DateTime month) async {
     // 获取总预算
-    final totalBudget = await getTotalBudget(ledgerId);
+    // final totalBudget = await getTotalBudget(ledgerId);
     BudgetUsage? totalUsage;
 
-    if (totalBudget != null) {
-      totalUsage = await getBudgetUsage(totalBudget.id, month);
-    }
+    // if (totalBudget != null) {
+    //   totalUsage = await getBudgetUsage(totalBudget.id, month);
+    // }
 
     // 获取分类预算使用情况
     final categoryUsages = await getCategoryBudgetUsages(ledgerId, month);
+    if(categoryUsages.isNotEmpty){
+      double totalUsed = 0;
+      double totalBudget = 0;
+      for(final categoryUsage in categoryUsages){
+        totalUsed += categoryUsage.usage.used;
+        totalBudget += categoryUsage.usage.budget;
+        logger.info('local_budget_repository', 'name: ${categoryUsage.categoryName} categoryUsage.usage.used: ${categoryUsage.usage.used}  categoryUsage.usage.budget: ${categoryUsage.usage.budget}');
+      }
+      totalUsage = BudgetUsage(used: totalUsed, budget: totalBudget);
+    }
+    
+    logger.info('local_budget_repository', 'totalUsage.used: ${totalUsage?.used}  totalUsage.budget: ${totalUsage?.budget}');
 
     // 计算剩余天数
     final now = DateTime.now();
-    final startDay = totalBudget?.startDay ?? 1;
+    final startDay = 1;
     DateTime endDate;
     if (startDay <= now.day) {
       endDate = DateTime(now.year, now.month + 1, startDay);

@@ -54,7 +54,7 @@ class BudgetPage extends ConsumerWidget {
       BuildContext context, WidgetRef ref, BudgetOverview? overview) {
     final l10n = AppLocalizations.of(context);
 
-    logger.info('BudgetPage', 'overview: $overview');
+    logger.info('BudgetPage', 'overview: $overview  used: ${overview?.totalBudget?.used}  budget: ${overview?.totalBudget?.budget}');
 
     BudgetOverview? oldOverview = overview;
 

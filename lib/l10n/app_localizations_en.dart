@@ -5674,4 +5674,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiModelInputHelper => 'Leave empty to use default model';
+
+  @override
+  String get selectYear => 'Selceted Year';
+
+  @override
+  String get selectMonth => 'Selected Month';
+
+  @override
+  String get wholeYear => 'Whole Year';
 }

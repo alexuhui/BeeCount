@@ -2523,5 +2523,8 @@
   "aiProviderTestFailed": "Test failed",
   "aiProviderTestAll": "Test All",
   "aiProviderTestAllRetry": "Retry Test",
-  "aiModelInputHelper": "Leave empty to use default model"
+  "aiModelInputHelper": "Leave empty to use default model",
+  "selectYear":"Selceted Year",
+  "selectMonth":"Selected Month",
+  "wholeYear":"Whole Year"
 }

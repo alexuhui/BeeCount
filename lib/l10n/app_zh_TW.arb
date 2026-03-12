@@ -2135,5 +2135,8 @@
   "aiModelInputHelper": "留空則使用預設模型",
   "aiModelRecommended": "推薦模型",
   "transferIconSettings": "轉帳圖示設定",
-  "transferIconSettingsDesc": "自訂轉帳記錄的顯示圖示"
+  "transferIconSettingsDesc": "自訂轉帳記錄的顯示圖示",
+  "selectYear": "選擇年份",
+  "selectMonth": "選擇月份",
+  "wholeYear": "整年"
 }

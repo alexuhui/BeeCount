@@ -2368,5 +2368,8 @@
   "aiProviderTestFailed": "测试失败",
   "aiProviderTestAll": "一键测试全部",
   "aiProviderTestAllRetry": "重新测试",
-  "aiModelInputHelper": "留空则使用默认模型"
+  "aiModelInputHelper": "留空则使用默认模型",
+  "selectYear":"选择年份",
+  "selectMonth":"选择月份",
+  "wholeYear":"整年"
 }

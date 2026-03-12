@@ -10305,6 +10305,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Leave empty to use default model'**
   String get aiModelInputHelper;
+
+  /// No description provided for @selectYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Selceted Year'**
+  String get selectYear;
+
+  /// No description provided for @selectMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected Month'**
+  String get selectMonth;
+
+  /// No description provided for @wholeYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole Year'**
+  String get wholeYear;
 }
 
 class _AppLocalizationsDelegate

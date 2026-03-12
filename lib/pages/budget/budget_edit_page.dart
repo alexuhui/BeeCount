@@ -36,6 +36,10 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
   int _startDay = 1;
   bool _isLoading = false;
   // bool _hasTotalBudget = false; // 是否已存在总预算
+  int _selectedYear = DateTime.now().year;
+  /// 是否选中对应月份
+  /// 0 表示整年，默认选中当前月份
+  final List<bool> _selectedMonth = List.generate(13, (i) => i == DateTime.now().month);
 
   bool get _isEditing => widget.budget != null;
 
@@ -123,15 +127,10 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
                           ),
                         ),
                         SizedBox(height: 12.0.scaled(context, ref)),
-                         // TODO: 设置预算的时间范围
-                        Text(
-                          DateTime.now().toString(),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: BeeTokens.textSecondary(context),
-                          ),
-                        ),
+                        _buildYearSelector(context),
+                        SizedBox(height: 12.0.scaled(context, ref)),
+                        _buildMonthSelector(context),
+                        SizedBox(height: 12.0.scaled(context, ref)),
                       ],
                     ),
                   ),
@@ -329,6 +328,94 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
         ),
       ),
     );
+  }
+
+  /// 年份选择器，默认显示当前年份
+  Widget _buildYearSelector(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return DropdownButtonFormField<int>(
+      initialValue: _selectedYear,
+      decoration: InputDecoration(
+        labelText: l10n.selectYear,
+        border: OutlineInputBorder(),
+      ),
+      items: List.generate(5, (index) {
+        final year = DateTime.now().year + index;
+        return DropdownMenuItem(
+          value: year,
+          child: Text(l10n.homeYear(year)),
+        );
+      }),
+      onChanged: (value) => setState(() {if(value != null) _selectedYear = value;}),
+    );
+  }
+
+  /// 月份选择器, 支持多选
+  Widget _buildMonthSelector(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      children: [        
+        Text(
+          l10n.selectMonth,
+          style: TextStyle(
+            fontSize: 14,
+          ),
+        ),
+        Wrap(
+        spacing: 8.0.scaled(context, ref),
+        runSpacing: 8.0.scaled(context, ref),
+        children: List.generate(13, (index) {
+          final primary = Theme.of(context).colorScheme.primary;
+          final isAll = index == 0;
+          final month = index;
+          final isSelected = _selectedMonth[index];
+          return InkWell(
+            onTap: () => setState(() {
+              if(isSelected) {
+                // 取消全选
+                if(isAll){              
+                  for(int i = 0; i <= 12; i++){
+                    _selectedMonth[i] = false;
+                  }
+                }else{
+                  _selectedMonth[index] = false;
+                }
+              } else {
+                // 全选
+                if(isAll){
+                  for(int i = 0; i <= 12; i++){
+                    _selectedMonth[i] = true;
+                  }
+                }else{
+                  _selectedMonth[index] = true;
+                }
+              }
+            }),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: 40.0.scaled(context, ref),
+              height: 40.0.scaled(context, ref),
+              decoration: BoxDecoration(
+                color: isSelected ? primary : BeeTokens.surface(context),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isSelected ? primary : BeeTokens.border(context),
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                isAll ? l10n.wholeYear : '$month',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected ? Colors.white : BeeTokens.textPrimary(context),
+                ),
+              ),
+            ),
+          );
+        }),
+        ) 
+      ]); 
   }
 
   // TODO: 起始日选择器暂时隐藏，后期与周期开始日期一起调整

@@ -5447,6 +5447,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiModelInputHelper => '留空则使用默认模型';
+
+  @override
+  String get selectYear => '选择年份';
+
+  @override
+  String get selectMonth => '选择月份';
+
+  @override
+  String get wholeYear => '整年';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -10892,4 +10901,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiModelInputHelper => '留空則使用預設模型';
+
+  @override
+  String get selectYear => '選擇年份';
+
+  @override
+  String get selectMonth => '選擇月份';
+
+  @override
+  String get wholeYear => '整年';
 }

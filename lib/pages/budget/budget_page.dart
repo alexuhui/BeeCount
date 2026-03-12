@@ -1,3 +1,5 @@
+
+import 'package:beecount/services/system/logger_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -52,60 +54,105 @@ class BudgetPage extends ConsumerWidget {
       BuildContext context, WidgetRef ref, BudgetOverview? overview) {
     final l10n = AppLocalizations.of(context);
 
-    if (overview == null || overview.totalBudget == null) {
-      return _buildEmptyState(context, ref, l10n);
-    }
+    logger.info('BudgetPage', 'overview: $overview');
 
-    return ListView(
-      padding: EdgeInsets.symmetric(
-        horizontal: 12.0.scaled(context, ref),
-        vertical: 8.0.scaled(context, ref),
-      ),
+    BudgetOverview? oldOverview = overview;
+
+    // 临时数据，后面替换为从数据库获取的实际数据
+    overview = BudgetOverview(
+        totalBudget: oldOverview?.totalBudget ?? BudgetUsage(
+          used: 0.0,
+          budget: 0.0,
+        ),
+        categoryBudgets: oldOverview?.categoryBudgets ?? const [],
+        daysRemaining: oldOverview?.daysRemaining ?? 0,
+        dailyAvailable: oldOverview?.dailyAvailable ?? 0.0,
+      );
+
+    return Column(
       children: [
-        // 总预算概览卡片
-        _buildTotalBudgetCard(context, ref, overview, l10n),
+        // 总预算概览卡片（固定在顶部）
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: 16.0.scaled(context, ref),
+            vertical: 8.0.scaled(context, ref),
+          ),
+          child: _buildTotalBudgetCard(context, ref, overview, l10n),
+        ),
+
         SizedBox(height: 12.0.scaled(context, ref)),
-        // 分类预算列表
-        if (overview.categoryBudgets.isNotEmpty)
-          _buildCategoryBudgetsCard(
-              context, ref, overview.categoryBudgets, l10n),
+
+        // 分类预算列表（可滚动）
+        Expanded(
+          child: ListView(
+            padding: EdgeInsets.symmetric(
+              horizontal: 16.0.scaled(context, ref),
+            ),
+            children: [
+              if (overview.categoryBudgets.isNotEmpty)
+                _buildCategoryBudgetsCard(context, ref, overview.categoryBudgets, l10n),
+            ],
+          ),
+        ),
       ],
     );
+
+
+
+    // if (overview == null || overview.totalBudget == null) {
+    //   return _buildEmptyState(context, ref, l10n);
+    // }
+
+    // return ListView(
+    //   padding: EdgeInsets.symmetric(
+    //     horizontal: 12.0.scaled(context, ref),
+    //     vertical: 8.0.scaled(context, ref),
+    //   ),
+    //   children: [
+    //     // 总预算概览卡片
+    //     _buildTotalBudgetCard(context, ref, overview, l10n),
+    //     SizedBox(height: 12.0.scaled(context, ref)),
+    //     // 分类预算列表
+    //     if (overview.categoryBudgets.isNotEmpty)
+    //       _buildCategoryBudgetsCard(
+    //           context, ref, overview.categoryBudgets, l10n),
+    //   ],
+    // );
   }
 
-  Widget _buildEmptyState(
-      BuildContext context, WidgetRef ref, AppLocalizations l10n) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.account_balance_wallet_outlined,
-            size: 64,
-            color: BeeTokens.textTertiary(context),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            l10n.budgetEmptyHint,
-            style: TextStyle(
-              fontSize: 16,
-              color: BeeTokens.textSecondary(context),
-            ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () => _addBudget(context),
-            icon: Icon(Icons.add, color: BeeTokens.buttonPrimaryText(context)),
-            label: Text(l10n.budgetAddTotal),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: BeeTokens.buttonPrimary(context),
-              foregroundColor: BeeTokens.buttonPrimaryText(context),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildEmptyState(
+  //     BuildContext context, WidgetRef ref, AppLocalizations l10n) {
+  //   return Center(
+  //     child: Column(
+  //       mainAxisAlignment: MainAxisAlignment.center,
+  //       children: [
+  //         Icon(
+  //           Icons.account_balance_wallet_outlined,
+  //           size: 64,
+  //           color: BeeTokens.textTertiary(context),
+  //         ),
+  //         const SizedBox(height: 16),
+  //         Text(
+  //           l10n.budgetEmptyHint,
+  //           style: TextStyle(
+  //             fontSize: 16,
+  //             color: BeeTokens.textSecondary(context),
+  //           ),
+  //         ),
+  //         const SizedBox(height: 24),
+  //         ElevatedButton.icon(
+  //           onPressed: () => _addBudget(context),
+  //           icon: Icon(Icons.add, color: BeeTokens.buttonPrimaryText(context)),
+  //           label: Text(l10n.budgetAddTotal),
+  //           style: ElevatedButton.styleFrom(
+  //             backgroundColor: BeeTokens.buttonPrimary(context),
+  //             foregroundColor: BeeTokens.buttonPrimaryText(context),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildTotalBudgetCard(
     BuildContext context,
@@ -113,6 +160,9 @@ class BudgetPage extends ConsumerWidget {
     BudgetOverview overview,
     AppLocalizations l10n,
   ) {
+
+    logger.info('BudgetPage', 'overview.totalBudget: ${overview.totalBudget}');
+
     final budget = overview.totalBudget!;
 
     return SectionCard(

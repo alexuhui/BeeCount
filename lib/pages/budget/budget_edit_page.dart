@@ -15,11 +15,11 @@ import '../../widgets/ui/ui.dart';
 /// 预算编辑页面
 class BudgetEditPage extends ConsumerStatefulWidget {
   final Budget? budget;
-  final bool isCategory;
+  // final bool isCategory;
 
   const BudgetEditPage({
     this.budget,
-    this.isCategory = false,
+    // this.isCategory = false,
     super.key,
   });
 
@@ -29,13 +29,13 @@ class BudgetEditPage extends ConsumerStatefulWidget {
 
 class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
   final _amountController = TextEditingController();
-  late String _type;
+  // late String _type;
   int? _selectedCategoryId;
   String? _selectedCategoryName;
   String? _selectedCategoryIcon;
   int _startDay = 1;
   bool _isLoading = false;
-  bool _hasTotalBudget = false; // 是否已存在总预算
+  // bool _hasTotalBudget = false; // 是否已存在总预算
 
   bool get _isEditing => widget.budget != null;
 
@@ -43,29 +43,29 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
   void initState() {
     super.initState();
     if (_isEditing) {
-      _type = widget.budget!.type;
+      // _type = widget.budget!.type;
       _amountController.text = widget.budget!.amount.toStringAsFixed(0);
       _selectedCategoryId = widget.budget!.categoryId;
       _startDay = widget.budget!.startDay;
     } else {
-      _type = widget.isCategory ? 'category' : 'total';
+      // _type = widget.isCategory ? 'category' : 'total';
       // 检查是否已存在总预算
-      _checkTotalBudgetExists();
+      // _checkTotalBudgetExists();
     }
   }
 
-  Future<void> _checkTotalBudgetExists() async {
-    final totalBudget = await ref.read(totalBudgetProvider.future);
-    if (mounted && totalBudget != null) {
-      setState(() {
-        _hasTotalBudget = true;
-        // 如果已存在总预算，默认选择分类预算
-        if (_type == 'total') {
-          _type = 'category';
-        }
-      });
-    }
-  }
+  // Future<void> _checkTotalBudgetExists() async {
+  //   final totalBudget = await ref.read(totalBudgetProvider.future);
+  //   if (mounted && totalBudget != null) {
+  //     setState(() {
+  //       _hasTotalBudget = true;
+  //       // 如果已存在总预算，默认选择分类预算
+  //       if (_type == 'total') {
+  //         _type = 'category';
+  //       }
+  //     });
+  //   }
+  // }
 
   @override
   void dispose() {
@@ -110,8 +110,6 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
                 vertical: 8.0.scaled(context, ref),
               ),
               children: [
-                // 预算类型选择
-                if (!_isEditing) ...[
                   SectionCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -125,35 +123,19 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
                           ),
                         ),
                         SizedBox(height: 12.0.scaled(context, ref)),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTypeOption(
-                                context,
-                                l10n.budgetTypeTotalLabel,
-                                'total',
-                                Icons.account_balance_wallet_outlined,
-                                disabled: _hasTotalBudget, // 已有总预算时禁用
-                              ),
-                            ),
-                            SizedBox(width: 12.0.scaled(context, ref)),
-                            Expanded(
-                              child: _buildTypeOption(
-                                context,
-                                l10n.budgetTypeCategoryLabel,
-                                'category',
-                                Icons.category_outlined,
-                              ),
-                            ),
-                          ],
+                         // TODO: 设置预算的时间范围
+                        Text(
+                          DateTime.now().toString(),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: BeeTokens.textSecondary(context),
+                          ),
                         ),
                       ],
                     ),
                   ),
                   SizedBox(height: 12.0.scaled(context, ref)),
-                ],
-                // 分类选择（仅分类预算）
-                if (_type == 'category') ...[
                   SectionCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,7 +154,6 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
                     ),
                   ),
                   SizedBox(height: 12.0.scaled(context, ref)),
-                ],
                 // 预算金额
                 SectionCard(
                   child: Column(
@@ -236,55 +217,55 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
     );
   }
 
-  Widget _buildTypeOption(
-    BuildContext context,
-    String label,
-    String type,
-    IconData icon, {
-    bool disabled = false,
-  }) {
-    final isSelected = _type == type;
-    final primary = Theme.of(context).colorScheme.primary;
+  // Widget _buildTypeOption(
+  //   BuildContext context,
+  //   String label,
+  //   String type,
+  //   IconData icon, {
+  //   bool disabled = false,
+  // }) {
+  //   // final isSelected = _type == type;
+  //   final primary = Theme.of(context).colorScheme.primary;
 
-    return InkWell(
-      onTap: disabled ? null : () => setState(() => _type = type),
-      borderRadius: BorderRadius.circular(12),
-      child: Opacity(
-        opacity: disabled ? 0.4 : 1.0,
-        child: Container(
-          padding: EdgeInsets.all(16.0.scaled(context, ref)),
-          decoration: BoxDecoration(
-            color: isSelected && !disabled
-                ? primary.withValues(alpha: 0.1)
-                : BeeTokens.surface(context),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected && !disabled ? primary : BeeTokens.border(context),
-              width: isSelected && !disabled ? 2 : 1,
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                icon,
-                size: 32.0.scaled(context, ref),
-                color: isSelected && !disabled ? primary : BeeTokens.iconSecondary(context),
-              ),
-              SizedBox(height: 8.0.scaled(context, ref)),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: isSelected && !disabled ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected && !disabled ? primary : BeeTokens.textSecondary(context),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  //   return InkWell(
+  //     onTap: disabled ? null : () => setState(() => _type = type),
+  //     borderRadius: BorderRadius.circular(12),
+  //     child: Opacity(
+  //       opacity: disabled ? 0.4 : 1.0,
+  //       child: Container(
+  //         padding: EdgeInsets.all(16.0.scaled(context, ref)),
+  //         decoration: BoxDecoration(
+  //           color: isSelected && !disabled
+  //               ? primary.withValues(alpha: 0.1)
+  //               : BeeTokens.surface(context),
+  //           borderRadius: BorderRadius.circular(12),
+  //           border: Border.all(
+  //             color: isSelected && !disabled ? primary : BeeTokens.border(context),
+  //             width: isSelected && !disabled ? 2 : 1,
+  //           ),
+  //         ),
+  //         child: Column(
+  //           children: [
+  //             Icon(
+  //               icon,
+  //               size: 32.0.scaled(context, ref),
+  //               color: isSelected && !disabled ? primary : BeeTokens.iconSecondary(context),
+  //             ),
+  //             SizedBox(height: 8.0.scaled(context, ref)),
+  //             Text(
+  //               label,
+  //               style: TextStyle(
+  //                 fontSize: 14,
+  //                 fontWeight: isSelected && !disabled ? FontWeight.w600 : FontWeight.w400,
+  //                 color: isSelected && !disabled ? primary : BeeTokens.textSecondary(context),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildCategorySelector(BuildContext context, AppLocalizations l10n) {
     return InkWell(
@@ -495,7 +476,7 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
       return;
     }
 
-    if (_type == 'category' && _selectedCategoryId == null) {
+    if (_selectedCategoryId == null) {
       showToast(context, l10n.budgetCategoryHint);
       return;
     }
@@ -515,7 +496,7 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
       } else {
         await repo.createBudget(
           ledgerId: ledgerId,
-          type: _type,
+          type: "category",
           categoryId: _selectedCategoryId,
           amount: amount,
           startDay: _startDay,

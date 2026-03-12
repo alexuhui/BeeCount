@@ -236,12 +236,12 @@ class LocalBudgetRepository implements BudgetRepository {
       for(final categoryUsage in categoryUsages){
         totalUsed += categoryUsage.usage.used;
         totalBudget += categoryUsage.usage.budget;
-        logger.info('local_budget_repository', 'name: ${categoryUsage.categoryName} categoryUsage.usage.used: ${categoryUsage.usage.used}  categoryUsage.usage.budget: ${categoryUsage.usage.budget}');
+        // logger.info('local_budget_repository', 'name: ${categoryUsage.categoryName} categoryUsage.usage.used: ${categoryUsage.usage.used}  categoryUsage.usage.budget: ${categoryUsage.usage.budget}');
       }
       totalUsage = BudgetUsage(used: totalUsed, budget: totalBudget);
     }
     
-    logger.info('local_budget_repository', 'totalUsage.used: ${totalUsage?.used}  totalUsage.budget: ${totalUsage?.budget}');
+    // logger.info('local_budget_repository', 'totalUsage.used: ${totalUsage?.used}  totalUsage.budget: ${totalUsage?.budget}');
 
     // 计算剩余天数
     final now = DateTime.now();

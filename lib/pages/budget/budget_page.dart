@@ -54,20 +54,20 @@ class BudgetPage extends ConsumerWidget {
       BuildContext context, WidgetRef ref, BudgetOverview? overview) {
     final l10n = AppLocalizations.of(context);
 
-    logger.info('BudgetPage', 'overview: $overview  used: ${overview?.totalBudget?.used}  budget: ${overview?.totalBudget?.budget}');
+    // logger.info('BudgetPage', 'overview: $overview  used: ${overview?.totalBudget?.used}  budget: ${overview?.totalBudget?.budget}');
 
-    BudgetOverview? oldOverview = overview;
+    // BudgetOverview? oldOverview = overview;
 
-    // 临时数据，后面替换为从数据库获取的实际数据
-    overview = BudgetOverview(
-        totalBudget: oldOverview?.totalBudget ?? BudgetUsage(
-          used: 0.0,
-          budget: 0.0,
-        ),
-        categoryBudgets: oldOverview?.categoryBudgets ?? const [],
-        daysRemaining: oldOverview?.daysRemaining ?? 0,
-        dailyAvailable: oldOverview?.dailyAvailable ?? 0.0,
-      );
+    // // 临时数据，后面替换为从数据库获取的实际数据
+    // overview = BudgetOverview(
+    //     totalBudget: oldOverview?.totalBudget ?? BudgetUsage(
+    //       used: 0.0,
+    //       budget: 0.0,
+    //     ),
+    //     categoryBudgets: oldOverview?.categoryBudgets ?? const [],
+    //     daysRemaining: oldOverview?.daysRemaining ?? 0,
+    //     dailyAvailable: oldOverview?.dailyAvailable ?? 0.0,
+    //   );
 
     return Column(
       children: [
@@ -77,7 +77,7 @@ class BudgetPage extends ConsumerWidget {
             horizontal: 16.0.scaled(context, ref),
             vertical: 8.0.scaled(context, ref),
           ),
-          child: _buildTotalBudgetCard(context, ref, overview, l10n),
+          child: _buildTotalBudgetCard(context, ref, overview!, l10n),
         ),
 
         SizedBox(height: 12.0.scaled(context, ref)),
@@ -161,7 +161,7 @@ class BudgetPage extends ConsumerWidget {
     AppLocalizations l10n,
   ) {
 
-    logger.info('BudgetPage', 'overview.totalBudget: ${overview.totalBudget}');
+    // logger.info('BudgetPage', 'overview.totalBudget: ${overview.totalBudget}');
 
     final budget = overview.totalBudget!;
 
@@ -181,10 +181,10 @@ class BudgetPage extends ConsumerWidget {
                   color: BeeTokens.textPrimary(context),
                 ),
               ),
-              TextButton(
-                onPressed: () => _editTotalBudget(context, ref),
-                child: Text(l10n.commonEdit),
-              ),
+              // TextButton(
+              //   onPressed: () => _editTotalBudget(context, ref),
+              //   child: Text(l10n.commonEdit),
+              // ),
             ],
           ),
           SizedBox(height: 16.0.scaled(context, ref)),
@@ -325,21 +325,22 @@ class BudgetPage extends ConsumerWidget {
     );
   }
 
-  Future<void> _editTotalBudget(BuildContext context, WidgetRef ref) async {
-    final budget = await ref.read(totalBudgetProvider.future);
-    if (budget != null && context.mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => BudgetEditPage(budget: budget)),
-      );
-    }
-  }
+  // Future<void> _editTotalBudget(BuildContext context, WidgetRef ref) async {
+  //   final budget = await ref.read(totalBudgetProvider.future);
+  //   if (budget != null && context.mounted) {
+  //     Navigator.push(
+  //       context,
+  //       MaterialPageRoute(builder: (_) => BudgetEditPage(budget: budget)),
+  //     );
+  //   }
+  // }
 
   void _addCategoryBudget(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const BudgetEditPage(isCategory: true),
+        // builder: (_) => const BudgetEditPage(isCategory: true),
+        builder: (_) => const BudgetEditPage(),
       ),
     );
   }

@@ -2105,8 +2105,8 @@
     }
   },
   "tagClearUnusedFailed": "清理失败",
-  "tabDiscover": "发现",
-  "discoverTitle": "发现",
+  "tabDiscover": "管理",
+  "discoverTitle": "管理",
   "discoverBudget": "预算管理",
   "discoverBudgetSubtitle": "设置和追踪支出预算",
   "discoverBudgetEmpty": "设置预算，控制支出",

@@ -2260,8 +2260,8 @@
     }
   },
   "tagClearUnusedFailed": "Clear failed",
-  "tabDiscover": "Discover",
-  "discoverTitle": "Discover",
+  "tabDiscover": "Manage",
+  "discoverTitle": "Manage",
   "discoverBudget": "Budget",
   "discoverBudgetSubtitle": "Set and track spending budgets",
   "discoverBudgetEmpty": "Set budget to control spending",

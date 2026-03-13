@@ -5175,10 +5175,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tagClearUnusedFailed => 'Clear failed';
 
   @override
-  String get tabDiscover => 'Discover';
+  String get tabDiscover => 'Manage';
 
   @override
-  String get discoverTitle => 'Discover';
+  String get discoverTitle => 'Manage';
 
   @override
   String get discoverBudget => 'Budget';

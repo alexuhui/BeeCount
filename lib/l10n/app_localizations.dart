@@ -9389,13 +9389,13 @@ abstract class AppLocalizations {
   /// No description provided for @tabDiscover.
   ///
   /// In en, this message translates to:
-  /// **'Discover'**
+  /// **'Manage'**
   String get tabDiscover;
 
   /// No description provided for @discoverTitle.
   ///
   /// In en, this message translates to:
-  /// **'Discover'**
+  /// **'Manage'**
   String get discoverTitle;
 
   /// No description provided for @discoverBudget.

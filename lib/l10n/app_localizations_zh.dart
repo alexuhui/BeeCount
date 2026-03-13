@@ -4964,10 +4964,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tagClearUnusedFailed => '清理失败';
 
   @override
-  String get tabDiscover => '发现';
+  String get tabDiscover => '管理';
 
   @override
-  String get discoverTitle => '发现';
+  String get discoverTitle => '管理';
 
   @override
   String get discoverBudget => '预算管理';
@@ -10418,10 +10418,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get tagClearUnusedFailed => '清理失敗';
 
   @override
-  String get tabDiscover => '發現';
+  String get tabDiscover => '管理';
 
   @override
-  String get discoverTitle => '發現';
+  String get discoverTitle => '管理';
 
   @override
   String get discoverBudget => '預算管理';

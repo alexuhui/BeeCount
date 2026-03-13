@@ -251,6 +251,15 @@ class _BudgetCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 显示当前年/月/日
+          Text(
+            '${DateTime.now().year}/${DateTime.now().month}/${DateTime.now().day}',
+            style: TextStyle(
+              fontSize: 16,
+              color: BeeTokens.textSecondary(context),
+            ),
+          ),
+          const Spacer(),
           // 金额和进度
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,

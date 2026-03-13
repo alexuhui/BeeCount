@@ -65,18 +65,19 @@ abstract class BudgetRepository {
   /// 创建预算
   Future<int> createBudget({
     required int ledgerId,
-    required String type,
+    required int year,
+    required int month,
     int? categoryId,
     required double amount,
-    String period = 'monthly',
-    int startDay = 1,
+    required bool prompt,
+    int? promptDay,
+    bool? ignored,
   });
 
   /// 更新预算
   Future<void> updateBudget(
     int id, {
     double? amount,
-    int? startDay,
     bool? enabled,
   });
 
@@ -107,7 +108,7 @@ abstract class BudgetRepository {
   Future<BudgetUsage> getBudgetUsage(int budgetId, DateTime month);
 
   /// 获取账本当月预算概览
-  Future<BudgetOverview> getBudgetOverview(int ledgerId, DateTime month);
+  Future<BudgetOverview> getBudgetOverview(int ledgerId, DateTime date);
 
   /// 批量获取分类预算使用情况
   Future<List<CategoryBudgetUsage>> getCategoryBudgetUsages(

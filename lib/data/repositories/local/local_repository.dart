@@ -1057,19 +1057,23 @@ class LocalRepository extends BaseRepository {
   @override
   Future<int> createBudget({
     required int ledgerId,
-    required String type,
+    required int year,
+    required int month,
     int? categoryId,
     required double amount,
-    String period = 'monthly',
-    int startDay = 1,
+    required bool prompt,
+    int? promptDay,
+    bool? ignored,
   }) =>
       _budgetRepo.createBudget(
         ledgerId: ledgerId,
-        type: type,
+        year: year,
+        month: month,
         categoryId: categoryId,
         amount: amount,
-        period: period,
-        startDay: startDay,
+        prompt: prompt,
+        promptDay: promptDay,
+        ignored: ignored,
       );
 
   @override
@@ -1079,7 +1083,7 @@ class LocalRepository extends BaseRepository {
     int? startDay,
     bool? enabled,
   }) =>
-      _budgetRepo.updateBudget(id, amount: amount, startDay: startDay, enabled: enabled);
+      _budgetRepo.updateBudget(id, amount: amount, enabled: enabled);
 
   @override
   Future<void> deleteBudget(int id) => _budgetRepo.deleteBudget(id);
@@ -1112,8 +1116,8 @@ class LocalRepository extends BaseRepository {
       _budgetRepo.getBudgetUsage(budgetId, month);
 
   @override
-  Future<BudgetOverview> getBudgetOverview(int ledgerId, DateTime month) =>
-      _budgetRepo.getBudgetOverview(ledgerId, month);
+  Future<BudgetOverview> getBudgetOverview(int ledgerId, DateTime date) =>
+      _budgetRepo.getBudgetOverview(ledgerId, date);
 
   @override
   Future<List<CategoryBudgetUsage>> getCategoryBudgetUsages(int ledgerId, DateTime month) =>

@@ -1014,25 +1014,26 @@ class BudgetsConfig {
 /// 预算项
 class BudgetItem {
   final String ledgerName; // 账本名称（用于导出/导入匹配）
-  final String type; // total / category
+  final int year;
+  final int month;
   final String? categoryName; // 分类名称（用于导出/导入匹配）
   final double amount;
-  final int startDay;
+  final bool prompt;
 
   const BudgetItem({
     required this.ledgerName,
-    required this.type,
+    required this.year,
+    required this.month,
     this.categoryName,
     required this.amount,
-    required this.startDay,
+    // 预留功能，特定日预算，提示用户支付
+    this.prompt = false,
   });
 
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{
       'ledger_name': ledgerName,
-      'type': type,
       'amount': amount,
-      'start_day': startDay,
     };
     if (categoryName != null) map['category_name'] = categoryName;
     return map;
@@ -1041,10 +1042,11 @@ class BudgetItem {
   static BudgetItem fromMap(Map<String, dynamic> map) {
     return BudgetItem(
       ledgerName: map['ledger_name'] as String,
-      type: map['type'] as String,
+      year: map['year'] as int,
+      month: map['month'] as int,
       categoryName: map['category_name'] as String?,
       amount: (map['amount'] as num).toDouble(),
-      startDay: map['start_day'] as int? ?? 1,
+      prompt: map['prompt'] as bool? ?? false,
     );
   }
 }
@@ -1518,12 +1520,13 @@ class ConfigExportService {
           budgetsConfig = BudgetsConfig(
             items: budgetsList.map((budget) => BudgetItem(
               ledgerName: ledgerMap[budget.ledgerId] ?? 'Unknown',
-              type: budget.type,
+              year: budget.year,
+              month: budget.month,
               categoryName: budget.categoryId != null
                   ? categoryMap[budget.categoryId]
                   : null,
               amount: budget.amount,
-              startDay: budget.startDay,
+              prompt: budget.prompt,
             )).toList(),
           );
         }
@@ -2505,7 +2508,7 @@ class ConfigExportService {
 
           // 通过名称查找分类 ID（仅分类预算需要）
           int? categoryId;
-          if (item.type == 'category' && item.categoryName != null) {
+          if (item.categoryName != null) {
             categoryId = categoryNameToId[item.categoryName];
             if (categoryId == null) {
               logger.warning('ConfigImport', '找不到分类: ${item.categoryName}，跳过此预算');
@@ -2516,10 +2519,12 @@ class ConfigExportService {
 
           await repository.createBudget(
             ledgerId: targetLedgerId,
-            type: item.type,
+            year: item.year,
+            month: item.month,
             categoryId: categoryId,
             amount: item.amount,
-            startDay: item.startDay,
+            // 预留功能，特定日预算，提示用户支付
+            prompt: false,
           );
           importedCount++;
         }

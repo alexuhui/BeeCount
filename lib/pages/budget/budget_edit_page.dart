@@ -578,12 +578,19 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
           amount: amount,
         );
       } else {
-        await repo.createBudget(
-          ledgerId: ledgerId,
-          type: "category",
-          categoryId: _selectedCategoryId,
-          amount: amount,
-        );
+        // 0 是全选下标，忽略
+        for (int i = 1; i < _selectedMonth.length; i++) {
+          if(!_selectedMonth[i]) continue;
+          await repo.createBudget(
+            ledgerId: ledgerId,
+            year: _selectedYear,
+            month: i,
+            categoryId: _selectedCategoryId,
+            amount: amount,
+            // 预留功能，特定日预算，提示用户支付
+            prompt: false,
+          );
+        }
       }
 
       // 刷新预算数据

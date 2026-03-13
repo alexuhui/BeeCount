@@ -18,20 +18,24 @@ class LocalBudgetRepository implements BudgetRepository {
   @override
   Future<int> createBudget({
     required int ledgerId,
-    required String type,
+    required int year,
+    required int month,
     int? categoryId,
     required double amount,
-    String period = 'monthly',
-    int startDay = 1,
+    required bool prompt,
+    int? promptDay,
+    bool? ignored,
   }) async {
     return await db.into(db.budgets).insert(
       BudgetsCompanion.insert(
         ledgerId: ledgerId,
-        type: d.Value(type),
+        year: year,
+        month: month,
         categoryId: d.Value(categoryId),
         amount: amount,
-        period: d.Value(period),
-        startDay: d.Value(startDay),
+        prompt: d.Value(prompt),
+        promptDay: d.Value(promptDay),
+        ignored: d.Value(ignored),
       ),
     );
   }
@@ -40,13 +44,11 @@ class LocalBudgetRepository implements BudgetRepository {
   Future<void> updateBudget(
     int id, {
     double? amount,
-    int? startDay,
     bool? enabled,
   }) async {
     await (db.update(db.budgets)..where((b) => b.id.equals(id))).write(
       BudgetsCompanion(
         amount: amount != null ? d.Value(amount) : const d.Value.absent(),
-        startDay: startDay != null ? d.Value(startDay) : const d.Value.absent(),
         enabled: enabled != null ? d.Value(enabled) : const d.Value.absent(),
         updatedAt: d.Value(DateTime.now()),
       ),
@@ -62,15 +64,8 @@ class LocalBudgetRepository implements BudgetRepository {
 
     if (budget == null) return;
 
-    if (budget.type == 'total') {
-      // 删除总预算时，同时删除该账本的所有分类预算
-      await (db.delete(db.budgets)
-            ..where((b) => b.ledgerId.equals(budget.ledgerId)))
-          .go();
-    } else {
-      // 删除单个分类预算
-      await (db.delete(db.budgets)..where((b) => b.id.equals(id))).go();
-    }
+    // 删除单个分类预算
+    await (db.delete(db.budgets)..where((b) => b.id.equals(id))).go();
   }
 
   @override
@@ -82,36 +77,40 @@ class LocalBudgetRepository implements BudgetRepository {
         .get();
     // 计算总预算
     double totalBudget = 0;
-    
+    Budget? firstBudget;
     for (final budget in budgets) {
       totalBudget += budget.amount;
+      firstBudget ??= budget;
     }
 
+    DateTime now = DateTime.now();
     return Budget(
       id: 0,
       ledgerId: ledgerId,
-      type: 'total',
+      year: firstBudget?.year ?? now.year,
+      month: firstBudget?.month ?? now.month,
       categoryId: null,
       amount: totalBudget,
-      period: 'monthly',
-      startDay: 1,
       enabled: true,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+      createdAt: now, // 这个字段对于总预算没有意义，设为当前时间
+      updatedAt: now, // 这个字段对于总预算没有意义，设为当前时间
+      prompt: false,  // 总预算不需要提示
+      promptDay: null, // 总预算不需要提示日期
+      ignored: false,
     );
   }
 
   @override
   Future<List<Budget>> getCategoryBudgets(int ledgerId) async {
     return await (db.select(db.budgets)
-          ..where((b) => b.ledgerId.equals(ledgerId) & b.type.equals('category') & b.enabled.equals(true)))
+          ..where((b) => b.ledgerId.equals(ledgerId) & b.enabled.equals(true)))
         .get();
   }
 
   @override
   Future<List<Budget>> getCategoryBudgetsByMonth(int ledgerId, int year, int month) async {
     return await (db.select(db.budgets)
-          ..where((b) => b.ledgerId.equals(ledgerId) & b.type.equals('category') & b.year.equals(year) & b.month.equals(month) & b.enabled.equals(true)))
+          ..where((b) => b.ledgerId.equals(ledgerId) & b.year.equals(year) & b.month.equals(month) & b.enabled.equals(true)))
         .get();
   }
 
@@ -122,7 +121,6 @@ class LocalBudgetRepository implements BudgetRepository {
     return await (db.select(db.budgets)
           ..where((b) =>
               b.ledgerId.equals(ledgerId) &
-              b.type.equals('category') &
               b.categoryId.equals(categoryId) &
               b.enabled.equals(true)))
         .getSingleOrNull();
@@ -133,7 +131,6 @@ class LocalBudgetRepository implements BudgetRepository {
     return await (db.select(db.budgets)
           ..where((b) => b.ledgerId.equals(ledgerId))
           ..orderBy([
-            (b) => d.OrderingTerm(expression: b.type),
             (b) => d.OrderingTerm(expression: b.createdAt),
           ]))
         .get();
@@ -144,7 +141,6 @@ class LocalBudgetRepository implements BudgetRepository {
     return await (db.select(db.budgets)
           ..orderBy([
             (b) => d.OrderingTerm(expression: b.ledgerId),
-            (b) => d.OrderingTerm(expression: b.type),
             (b) => d.OrderingTerm(expression: b.createdAt),
           ]))
         .get();
@@ -164,71 +160,40 @@ class LocalBudgetRepository implements BudgetRepository {
       return BudgetUsage(used: 0, budget: 0);
     }
 
-    // 计算月份范围（基于startDay）
-    DateTime startDate;
-    DateTime endDate;
-
-    if (budget.startDay <= month.day) {
-      // 起始日在当前日期之前，周期是本月startDay到下月startDay
-      startDate = DateTime(month.year, month.month, budget.startDay);
-      endDate = DateTime(month.year, month.month + 1, budget.startDay);
-    } else {
-      // 起始日在当前日期之后，周期是上月startDay到本月startDay
-      startDate = DateTime(month.year, month.month - 1, budget.startDay);
-      endDate = DateTime(month.year, month.month, budget.startDay);
-    }
+    // 计算月份日期范围
+    DateTime startDate = DateTime(month.year, month.month);
+    DateTime endDate = DateTime(month.year, month.month + 1);
 
     // 查询该周期内的支出
     double used = 0;
-    if (budget.type == 'total') {
-      // 总预算：统计所有支出
-      final result = await db.customSelect(
-        '''
-        SELECT COALESCE(SUM(amount), 0) as total
-        FROM transactions
-        WHERE ledger_id = ?
-          AND type = 'expense'
-          AND happened_at >= ?
-          AND happened_at < ?
-        ''',
-        variables: [
-          d.Variable.withInt(budget.ledgerId),
-          d.Variable.withDateTime(startDate),
-          d.Variable.withDateTime(endDate),
-        ],
-        readsFrom: {db.transactions},
-      ).getSingle();
-      used = _parseDouble(result.data['total']);
-    } else {
-      // 分类预算：统计该分类支出（包含子分类）
-      final result = await db.customSelect(
-        '''
-        SELECT COALESCE(SUM(t.amount), 0) as total
-        FROM transactions t
-        LEFT JOIN categories c ON t.category_id = c.id
-        WHERE t.ledger_id = ?
-          AND t.type = 'expense'
-          AND t.happened_at >= ?
-          AND t.happened_at < ?
-          AND (t.category_id = ? OR c.parent_id = ?)
-        ''',
-        variables: [
-          d.Variable.withInt(budget.ledgerId),
-          d.Variable.withDateTime(startDate),
-          d.Variable.withDateTime(endDate),
-          d.Variable.withInt(budget.categoryId!),
-          d.Variable.withInt(budget.categoryId!),
-        ],
-        readsFrom: {db.transactions, db.categories},
-      ).getSingle();
-      used = _parseDouble(result.data['total']);
-    }
-
+    // 分类预算：统计该分类支出（包含子分类）
+    final result = await db.customSelect(
+      '''
+      SELECT COALESCE(SUM(t.amount), 0) as total
+      FROM transactions t
+      LEFT JOIN categories c ON t.category_id = c.id
+      WHERE t.ledger_id = ?
+        AND t.type = 'expense'
+        AND t.happened_at >= ?
+        AND t.happened_at < ?
+        AND (t.category_id = ? OR c.parent_id = ?)
+      ''',
+      variables: [
+        d.Variable.withInt(budget.ledgerId),
+        d.Variable.withDateTime(startDate),
+        d.Variable.withDateTime(endDate),
+        d.Variable.withInt(budget.categoryId!),
+        d.Variable.withInt(budget.categoryId!),
+      ],
+      readsFrom: {db.transactions, db.categories},
+    ).getSingle();
+    used = _parseDouble(result.data['total']);
+    
     return BudgetUsage(used: used, budget: budget.amount);
   }
 
   @override
-  Future<BudgetOverview> getBudgetOverview(int ledgerId, DateTime month) async {
+  Future<BudgetOverview> getBudgetOverview(int ledgerId, DateTime date) async {
     // 获取总预算
     // final totalBudget = await getTotalBudget(ledgerId);
     BudgetUsage? totalUsage;
@@ -238,7 +203,7 @@ class LocalBudgetRepository implements BudgetRepository {
     // }
 
     // 获取分类预算使用情况
-    final categoryUsages = await getCategoryBudgetUsages(ledgerId, month);
+    final categoryUsages = await getCategoryBudgetUsages(ledgerId, date);
     if(categoryUsages.isNotEmpty){
       double totalUsed = 0;
       double totalBudget = 0;
@@ -248,13 +213,16 @@ class LocalBudgetRepository implements BudgetRepository {
         // logger.info('local_budget_repository', 'name: ${categoryUsage.categoryName} categoryUsage.usage.used: ${categoryUsage.usage.used}  categoryUsage.usage.budget: ${categoryUsage.usage.budget}');
       }
       totalUsage = BudgetUsage(used: totalUsed, budget: totalBudget);
+    }else{
+      totalUsage = BudgetUsage(used: 0, budget: 0);
     }
     
     // logger.info('local_budget_repository', 'totalUsage.used: ${totalUsage?.used}  totalUsage.budget: ${totalUsage?.budget}');
 
     DateTime now = DateTime.now();
-    DateTime endDate = DateTime(month.year, month.month + 1);
-    final daysRemaining = endDate.difference(now).inDays;
+    DateTime startDate = now.year == date.year && now.month == date.month ? now: DateTime(date.year, date.month, 1);
+    DateTime endDate = DateTime(date.year, date.month + 1);
+    final daysRemaining = endDate.difference(startDate).inDays;
 
     // 计算日均可用
     final remaining = totalUsage?.remaining ?? 0;
@@ -265,8 +233,8 @@ class LocalBudgetRepository implements BudgetRepository {
       categoryBudgets: categoryUsages,
       daysRemaining: daysRemaining > 0 ? daysRemaining : 0,
       dailyAvailable: dailyAvailable > 0 ? dailyAvailable : 0,
-      year: month.year,
-      month: month.month,
+      year: date.year,
+      month: date.month,
     );
   }
 
@@ -275,7 +243,7 @@ class LocalBudgetRepository implements BudgetRepository {
     int ledgerId,
     DateTime month,
   ) async {
-    final budgets = await getCategoryBudgets(ledgerId);
+    final budgets = await getCategoryBudgetsByMonth(ledgerId, month.year, month.month);
     final result = <CategoryBudgetUsage>[];
 
     for (final budget in budgets) {
@@ -315,7 +283,6 @@ class LocalBudgetRepository implements BudgetRepository {
     return (db.select(db.budgets)
           ..where((b) => b.ledgerId.equals(ledgerId))
           ..orderBy([
-            (b) => d.OrderingTerm(expression: b.type),
             (b) => d.OrderingTerm(expression: b.createdAt),
           ]))
         .watch();

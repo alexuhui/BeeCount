@@ -145,7 +145,7 @@ class BudgetPage extends ConsumerWidget {
     AppLocalizations l10n,
   ) {
 
-    // logger.info('BudgetPage', 'overview.totalBudget: ${overview.totalBudget}');
+    logger.info('BudgetPage', 'overview.totalBudget: ${overview.totalBudget}');
 
     final budget = overview.totalBudget!;
 

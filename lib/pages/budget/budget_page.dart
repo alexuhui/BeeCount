@@ -21,7 +21,7 @@ class BudgetPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final overviewAsync = ref.watch(budgetOverviewProvider);
+    final overviewAsync = ref.watch(budgetOverviewForYearMonthProvider);
 
     return Scaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
@@ -50,8 +50,7 @@ class BudgetPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(
-      BuildContext context, WidgetRef ref, BudgetOverview? overview) {
+  Widget _buildContent(BuildContext context, WidgetRef ref, BudgetOverview? overview) {
     final l10n = AppLocalizations.of(context);
 
     return Column(
@@ -155,21 +154,18 @@ class BudgetPage extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildYearMonthSelector(context, ref),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                l10n.budgetMonthlyBudget,
+                l10n.configIncludeBudgets,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: BeeTokens.textPrimary(context),
                 ),
               ),
-              // TextButton(
-              //   onPressed: () => _editTotalBudget(context, ref),
-              //   child: Text(l10n.commonEdit),
-              // ),
             ],
           ),
           SizedBox(height: 16.0.scaled(context, ref)),
@@ -343,5 +339,59 @@ class BudgetPage extends ConsumerWidget {
         MaterialPageRoute(builder: (_) => BudgetEditPage(budget: budget)),
       );
     }
+  }
+
+  /// 年份选择器，默认显示当前年份
+  Widget _buildYearMonthSelector(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final yearMonthAsync = ref.watch(selectedBudgetYearMonthProvider);
+    return Row(
+      // 对齐方式，可以根据需要调整
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<int>(
+            initialValue: yearMonthAsync.year,
+            decoration: InputDecoration(
+              labelText: l10n.selectYear,
+              border: OutlineInputBorder(),
+            ),
+            items: List.generate(5, (index) {
+              final year = DateTime.now().year + index;
+              return DropdownMenuItem(
+                value: year,
+                child: Text(l10n.homeYear(year)),
+              );
+            }),
+            onChanged: (value) => ref
+                .read(selectedBudgetYearMonthProvider.notifier)
+                .state = DateTime(value!, yearMonthAsync.month),
+          )
+        ),
+
+        // 两个下拉框之间的间距
+        const SizedBox(width: 16.0),
+
+        Expanded(
+          child: DropdownButtonFormField<int>(
+            initialValue: yearMonthAsync.month,
+            decoration: InputDecoration(
+              labelText: l10n.selectMonth,
+              border: OutlineInputBorder(),
+            ),
+            items: List.generate(12, (index) {
+              final month = index + 1;
+              return DropdownMenuItem(
+                value: month,
+                child: Text(l10n.homeMonth(month.toString())),
+              );
+            }),
+            onChanged: (value) => ref
+                .read(selectedBudgetYearMonthProvider.notifier)
+                .state = DateTime(yearMonthAsync.year, value!),
+          )
+        ),
+      ],
+    );
   }
 }

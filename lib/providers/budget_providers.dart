@@ -38,6 +38,20 @@ final budgetOverviewProvider = FutureProvider<BudgetOverview?>((ref) async {
   return repo.getBudgetOverview(ledgerId, now);
 });
 
+/// 当前管理的预算年月刷新触发器
+final selectedBudgetYearMonthProvider = StateProvider<DateTime>((ref) => DateTime.now());
+
+/// 当前账本的指定年月的预算概览
+final budgetOverviewForYearMonthProvider = FutureProvider<BudgetOverview?>((ref) async {
+  final dateTime = ref.watch(selectedBudgetYearMonthProvider);
+  ref.watch(budgetRefreshProvider);
+
+  final ledgerId = ref.watch(currentLedgerIdProvider);
+  final repo = ref.watch(repositoryProvider);
+
+  return repo.getBudgetOverview(ledgerId, dateTime);
+});
+
 /// 分类预算列表
 final categoryBudgetsProvider = FutureProvider<List<CategoryBudgetUsage>>((ref) async {
   ref.watch(budgetRefreshProvider);

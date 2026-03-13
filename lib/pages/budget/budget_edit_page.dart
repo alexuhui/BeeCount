@@ -33,7 +33,6 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
   int? _selectedCategoryId;
   String? _selectedCategoryName;
   String? _selectedCategoryIcon;
-  int _startDay = 1;
   bool _isLoading = false;
   // bool _hasTotalBudget = false; // 是否已存在总预算
   int _selectedYear = DateTime.now().year;
@@ -50,7 +49,6 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
       // _type = widget.budget!.type;
       _amountController.text = widget.budget!.amount.toStringAsFixed(0);
       _selectedCategoryId = widget.budget!.categoryId;
-      _startDay = widget.budget!.startDay;
     } else {
       // _type = widget.isCategory ? 'category' : 'total';
       // 检查是否已存在总预算
@@ -578,7 +576,6 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
         await repo.updateBudget(
           widget.budget!.id,
           amount: amount,
-          startDay: _startDay,
         );
       } else {
         await repo.createBudget(
@@ -586,7 +583,6 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
           type: "category",
           categoryId: _selectedCategoryId,
           amount: amount,
-          startDay: _startDay,
         );
       }
 

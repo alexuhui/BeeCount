@@ -15,11 +15,13 @@ import '../../widgets/ui/ui.dart';
 /// 预算编辑页面
 class BudgetEditPage extends ConsumerStatefulWidget {
   final Budget? budget;
-  // final bool isCategory;
+  final int year;
+  final int month;
 
   const BudgetEditPage({
     this.budget,
-    // this.isCategory = false,
+    required this.year,
+    required this.month,
     super.key,
   });
 
@@ -34,40 +36,23 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
   String? _selectedCategoryName;
   String? _selectedCategoryIcon;
   bool _isLoading = false;
-  // bool _hasTotalBudget = false; // 是否已存在总预算
-  int _selectedYear = DateTime.now().year;
+  late int _selectedYear;
   /// 是否选中对应月份
   /// 0 表示整年，默认选中当前月份
-  final List<bool> _selectedMonth = List.generate(13, (i) => i == DateTime.now().month);
+  final List<bool> _selectedMonth = List.generate(13, (i) => false);
 
   bool get _isEditing => widget.budget != null;
 
   @override
   void initState() {
     super.initState();
+    _selectedYear = widget.year;
+    _selectedMonth[widget.month] = true;
     if (_isEditing) {
-      // _type = widget.budget!.type;
       _amountController.text = widget.budget!.amount.toStringAsFixed(0);
       _selectedCategoryId = widget.budget!.categoryId;
-    } else {
-      // _type = widget.isCategory ? 'category' : 'total';
-      // 检查是否已存在总预算
-      // _checkTotalBudgetExists();
     }
   }
-
-  // Future<void> _checkTotalBudgetExists() async {
-  //   final totalBudget = await ref.read(totalBudgetProvider.future);
-  //   if (mounted && totalBudget != null) {
-  //     setState(() {
-  //       _hasTotalBudget = true;
-  //       // 如果已存在总预算，默认选择分类预算
-  //       if (_type == 'total') {
-  //         _type = 'category';
-  //       }
-  //     });
-  //   }
-  // }
 
   @override
   void dispose() {

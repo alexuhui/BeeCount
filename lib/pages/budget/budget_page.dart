@@ -33,7 +33,7 @@ class BudgetPage extends ConsumerWidget {
             compact: true,
             actions: [
               IconButton(
-                onPressed: () => _addBudget(context),
+                onPressed: () => _addBudget(context, overviewAsync.value),
                 icon: const Icon(Icons.add),
               ),
             ],
@@ -73,8 +73,18 @@ class BudgetPage extends ConsumerWidget {
               horizontal: 16.0.scaled(context, ref),
             ),
             children: [
-              if (overview.categoryBudgets.isNotEmpty)
-                _buildCategoryBudgetsCard(context, ref, overview.categoryBudgets, l10n),
+              overview.categoryBudgets.isNotEmpty
+                  ?
+                  // 有预算就显示记录
+                  _buildCategoryBudgetsCard(
+                      context, ref, overview.categoryBudgets, l10n, overview)
+                  // 没有预算就显示提示
+                  : Center(
+                      child: TextButton(
+                        onPressed: () => _addBudget(context, overview),
+                        child: Text(l10n.budgetEmptyHint),
+                      ),
+                    ),
             ],
           ),
         ),
@@ -265,6 +275,7 @@ class BudgetPage extends ConsumerWidget {
     WidgetRef ref,
     List<CategoryBudgetUsage> categoryBudgets,
     AppLocalizations l10n,
+    BudgetOverview? overview,
   ) {
     return SectionCard(
       margin: EdgeInsets.zero,
@@ -283,7 +294,7 @@ class BudgetPage extends ConsumerWidget {
                 ),
               ),
               TextButton(
-                onPressed: () => _addCategoryBudget(context),
+                onPressed: () => _addBudget(context, overview),
                 child: Text(l10n.commonAdd),
               ),
             ],
@@ -299,29 +310,14 @@ class BudgetPage extends ConsumerWidget {
     );
   }
 
-  void _addBudget(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const BudgetEditPage()),
-    );
-  }
-
-  // Future<void> _editTotalBudget(BuildContext context, WidgetRef ref) async {
-  //   final budget = await ref.read(totalBudgetProvider.future);
-  //   if (budget != null && context.mounted) {
-  //     Navigator.push(
-  //       context,
-  //       MaterialPageRoute(builder: (_) => BudgetEditPage(budget: budget)),
-  //     );
-  //   }
-  // }
-
-  void _addCategoryBudget(BuildContext context) {
+  void _addBudget(BuildContext context, BudgetOverview? overview) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        // builder: (_) => const BudgetEditPage(isCategory: true),
-        builder: (_) => const BudgetEditPage(),
+        builder: (_) => BudgetEditPage(
+          year: overview?.year ?? DateTime.now().year,
+          month: overview?.month ?? DateTime.now().month,
+        ),
       ),
     );
   }
@@ -336,7 +332,13 @@ class BudgetPage extends ConsumerWidget {
     if (budget != null && context.mounted) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => BudgetEditPage(budget: budget)),
+        MaterialPageRoute(
+          builder: (_) => BudgetEditPage(
+            year: budget.year,
+            month: budget.month,
+            budget: budget,
+          ),
+        ),
       );
     }
   }

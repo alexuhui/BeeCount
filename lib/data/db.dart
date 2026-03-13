@@ -153,8 +153,14 @@ class Budgets extends Table {
   /// 关联账本ID
   IntColumn get ledgerId => integer()();
 
-  /// 预算类型：total-总预算, category-分类预算
-  TextColumn get type => text().withDefault(const Constant('total'))();
+  // /// 预算类型：total-总预算, category-分类预算
+  // TextColumn get type => text().withDefault(const Constant('total'))();
+
+  /// 年份
+  IntColumn get year => integer()();
+
+  /// 月份
+  IntColumn get month => integer()();
 
   /// 关联分类ID（仅分类预算有值）
   IntColumn get categoryId => integer().nullable()();
@@ -162,11 +168,11 @@ class Budgets extends Table {
   /// 预算金额
   RealColumn get amount => real()();
 
-  /// 预算周期：monthly-月度, weekly-周度, yearly-年度
-  TextColumn get period => text().withDefault(const Constant('monthly'))();
+  // /// 预算周期：monthly-月度, weekly-周度, yearly-年度
+  // TextColumn get period => text().withDefault(const Constant('monthly'))();
 
-  /// 周期起始日（1-31，月度预算；1-7，周度预算）
-  IntColumn get startDay => integer().withDefault(const Constant(1))();
+  // /// 周期起始日（1-31，月度预算；1-7，周度预算）
+  // IntColumn get startDay => integer().withDefault(const Constant(1))();
 
   /// 是否启用
   BoolColumn get enabled => boolean().withDefault(const Constant(true))();
@@ -176,6 +182,15 @@ class Budgets extends Table {
 
   /// 更新时间
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  /// 是否提示用户支付
+  BoolColumn get prompt => boolean().withDefault(const Constant(false))();
+
+  /// 提示日期
+  IntColumn get promptDay => integer().nullable()();
+
+  /// 是否不再提示（用户已支付）
+  BoolColumn get ignored => boolean().nullable()();
 }
 
 @DriftDatabase(tables: [
@@ -195,7 +210,7 @@ class BeeDatabase extends _$BeeDatabase {
   BeeDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 14; // v14: 迁移转账记录到虚拟转账分类
+  int get schemaVersion => 15; // v15: 更新（新增/删除）预算表字段
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -466,6 +481,56 @@ class BeeDatabase extends _$BeeDatabase {
             await SeedService.migrateTransferTransactions(this);
             logger.info('DB', 'v14 迁移完成: 转账记录已关联到虚拟转账分类');
             print('[DB Migration] v14 迁移完成');
+          }
+
+          if (from < 15) {
+            // v15: 更新（新增/删除）预算表字段
+            print('[DB Migration] 开始迁移到 v15: 更新（新增/删除）预算表字段');
+
+            // 删除旧字段
+            // await customStatement('ALTER TABLE budgets DROP COLUMN IF EXISTS type;');
+            // logger.info('DB', 'v15: 删除旧字段 type');
+
+            // await customStatement('ALTER TABLE budgets DROP COLUMN IF EXISTS period;');
+            // logger.info('DB', 'v15: 删除旧字段 period');
+
+            // await customStatement('ALTER TABLE budgets DROP COLUMN IF EXISTS start_day;');
+            // logger.info('DB', 'v15: 删除旧字段 start_day');
+
+
+            // 检查字段是否已存在，避免重复添加
+            final tableInfo =
+                await customSelect('PRAGMA table_info(budgets)').get();
+
+            final hasYear = tableInfo.any((row) => row.data['name'] == 'year');
+            final hasMonth = tableInfo.any((row) => row.data['name'] == 'month');
+            final hasPrompt = tableInfo.any((row) => row.data['name'] == 'prompt');
+            final hasPromptDay = tableInfo.any((row) => row.data['name'] == 'prompt_day');
+            final hasIgnored = tableInfo.any((row) => row.data['name'] == 'ignored');
+
+            // 添加新字段
+            if(!hasYear){
+              await customStatement('ALTER TABLE budgets ADD COLUMN year INTEGER NOT NULL DEFAULT 2026;');
+              logger.info('DB', 'v15: 添加新字段 year');
+            }
+            if(!hasMonth){
+              await customStatement('ALTER TABLE budgets ADD COLUMN month INTEGER NOT NULL DEFAULT 3;');
+              logger.info('DB', 'v15: 添加新字段 month');
+            }
+            if(!hasPrompt){
+              await customStatement('ALTER TABLE budgets ADD COLUMN prompt BOOLEAN NOT NULL DEFAULT false;');
+              logger.info('DB', 'v15: 添加新字段 prompt');
+            }
+            if(!hasPromptDay){
+              await customStatement('ALTER TABLE budgets ADD COLUMN prompt_day INTEGER;');
+              logger.info('DB', 'v15: 添加新字段 prompt_day');
+            }
+            if(!hasIgnored){
+              await customStatement('ALTER TABLE budgets ADD COLUMN ignored BOOLEAN;');
+              logger.info('DB', 'v15: 添加新字段 ignored');
+            }
+
+            print('[DB Migration] v15 迁移完成');
           }
         },
       );

@@ -1092,6 +1092,12 @@ class LocalRepository extends BaseRepository {
       _budgetRepo.getCategoryBudgets(ledgerId);
 
   @override
+  Future<List<Budget>> getCategoryBudgetsByMonth(int ledgerId, int year, int month) =>
+      _budgetRepo.getCategoryBudgetsByMonth(ledgerId, year, month);
+
+
+
+  @override
   Future<Budget?> getBudgetByCategory(int ledgerId, int categoryId) =>
       _budgetRepo.getBudgetByCategory(ledgerId, categoryId);
 

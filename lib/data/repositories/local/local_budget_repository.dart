@@ -109,6 +109,15 @@ class LocalBudgetRepository implements BudgetRepository {
   }
 
   @override
+  Future<List<Budget>> getCategoryBudgetsByMonth(int ledgerId, int year, int month) async {
+    return await (db.select(db.budgets)
+          ..where((b) => b.ledgerId.equals(ledgerId) & b.type.equals('category') & b.year.equals(year) & b.month.equals(month) & b.enabled.equals(true)))
+        .get();
+  }
+
+
+
+  @override
   Future<Budget?> getBudgetByCategory(int ledgerId, int categoryId) async {
     return await (db.select(db.budgets)
           ..where((b) =>
@@ -243,15 +252,8 @@ class LocalBudgetRepository implements BudgetRepository {
     
     // logger.info('local_budget_repository', 'totalUsage.used: ${totalUsage?.used}  totalUsage.budget: ${totalUsage?.budget}');
 
-    // 计算剩余天数
-    final now = DateTime.now();
-    final startDay = 1;
-    DateTime endDate;
-    if (startDay <= now.day) {
-      endDate = DateTime(now.year, now.month + 1, startDay);
-    } else {
-      endDate = DateTime(now.year, now.month, startDay);
-    }
+    DateTime now = DateTime.now();
+    DateTime endDate = DateTime(month.year, month.month + 1);
     final daysRemaining = endDate.difference(now).inDays;
 
     // 计算日均可用
@@ -263,6 +265,8 @@ class LocalBudgetRepository implements BudgetRepository {
       categoryBudgets: categoryUsages,
       daysRemaining: daysRemaining > 0 ? daysRemaining : 0,
       dailyAvailable: dailyAvailable > 0 ? dailyAvailable : 0,
+      year: month.year,
+      month: month.month,
     );
   }
 

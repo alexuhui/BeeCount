@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../../providers/budget_providers.dart';
 import '../../services/data/category_service.dart';
+import '../../services/system/logger_service.dart';
 import '../../styles/tokens.dart';
 import '../../utils/ui_scale_extensions.dart';
 import '../../utils/website_urls.dart';
@@ -191,6 +192,7 @@ class _BudgetCard extends ConsumerWidget {
             // 预算内容区域
             overviewAsync.when(
               data: (overview) {
+                // logger.info('discover_page', 'overview: $overview  budget: ${overview?.totalBudget?.budget}  used: ${overview?.totalBudget?.used}');
                 if (overview == null || overview.totalBudget == null) {
                   return _buildEmptyState(context, ref, l10n);
                 }
@@ -259,7 +261,7 @@ class _BudgetCard extends ConsumerWidget {
               color: BeeTokens.textSecondary(context),
             ),
           ),
-          const Spacer(),
+          SizedBox(height: 12.0.scaled(context, ref)),
           // 金额和进度
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,

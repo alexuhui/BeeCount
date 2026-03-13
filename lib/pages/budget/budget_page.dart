@@ -54,21 +54,6 @@ class BudgetPage extends ConsumerWidget {
       BuildContext context, WidgetRef ref, BudgetOverview? overview) {
     final l10n = AppLocalizations.of(context);
 
-    // logger.info('BudgetPage', 'overview: $overview  used: ${overview?.totalBudget?.used}  budget: ${overview?.totalBudget?.budget}');
-
-    // BudgetOverview? oldOverview = overview;
-
-    // // 临时数据，后面替换为从数据库获取的实际数据
-    // overview = BudgetOverview(
-    //     totalBudget: oldOverview?.totalBudget ?? BudgetUsage(
-    //       used: 0.0,
-    //       budget: 0.0,
-    //     ),
-    //     categoryBudgets: oldOverview?.categoryBudgets ?? const [],
-    //     daysRemaining: oldOverview?.daysRemaining ?? 0,
-    //     dailyAvailable: oldOverview?.dailyAvailable ?? 0.0,
-    //   );
-
     return Column(
       children: [
         // 总预算概览卡片（固定在顶部）

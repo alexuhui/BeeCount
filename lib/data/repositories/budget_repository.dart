@@ -28,12 +28,16 @@ class BudgetOverview {
   final List<CategoryBudgetUsage> categoryBudgets;
   final int daysRemaining;
   final double dailyAvailable;
+  final int year;
+  final int month;
 
   const BudgetOverview({
     this.totalBudget,
     this.categoryBudgets = const [],
     required this.daysRemaining,
     required this.dailyAvailable,
+    required this.year,
+    required this.month,
   });
 }
 
@@ -84,6 +88,9 @@ abstract class BudgetRepository {
 
   /// 获取账本的所有分类预算
   Future<List<Budget>> getCategoryBudgets(int ledgerId);
+
+  /// 获取账本的分类预算概览（按月份）
+  Future<List<Budget>> getCategoryBudgetsByMonth(int ledgerId, int year, int month);
 
   /// 获取指定分类的预算
   Future<Budget?> getBudgetByCategory(int ledgerId, int categoryId);

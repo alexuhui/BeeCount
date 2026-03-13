@@ -1239,6 +1239,11 @@ class CloudRepository extends BaseRepository {
   }
 
   @override
+  Future<List<Budget>> getCategoryBudgetsByMonth(int ledgerId, int year, int month) async {
+    throw UnimplementedError('预算功能在云端模式下暂不可用');
+  }
+
+  @override
   Future<Budget?> getBudgetByCategory(int ledgerId, int categoryId) async {
     throw UnimplementedError('预算功能在云端模式下暂不可用');
   }

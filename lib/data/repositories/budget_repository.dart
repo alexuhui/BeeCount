@@ -11,7 +11,7 @@ class BudgetUsage {
     required this.used,
     required this.budget,
   }) : remaining = budget - used,
-       rate = budget > 0 ? (used / budget).clamp(0.0, double.infinity) : 0;
+       rate = budget > 0 ? (used / budget).clamp(0.0, double.infinity) : 1;
 
   /// 状态：normal, warning, danger, exceeded
   String get status {
@@ -105,7 +105,7 @@ abstract class BudgetRepository {
   // ============ 预算统计 ============
 
   /// 获取预算使用情况
-  Future<BudgetUsage> getBudgetUsage(int budgetId, DateTime month);
+  Future<BudgetUsage> getBudgetUsage(int budgetId, DateTime date);
 
   /// 获取账本当月预算概览
   Future<BudgetOverview> getBudgetOverview(int ledgerId, DateTime date);
@@ -113,7 +113,14 @@ abstract class BudgetRepository {
   /// 批量获取分类预算使用情况
   Future<List<CategoryBudgetUsage>> getCategoryBudgetUsages(
     int ledgerId,
-    DateTime month,
+    DateTime date,
+  );
+
+
+  /// 按分类获取使用情况（按月份，包含未设置预算的分类，按分类归总）
+  Future<List<CategoryBudgetUsage>> getCategoryBudgetUsagesAll(
+    int ledgerId,
+    DateTime date,
   );
 
   // ============ 监听 ============

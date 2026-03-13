@@ -151,7 +151,7 @@ class LocalBudgetRepository implements BudgetRepository {
   // ============================================
 
   @override
-  Future<BudgetUsage> getBudgetUsage(int budgetId, DateTime month) async {
+  Future<BudgetUsage> getBudgetUsage(int budgetId, DateTime date) async {
     final budget = await (db.select(db.budgets)
           ..where((b) => b.id.equals(budgetId)))
         .getSingleOrNull();
@@ -161,8 +161,8 @@ class LocalBudgetRepository implements BudgetRepository {
     }
 
     // 计算月份日期范围
-    DateTime startDate = DateTime(month.year, month.month);
-    DateTime endDate = DateTime(month.year, month.month + 1);
+    DateTime startDate = DateTime(date.year, date.month);
+    DateTime endDate = DateTime(date.year, date.month + 1);
 
     // 查询该周期内的支出
     double used = 0;
@@ -203,7 +203,7 @@ class LocalBudgetRepository implements BudgetRepository {
     // }
 
     // 获取分类预算使用情况
-    final categoryUsages = await getCategoryBudgetUsages(ledgerId, date);
+    final categoryUsages = await getCategoryBudgetUsagesAll(ledgerId, date);
     if(categoryUsages.isNotEmpty){
       double totalUsed = 0;
       double totalBudget = 0;
@@ -241,9 +241,9 @@ class LocalBudgetRepository implements BudgetRepository {
   @override
   Future<List<CategoryBudgetUsage>> getCategoryBudgetUsages(
     int ledgerId,
-    DateTime month,
+    DateTime date,
   ) async {
-    final budgets = await getCategoryBudgetsByMonth(ledgerId, month.year, month.month);
+    final budgets = await getCategoryBudgetsByMonth(ledgerId, date.year, date.month);
     final result = <CategoryBudgetUsage>[];
 
     for (final budget in budgets) {
@@ -257,7 +257,7 @@ class LocalBudgetRepository implements BudgetRepository {
       if (category == null) continue;
 
       // 获取使用情况
-      final usage = await getBudgetUsage(budget.id, month);
+      final usage = await getBudgetUsage(budget.id, date);
 
       result.add(CategoryBudgetUsage(
         budgetId: budget.id,
@@ -286,6 +286,72 @@ class LocalBudgetRepository implements BudgetRepository {
             (b) => d.OrderingTerm(expression: b.createdAt),
           ]))
         .watch();
+  }
+
+  @override
+  Future<List<CategoryBudgetUsage>> getCategoryBudgetUsagesAll(
+    int ledgerId,
+    DateTime date,
+  ) async {
+    // 计算月份日期范围
+    DateTime startDate = DateTime(date.year, date.month);
+    DateTime endDate = DateTime(date.year, date.month + 1);
+
+    // 获取所有分类预算
+    final budgets = await getCategoryBudgetsByMonth(ledgerId, date.year, date.month);
+    final budgetMap = {for (final b in budgets) b.categoryId!: b};
+
+     // 查询所有分类在该周期内的支出（按分类分组）
+    final results = await db.customSelect(
+      '''
+    SELECT 
+      t.category_id AS category_id,
+      COALESCE(SUM(t.amount), 0) AS total_expense
+    FROM transactions t
+    WHERE t.ledger_id = ?
+      AND t.type = 'expense'
+      AND t.happened_at >= ?
+      AND t.happened_at < ?
+      AND t.category_id IS NOT NULL  -- 排除未分类的交易
+    GROUP BY t.category_id
+    ''',
+      variables: [
+        d.Variable.withInt(ledgerId),
+        d.Variable.withDateTime(startDate),
+        d.Variable.withDateTime(endDate),
+      ],
+      readsFrom: {db.transactions},
+    ).get();
+
+    // 组装结果
+    final categoryUsages = <CategoryBudgetUsage>[];
+    for (final row in results) {
+      final categoryId = row.data['category_id'] as int;
+      final totalExpense = _parseDouble(row.data['total_expense']);
+
+      // 获取分类信息
+      final category = await (db.select(db.categories)
+            ..where((c) => c.id.equals(categoryId)))
+          .getSingleOrNull();
+
+      if (category == null) continue;
+
+      // 预算
+      final budget = budgetMap[categoryId];
+
+      categoryUsages.add(CategoryBudgetUsage(
+        budgetId: budget?.id ?? 0, // 无预算时为0
+        categoryId: categoryId,
+        categoryName: category.name,
+        categoryIcon: category.icon,
+        usage: BudgetUsage(used: totalExpense, budget: budget?.amount ?? 0.0),
+      ));
+    }
+
+    // 按使用率降序排列
+    categoryUsages.sort((a, b) => b.usage.rate.compareTo(a.usage.rate));
+
+    return categoryUsages;
   }
 
   // ============================================

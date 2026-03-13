@@ -1112,19 +1112,23 @@ class LocalRepository extends BaseRepository {
   Future<List<Budget>> getAllBudgetsForExport() => _budgetRepo.getAllBudgetsForExport();
 
   @override
-  Future<BudgetUsage> getBudgetUsage(int budgetId, DateTime month) =>
-      _budgetRepo.getBudgetUsage(budgetId, month);
+  Future<BudgetUsage> getBudgetUsage(int budgetId, DateTime date) =>
+      _budgetRepo.getBudgetUsage(budgetId, date);
 
   @override
   Future<BudgetOverview> getBudgetOverview(int ledgerId, DateTime date) =>
       _budgetRepo.getBudgetOverview(ledgerId, date);
 
   @override
-  Future<List<CategoryBudgetUsage>> getCategoryBudgetUsages(int ledgerId, DateTime month) =>
-      _budgetRepo.getCategoryBudgetUsages(ledgerId, month);
+  Future<List<CategoryBudgetUsage>> getCategoryBudgetUsages(int ledgerId, DateTime date) =>
+      _budgetRepo.getCategoryBudgetUsages(ledgerId, date);
 
   @override
   Stream<List<Budget>> watchBudgets(int ledgerId) => _budgetRepo.watchBudgets(ledgerId);
+
+  @override
+  Future<List<CategoryBudgetUsage>> getCategoryBudgetUsagesAll(int ledgerId, DateTime date) =>
+      _budgetRepo.getCategoryBudgetUsagesAll(ledgerId, date);
 
   // ============================================
   // AttachmentRepository 接口实现 - 委托给 LocalAttachmentRepository

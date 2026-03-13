@@ -1,3 +1,4 @@
+import 'package:beecount/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,6 +23,7 @@ class CategoryBudgetTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final budget = usage.usage;
     final statusColor = _getStatusColor(budget.status);
+    final l10n = AppLocalizations.of(context);
 
     return InkWell(
       onTap: onTap,
@@ -64,6 +66,15 @@ class CategoryBudgetTile extends ConsumerWidget {
                           color: BeeTokens.textPrimary(context),
                         ),
                       ),
+                      // 没有设置预算，但有支出
+                      if(usage.usage.budget <= 0 && usage.usage.used > 0)
+                        Text(
+                          l10n.budgetEmptyHint,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: BeeTokens.error(context),
+                          ),
+                        ),
                       Text(
                         '${(budget.rate * 100).toStringAsFixed(0)}%',
                         style: TextStyle(

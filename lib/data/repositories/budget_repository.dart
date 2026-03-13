@@ -117,7 +117,7 @@ abstract class BudgetRepository {
   );
 
 
-  /// 按分类获取使用情况（按月份，包含未设置预算的分类，按分类归总）
+  /// 按分类获取预算使用情况，包含未设置预算但有实际支出的分类
   Future<List<CategoryBudgetUsage>> getCategoryBudgetUsagesAll(
     int ledgerId,
     DateTime date,

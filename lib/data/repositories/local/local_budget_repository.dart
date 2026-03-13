@@ -323,7 +323,7 @@ class LocalBudgetRepository implements BudgetRepository {
       readsFrom: {db.transactions},
     ).get();
 
-    // 组装结果
+    // 组装支出结果
     final categoryUsages = <CategoryBudgetUsage>[];
     for (final row in results) {
       final categoryId = row.data['category_id'] as int;
@@ -338,6 +338,7 @@ class LocalBudgetRepository implements BudgetRepository {
 
       // 预算
       final budget = budgetMap[categoryId];
+      budgetMap.remove(categoryId);
 
       categoryUsages.add(CategoryBudgetUsage(
         budgetId: budget?.id ?? 0, // 无预算时为0
@@ -345,6 +346,24 @@ class LocalBudgetRepository implements BudgetRepository {
         categoryName: category.name,
         categoryIcon: category.icon,
         usage: BudgetUsage(used: totalExpense, budget: budget?.amount ?? 0.0),
+      ));
+    }
+
+    // 添加未支出的预算
+    for(final budget in budgetMap.values){
+      final categoryId = budget.categoryId!;
+      // 获取分类信息
+      final category = await (db.select(db.categories)
+            ..where((c) => c.id.equals(categoryId)))
+          .getSingleOrNull();
+      if(category == null) continue;
+      
+      categoryUsages.add(CategoryBudgetUsage(
+        budgetId: budget.id,
+        categoryId: categoryId,
+        categoryName: category.name,
+        categoryIcon: category.icon,
+        usage: BudgetUsage(used: 0.0, budget: budget.amount),
       ));
     }
 

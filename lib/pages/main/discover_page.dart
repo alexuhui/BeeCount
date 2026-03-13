@@ -240,7 +240,7 @@ class _BudgetCard extends ConsumerWidget {
   ) {
     final budget = overview.totalBudget!;
     final rate =
-        budget.budget > 0 ? (budget.used / budget.budget).clamp(0.0, 1.0) : 0.0;
+        budget.budget > 0 ? (budget.used / budget.budget).clamp(0.0, 1.0) : budget.used > 0 ? 1.0 : 0.0;
     final progressColor = _getProgressColor(context, rate);
     final hideAmounts = ref.watch(hideAmountsProvider);
 
@@ -387,9 +387,10 @@ class _BudgetCard extends ConsumerWidget {
   ) {
     final rate = usage.usage.budget > 0
         ? (usage.usage.used / usage.usage.budget).clamp(0.0, 1.0)
-        : 0.0;
+        : usage.usage.used > 0 ? 1.0 : 0.0;
     final color = _getProgressColor(context, rate);
     final hideAmounts = ref.watch(hideAmountsProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Row(
       children: [
@@ -421,6 +422,15 @@ class _BudgetCard extends ConsumerWidget {
                       color: BeeTokens.textPrimary(context),
                     ),
                   ),
+                  // 没有设置预算，但有支出
+                  if(usage.usage.budget <= 0 && usage.usage.used > 0)
+                    Text(
+                      l10n.budgetEmptyHint,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: BeeTokens.error(context),
+                      ),
+                    ),
                   hideAmounts
                       ? Text(
                           '****',

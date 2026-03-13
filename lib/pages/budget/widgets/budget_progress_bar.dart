@@ -21,7 +21,7 @@ class BudgetProgressBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final rate = budget > 0 ? (used / budget).clamp(0.0, 1.0) : 0.0;
+    final rate = budget > 0 ? (used / budget).clamp(0.0, 1.0) : used > 0 ? 1.0 : 0.0;
     final color = _getColor(rate);
 
     return Column(

@@ -345,53 +345,117 @@ class BudgetPage extends ConsumerWidget {
   Widget _buildYearMonthSelector(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final yearMonthAsync = ref.watch(selectedBudgetYearMonthProvider);
-    return Row(
-      // 对齐方式，可以根据需要调整
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: DropdownButtonFormField<int>(
-            initialValue: yearMonthAsync.year,
-            decoration: InputDecoration(
-              labelText: l10n.selectYear,
-              border: OutlineInputBorder(),
-            ),
-            items: List.generate(5, (index) {
-              final year = DateTime.now().year + index;
-              return DropdownMenuItem(
-                value: year,
-                child: Text(l10n.homeYear(year)),
-              );
-            }),
-            onChanged: (value) => ref
-                .read(selectedBudgetYearMonthProvider.notifier)
-                .state = DateTime(value!, yearMonthAsync.month),
-          )
+    final now = DateTime.now();
+    final maxYear = 5;
+    final isMinYear = yearMonthAsync.year <= now.year;
+    final isMaxYear = yearMonthAsync.year >= now.year + maxYear - 1;
+    final isMinMonth = yearMonthAsync.month == 1;
+    final isMaxMonth = yearMonthAsync.month == 12;
+    return Column(children: [
+      Row(children: [
+        // 固定高度
+        GestureDetector(
+          onTap: () {
+            if (!isMinYear) {
+              ref.read(selectedBudgetYearMonthProvider.notifier).state =
+                  DateTime(yearMonthAsync.year - 1, yearMonthAsync.month);
+            }
+          },
+          child: Icon(
+            Icons.chevron_left,
+            color: isMinYear
+                ? BeeTokens.iconTertiary(context)
+                : BeeTokens.iconPrimary(context),
+            size: 40,
+          ),
         ),
-
-        // 两个下拉框之间的间距
-        const SizedBox(width: 16.0),
-
         Expanded(
-          child: DropdownButtonFormField<int>(
-            initialValue: yearMonthAsync.month,
-            decoration: InputDecoration(
-              labelText: l10n.selectMonth,
-              border: OutlineInputBorder(),
-            ),
-            items: List.generate(12, (index) {
-              final month = index + 1;
-              return DropdownMenuItem(
-                value: month,
-                child: Text(l10n.homeMonth(month.toString())),
-              );
-            }),
-            onChanged: (value) => ref
-                .read(selectedBudgetYearMonthProvider.notifier)
-                .state = DateTime(yearMonthAsync.year, value!),
-          )
+            child: DropdownButtonFormField<int>(
+          initialValue: yearMonthAsync.year,
+          decoration: InputDecoration(
+            labelText: l10n.selectYear,
+            border: OutlineInputBorder(),
+          ),
+          items: List.generate(maxYear, (index) {
+            final year = DateTime.now().year + index;
+            return DropdownMenuItem(
+              value: year,
+              child: Text(l10n.homeYear(year)),
+            );
+          }),
+          onChanged: (value) => ref
+              .read(selectedBudgetYearMonthProvider.notifier)
+              .state = DateTime(value!, yearMonthAsync.month),
+        )),
+        GestureDetector(
+          onTap: () {
+            if (!isMaxYear) {
+              ref.read(selectedBudgetYearMonthProvider.notifier).state =
+                  DateTime(yearMonthAsync.year + 1, yearMonthAsync.month);
+            }
+          },
+          child: Icon(
+            Icons.chevron_right,
+            color: isMaxYear
+                ? BeeTokens.iconTertiary(context)
+                : BeeTokens.iconPrimary(context),
+            size: 40,
+          ),
         ),
-      ],
-    );
+      ]),
+
+      // 两个下拉框之间的间距
+      const SizedBox(height: 16.0),
+      Row(children: [
+        GestureDetector(
+          onTap: () {
+            if (!isMinMonth) {
+              ref.read(selectedBudgetYearMonthProvider.notifier).state =
+                  DateTime(yearMonthAsync.year, yearMonthAsync.month - 1);
+            }
+          },
+          child: Icon(
+            Icons.chevron_left,
+            color: isMinMonth
+                ? BeeTokens.iconTertiary(context)
+                : BeeTokens.iconPrimary(context),
+            size: 40,
+          ),
+        ),
+        Expanded(
+            child: DropdownButtonFormField<int>(
+          initialValue: yearMonthAsync.month,
+          decoration: InputDecoration(
+            labelText: l10n.selectMonth,
+            border: OutlineInputBorder(),
+          ),
+          items: List.generate(12, (index) {
+            final month = index + 1;
+            return DropdownMenuItem(
+              value: month,
+              child: Text(l10n.homeMonth(month.toString())),
+            );
+          }),
+          onChanged: (value) => ref
+              .read(selectedBudgetYearMonthProvider.notifier)
+              .state = DateTime(yearMonthAsync.year, value!),
+        )),
+        GestureDetector(
+          onTap: () {
+            if (!isMaxMonth) {
+              ref.read(selectedBudgetYearMonthProvider.notifier).state =
+                  DateTime(yearMonthAsync.year, yearMonthAsync.month + 1);
+            }
+          },
+          child: Icon(
+            Icons.chevron_right,
+            color: isMaxMonth
+                ? BeeTokens.iconTertiary(context)
+                : BeeTokens.iconPrimary(context),
+            size: 40,
+          ),
+        ),
+      ]),
+    ]);
   }
 }

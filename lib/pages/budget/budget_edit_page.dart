@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/db.dart';
+import '../../data/repositories/budget_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../../providers/budget_providers.dart';
@@ -15,11 +16,13 @@ import '../../widgets/ui/ui.dart';
 /// 预算编辑页面
 class BudgetEditPage extends ConsumerStatefulWidget {
   final Budget? budget;
+  final CategoryBudgetUsage? usage;
   final int year;
   final int month;
 
   const BudgetEditPage({
     this.budget,
+    this.usage,
     required this.year,
     required this.month,
     super.key,
@@ -51,6 +54,15 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
     if (_isEditing) {
       _amountController.text = widget.budget!.amount.toStringAsFixed(0);
       _selectedCategoryId = widget.budget!.categoryId;
+    }
+
+    if(widget.usage != null){
+      if( widget.budget == null){
+        _amountController.text = widget.usage!.usage.used.toStringAsFixed(0);
+        _selectedCategoryId = widget.usage!.categoryId;
+      }
+      _selectedCategoryName = widget.usage!.categoryName;
+      _selectedCategoryIcon = widget.usage!.categoryIcon;
     }
   }
 

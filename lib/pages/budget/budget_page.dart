@@ -302,7 +302,7 @@ class BudgetPage extends ConsumerWidget {
           ...categoryBudgets.map(
             (usage) => CategoryBudgetTile(
               usage: usage,
-              onTap: () => _editCategoryBudget(context, ref, usage),
+              onTap: () => _editCategoryBudget(context, ref, usage, overview),
             ),
           ),
         ],
@@ -326,20 +326,35 @@ class BudgetPage extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     CategoryBudgetUsage usage,
+    BudgetOverview? overview,
   ) async {
     final allBudgets = await ref.read(allBudgetsProvider.future);
     final budget = allBudgets.where((b) => b.id == usage.budgetId).firstOrNull;
-    if (budget != null && context.mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => BudgetEditPage(
-            year: budget.year,
-            month: budget.month,
-            budget: budget,
+    if (context.mounted) {
+      if(budget != null){
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BudgetEditPage(
+              year: budget.year,
+              month: budget.month,
+              budget: budget,
+              usage: usage,
+            ),
           ),
-        ),
-      );
+        );
+      }else{
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BudgetEditPage(
+              year: overview?.year ?? DateTime.now().year,
+              month: overview?.month ?? DateTime.now().month,
+              usage: usage,
+            ),
+          ),
+       );
+      }
     }
   }
 

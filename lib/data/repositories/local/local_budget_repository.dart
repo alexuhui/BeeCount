@@ -325,6 +325,8 @@ class LocalBudgetRepository implements BudgetRepository {
 
     // 组装支出结果
     final categoryUsages = <CategoryBudgetUsage>[];
+    final categoryUsed = <int, double>{};
+    final categoryMap = <int, Category>{};
     for (final row in results) {
       final categoryId = row.data['category_id'] as int;
       final totalExpense = _parseDouble(row.data['total_expense']);
@@ -333,19 +335,45 @@ class LocalBudgetRepository implements BudgetRepository {
       final category = await (db.select(db.categories)
             ..where((c) => c.id.equals(categoryId)))
           .getSingleOrNull();
-
       if (category == null) continue;
+      categoryMap[categoryId] = category;
 
+      final parentId = category.parentId;
+      // 如果有父分类，归类到父分类
+      final useId = parentId != null && parentId > 0 ? parentId : categoryId;
+      if(categoryUsed.containsKey(useId)){
+        double used = categoryUsed[useId]!;
+        categoryUsed[useId] = used + totalExpense;
+      }else{
+        categoryUsed[useId] = totalExpense;
+      }
+    }
+
+    // 添加支出项
+    for(final used in categoryUsed.entries){
+      final categoryId = used.key;
+      final expense = used.value;
       // 预算
       final budget = budgetMap[categoryId];
       budgetMap.remove(categoryId);
+
+      late Category? category;
+      if( categoryMap.containsKey(categoryId)){
+        category = categoryMap[categoryId];
+      }else{
+        category = await (db.select(db.categories)
+            ..where((c) => c.id.equals(categoryId)))
+          .getSingleOrNull();
+      }
+
+      if(category == null) continue;
 
       categoryUsages.add(CategoryBudgetUsage(
         budgetId: budget?.id ?? 0, // 无预算时为0
         categoryId: categoryId,
         categoryName: category.name,
         categoryIcon: category.icon,
-        usage: BudgetUsage(used: totalExpense, budget: budget?.amount ?? 0.0),
+        usage: BudgetUsage(used: expense, budget: budget?.amount ?? 0.0),
       ));
     }
 

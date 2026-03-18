@@ -19,6 +19,19 @@ class BeeCountAuthService implements CloudAuthService {
   /// Internal sync getter for the current user
   CloudUser? get currentUserSync => _currentUser;
 
+  void restoreSession({
+    required String token,
+    required String userId,
+    required String username,
+  }) {
+    _currentUser = CloudUser(
+      id: userId,
+      email: username,
+      metadata: {'token': token},
+    );
+    _authStateController.add(_currentUser);
+  }
+
   @override
   Future<CloudUser> signInWithEmail({
     required String email,

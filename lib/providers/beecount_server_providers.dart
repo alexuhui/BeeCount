@@ -1,0 +1,164 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
+import 'package:flutter_cloud_sync_beecount/flutter_cloud_sync_beecount.dart';
+
+import 'database_providers.dart';
+import '../services/sync/beecount_session_store.dart';
+import '../services/sync/beecount_sync_engine.dart';
+
+final beeCountSessionStoreProvider = Provider<BeeCountSessionStore>((ref) {
+  return BeeCountSessionStore();
+});
+
+final beecountOfflineModeProvider = FutureProvider<bool>((ref) async {
+  final store = ref.watch(beeCountSessionStoreProvider);
+  return store.loadOfflineMode();
+});
+
+class BeeCountOfflineModeSetter {
+  BeeCountOfflineModeSetter(this._ref);
+  final Ref _ref;
+
+  Future<void> set(bool v) async {
+    final store = _ref.read(beeCountSessionStoreProvider);
+    await store.setOfflineMode(v);
+    _ref.invalidate(beecountOfflineModeProvider);
+    _ref.invalidate(beecountSessionProvider);
+    _ref.invalidate(beecountProviderProvider);
+  }
+}
+
+final beecountOfflineModeSetterProvider = Provider<BeeCountOfflineModeSetter>((ref) {
+  return BeeCountOfflineModeSetter(ref);
+});
+
+final beecountSessionProvider = FutureProvider<BeeCountSession?>((ref) async {
+  final store = ref.watch(beeCountSessionStoreProvider);
+  final offline = await ref.watch(beecountOfflineModeProvider.future);
+  if (offline) return null;
+  return store.loadSession();
+});
+
+final beecountProviderProvider = FutureProvider<CloudProvider?>((ref) async {
+  final offline = await ref.watch(beecountOfflineModeProvider.future);
+  if (offline) return null;
+  final session = await ref.watch(beecountSessionProvider.future);
+  if (session == null) return null;
+
+  final provider = BeeCountProvider();
+  await provider.initialize({'serverUrl': session.serverUrl});
+  final auth = provider.auth;
+  if (auth is BeeCountAuthService) {
+    auth.restoreSession(
+      token: session.token,
+      userId: session.userId,
+      username: session.username,
+    );
+  }
+
+  return provider;
+});
+
+final beecountSyncEngineProvider = Provider<BeeCountSyncEngine?>((ref) {
+  final providerAsync = ref.watch(beecountProviderProvider);
+  if (!providerAsync.hasValue || providerAsync.value == null) return null;
+  final db = ref.watch(databaseProvider);
+
+  final engine = BeeCountSyncEngine(db: db, provider: providerAsync.value!);
+  engine.start();
+  ref.onDispose(engine.dispose);
+  return engine;
+});
+
+final beecountPendingSyncCountProvider = StreamProvider<int>((ref) {
+  final db = ref.watch(databaseProvider);
+  return Stream.periodic(const Duration(seconds: 1))
+      .asyncMap((_) async {
+        final row = await db.customSelect('SELECT COUNT(*) AS c FROM sync_queue_items').getSingle();
+        return (row.data['c'] as int?) ?? 0;
+      })
+      .distinct();
+});
+
+class BeeCountAuthController {
+  BeeCountAuthController(this._ref);
+  final Ref _ref;
+
+  Future<void> signIn({
+    required String serverUrl,
+    required String username,
+    required String password,
+  }) async {
+    final provider = BeeCountProvider();
+    await provider.initialize({'serverUrl': serverUrl});
+    final user = await provider.auth.signInWithEmail(email: username, password: password);
+    final token = user.metadata?['token']?.toString() ?? '';
+    if (token.isEmpty) {
+      throw Exception('Missing token');
+    }
+
+    final store = _ref.read(beeCountSessionStoreProvider);
+    await store.setOfflineMode(false);
+    await store.saveSession(
+      BeeCountSession(
+        serverUrl: serverUrl,
+        token: token,
+        userId: user.id,
+        username: user.email ?? username,
+      ),
+    );
+
+    _ref.invalidate(beecountOfflineModeProvider);
+    _ref.invalidate(beecountSessionProvider);
+    _ref.invalidate(beecountProviderProvider);
+  }
+
+  Future<void> signUp({
+    required String serverUrl,
+    required String username,
+    required String password,
+  }) async {
+    final provider = BeeCountProvider();
+    await provider.initialize({'serverUrl': serverUrl});
+    final user = await provider.auth.signUpWithEmail(email: username, password: password);
+    final token = user.metadata?['token']?.toString() ?? '';
+    if (token.isEmpty) {
+      throw Exception('Missing token');
+    }
+
+    final store = _ref.read(beeCountSessionStoreProvider);
+    await store.setOfflineMode(false);
+    await store.saveSession(
+      BeeCountSession(
+        serverUrl: serverUrl,
+        token: token,
+        userId: user.id,
+        username: user.email ?? username,
+      ),
+    );
+
+    _ref.invalidate(beecountOfflineModeProvider);
+    _ref.invalidate(beecountSessionProvider);
+    _ref.invalidate(beecountProviderProvider);
+  }
+
+  Future<void> signOut() async {
+    final store = _ref.read(beeCountSessionStoreProvider);
+    await store.clearSession();
+    _ref.invalidate(beecountSessionProvider);
+    _ref.invalidate(beecountProviderProvider);
+  }
+
+  Future<void> useOfflineMode() async {
+    final store = _ref.read(beeCountSessionStoreProvider);
+    await store.setOfflineMode(true);
+    await store.clearSession();
+    _ref.invalidate(beecountOfflineModeProvider);
+    _ref.invalidate(beecountSessionProvider);
+    _ref.invalidate(beecountProviderProvider);
+  }
+}
+
+final beecountAuthControllerProvider = Provider<BeeCountAuthController>((ref) {
+  return BeeCountAuthController(ref);
+});

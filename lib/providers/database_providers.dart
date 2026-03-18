@@ -1,14 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:drift/drift.dart';
 import '../data/db.dart';
 import '../data/repositories/local/local_repository.dart';
-import '../data/repositories/cloud/cloud_repository.dart';
 import '../data/repositories/base_repository.dart';
+import '../data/repositories/sync/beecount_syncing_repository.dart';
 import '../services/system/logger_service.dart';
 import 'sync_providers.dart';
-import 'cloud_mode_providers.dart';
-import 'supabase_providers.dart';
+import 'beecount_server_providers.dart';
 
 // 数据库Provider
 final databaseProvider = Provider<BeeDatabase>((ref) {
@@ -21,56 +19,29 @@ final databaseProvider = Provider<BeeDatabase>((ref) {
 // 返回 BaseRepository 类型，确保类型安全
 // LocalRepository (本地模式) 和 CloudRepository (云端模式) 都继承 BaseRepository
 final repositoryProvider = Provider<BaseRepository>((ref) {
-  final mode = ref.watch(appModeProvider);
   final db = ref.watch(databaseProvider);
+  final syncEngine = ref.watch(beecountSyncEngineProvider);
 
-  logger.info('RepositoryProvider', '当前模式: ${mode.label}');
-
-  switch (mode) {
-    case AppMode.local:
-      // 本地优先模式：使用 LocalRepository（基于 Drift）
-      logger.info('RepositoryProvider', '✅ 使用 LocalRepository (本地模式)');
-      return LocalRepository(db);
-
-    case AppMode.cloud:
-      // 仅云端模式：使用 CloudRepository
-      final cloudProviderAsync = ref.watch(cloudProviderInstanceProvider);
-
-      logger.info('RepositoryProvider', 'CloudProvider 状态: hasValue=${cloudProviderAsync.hasValue}, value=${cloudProviderAsync.value != null ? "已加载" : "null"}');
-
-      // 如果 CloudProvider 未加载完成或为 null，回退到本地模式
-      if (!cloudProviderAsync.hasValue || cloudProviderAsync.value == null) {
-        logger.warning('RepositoryProvider', '⚠️ CloudProvider 未就绪，回退到 LocalRepository');
-        return LocalRepository(db);
-      }
-
-      logger.info('RepositoryProvider', '✅ 使用 CloudRepository (仅云端模式)');
-      return CloudRepository(cloudProviderAsync.value!);
+  if (syncEngine != null) {
+    logger.info('RepositoryProvider', '✅ 使用 BeeCountSyncingRepository (本地缓存 + 自动同步)');
+    return BeeCountSyncingRepository(db, sync: syncEngine);
   }
+
+  logger.info('RepositoryProvider', '✅ 使用 LocalRepository (离线模式/未登录)');
+  return LocalRepository(db);
 });
 
 // 新增：根据 AppMode 返回对应的 Repository 实现
 // 这个 Provider 返回抽象接口类型，可以是本地或云端实现
 final dynamicRepositoryProvider = Provider<Object>((ref) {
-  final mode = ref.watch(appModeProvider);
   final db = ref.watch(databaseProvider);
+  final syncEngine = ref.watch(beecountSyncEngineProvider);
 
-  switch (mode) {
-    case AppMode.local:
-      // 本地模式：使用 LocalRepository（基于 Drift）
-      return LocalRepository(db);
-
-    case AppMode.cloud:
-      // 云端模式：使用 CloudRepository
-      final cloudProviderAsync = ref.watch(cloudProviderInstanceProvider);
-
-      // 如果 CloudProvider 未加载完成或为 null，回退到本地模式
-      if (!cloudProviderAsync.hasValue || cloudProviderAsync.value == null) {
-        return LocalRepository(db);
-      }
-
-      return CloudRepository(cloudProviderAsync.value!);
+  if (syncEngine != null) {
+    return BeeCountSyncingRepository(db, sync: syncEngine);
   }
+
+  return LocalRepository(db);
 });
 
 // 记住当前账本：启动时加载，切换时持久化

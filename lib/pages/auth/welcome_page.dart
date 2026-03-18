@@ -1,25 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'dart:io';
-import '../../l10n/app_localizations.dart';
-import '../../utils/file_picker_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../providers/ui_state_providers.dart';
-import '../../providers/language_provider.dart';
+
+import '../../l10n/app_localizations.dart';
+import '../../providers/beecount_server_providers.dart';
 import '../../providers/database_providers.dart';
-import '../../providers/theme_providers.dart';
-import '../../providers/font_scale_provider.dart';
+import '../../providers/language_provider.dart';
+import '../../providers/ui_state_providers.dart';
 import '../../services/system/logger_service.dart';
-import '../../services/export/config_export_service.dart';
-import '../../services/data/seed_service.dart';
-import '../../services/attachment_export_import_service.dart';
-import '../../utils/currencies.dart';
 import '../../widgets/ui/ui.dart';
 
-/// 首次启动欢迎页面
-/// 展示应用的独特价值：隐私保护、开源透明、数据自主
 class WelcomePage extends ConsumerStatefulWidget {
   const WelcomePage({super.key});
 
@@ -29,55 +20,50 @@ class WelcomePage extends ConsumerStatefulWidget {
 
 class _WelcomePageState extends ConsumerState<WelcomePage> {
   final PageController _pageController = PageController();
+  final TextEditingController _serverUrlController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   int _currentPage = 0;
-  String _selectedCurrency = 'CNY'; // 默认货币
-  // 分类模式: 'flat' = 一级分类, 'hierarchical' = 二级分类, 'none' = 不创建分类
-  String _categoryMode = 'flat'; // 默认使用一级分类
-  bool _isInitializing = false; // 初始化状态
-  bool _isImporting = false; // 导入状态
-  bool _isExistingUserFlow = false; // 老用户流程
-  bool _isImportingAttachment = false; // 附件导入状态
+  String _categoryMode = 'flat';
+  bool _isSubmitting = false;
+  bool _offlineSelected = false;
+  bool _loggedIn = false;
+  bool _isRegister = false;
 
   @override
   void dispose() {
     _pageController.dispose();
+    _serverUrlController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
+
+  bool get _canProceedFromLogin => _offlineSelected || _loggedIn;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
 
-    // 老用户流程：只有1页（附件导入）
-    final existingUserPages = [
-      _buildAttachmentImportPage(context, theme, l10n),
+    final pages = [
+      _buildLanguagePage(context, theme, l10n),
+      _buildLoginPage(context, theme, l10n),
+      _buildCategoryModePage(context, theme, l10n),
     ];
-
-    // 新用户流程：5页
-    final newUserPages = [
-      _buildWelcomePage(context, theme, l10n), // 第1屏：语言选择
-      _buildCurrencyPage(context, theme, l10n), // 第2屏：货币选择
-      _buildCategoryModePage(context, theme, l10n), // 第3屏：分类模式
-      _buildCloudSyncPage(context, theme, l10n), // 第4屏：云同步
-      _buildPrivacyAndOpenSourcePage(context, theme, l10n), // 第5屏：隐私保护+开源透明
-    ];
-
-    final pages = _isExistingUserFlow ? existingUserPages : newUserPages;
-    final pageCount = pages.length;
 
     return Scaffold(
       backgroundColor: theme.primaryColor,
       body: SafeArea(
         child: Column(
           children: [
-            // 页面指示器
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
-                  pageCount,
+                  pages.length,
                   (index) => Container(
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     width: _currentPage == index ? 24 : 8,
@@ -92,70 +78,66 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                 ),
               ),
             ),
-
-            // 页面内容
             Expanded(
               child: PageView(
                 controller: _pageController,
-                physics: _isExistingUserFlow ? const NeverScrollableScrollPhysics() : null,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentPage = index;
-                  });
-                },
+                onPageChanged: (index) => setState(() => _currentPage = index),
                 children: pages,
               ),
             ),
-
-            // 底部按钮（老用户流程不显示，由页面内自带按钮处理）
-            if (!_isExistingUserFlow)
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  children: [
-                    if (_currentPage > 0)
-                      TextButton(
-                        onPressed: () {
-                          _pageController.previousPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                        ),
-                        child: Text(l10n.commonPrevious),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  if (_currentPage > 0)
+                    TextButton(
+                      onPressed: _isSubmitting
+                          ? null
+                          : () {
+                              _pageController.previousPage(
+                                duration: const Duration(milliseconds: 250),
+                                curve: Curves.easeInOut,
+                              );
+                            },
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
                       ),
-                    const Spacer(),
-                    if (_currentPage < 4)
-                      FilledButton(
-                        onPressed: () {
-                          _pageController.nextPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        },
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: theme.primaryColor,
-                        ),
-                        child: Text(l10n.commonNext),
-                      )
-                    else
-                      FilledButton(
-                        onPressed: _isInitializing ? null : () => _finishWelcome(context),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: theme.primaryColor,
-                        ),
-                        child: _isInitializing
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : Text(l10n.commonFinish),
+                      child: Text(l10n.commonPrevious),
+                    ),
+                  const Spacer(),
+                  if (_currentPage < pages.length - 1)
+                    FilledButton(
+                      onPressed: _isSubmitting
+                          ? null
+                          : (_currentPage == 1 && !_canProceedFromLogin)
+                              ? null
+                              : () {
+                                  _pageController.nextPage(
+                                    duration: const Duration(milliseconds: 250),
+                                    curve: Curves.easeInOut,
+                                  );
+                                },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: theme.primaryColor,
                       ),
+                      child: Text(l10n.commonNext),
+                    )
+                  else
+                    FilledButton(
+                      onPressed: _isSubmitting ? null : () => _finishWelcome(context),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: theme.primaryColor,
+                      ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(l10n.commonFinish),
+                    ),
                 ],
               ),
             ),
@@ -165,26 +147,29 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     );
   }
 
-  /// 第1页：欢迎
-  Widget _buildWelcomePage(
-      BuildContext context, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildLanguagePage(BuildContext context, ThemeData theme, AppLocalizations l10n) {
     final languageNotifier = ref.read(languageProvider.notifier);
     final currentLocale = ref.watch(languageProvider);
 
-    // 可选语言列表
     final availableLocales = [
-      null, // 跟随系统
+      null,
       const Locale('zh'),
       const Locale('zh', 'TW'),
       const Locale('en'),
     ];
 
+    String nameForLocale(Locale? locale) {
+      if (locale == null) return l10n.languageSystemDefault;
+      if (locale.languageCode == 'zh' && locale.countryCode == null) return '简体中文';
+      if (locale.languageCode == 'zh' && locale.countryCode == 'TW') return '繁體中文';
+      if (locale.languageCode == 'en') return 'English';
+      return locale.toString();
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // 应用图标
           Container(
             width: 120,
             height: 120,
@@ -194,15 +179,10 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
             ),
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: SvgPicture.asset(
-                'assets/logo.svg',
-                fit: BoxFit.contain,
-              ),
+              child: SvgPicture.asset('assets/logo.svg', fit: BoxFit.contain),
             ),
           ),
-          const SizedBox(height: 32),
-
-          // 欢迎标题
+          const SizedBox(height: 24),
           Text(
             l10n.welcomeTitle,
             style: theme.textTheme.headlineMedium?.copyWith(
@@ -211,9 +191,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
-
-          // 欢迎描述
+          const SizedBox(height: 12),
           Text(
             l10n.welcomeDescription,
             style: theme.textTheme.bodyLarge?.copyWith(
@@ -221,103 +199,27 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
             ),
             textAlign: TextAlign.center,
           ),
-
-          const SizedBox(height: 48),
-
-          // 语言选择
-          Text(
-            l10n.commonLanguage,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // 语言选择列表
+          const SizedBox(height: 24),
           Container(
-            constraints: const BoxConstraints(maxHeight: 200),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              itemCount: availableLocales.length,
-              separatorBuilder: (context, index) => Divider(
-                height: 1,
-                color: Colors.white.withValues(alpha: 0.2),
-              ),
-              itemBuilder: (context, index) {
-                final locale = availableLocales[index];
-                final isSelected = currentLocale == locale;
-                final displayName = languageNotifier.getLanguageDisplayName(context, locale);
-
-                return InkWell(
-                  onTap: () {
-                    languageNotifier.setLanguage(locale);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            displayName,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: Colors.white,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                        if (isSelected)
-                          const Icon(
-                            Icons.check,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                      ],
+            child: Column(
+              children: availableLocales.map((locale) {
+                final selected = currentLocale == locale;
+                return ListTile(
+                  title: Text(
+                    nameForLocale(locale),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                     ),
                   ),
+                  trailing: selected ? const Icon(Icons.check, color: Colors.white) : null,
+                  onTap: () => languageNotifier.setLanguage(locale),
                 );
-              },
-            ),
-          ),
-
-          // 老用户导入配置（紧凑样式）
-          const SizedBox(height: 24),
-          TextButton(
-            onPressed: _isImporting ? null : () => _importConfig(context),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_isImporting)
-                  const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white70,
-                    ),
-                  )
-                else
-                  Icon(
-                    Icons.file_upload_outlined,
-                    size: 16,
-                    color: Colors.white.withValues(alpha: 0.7),
-                  ),
-                const SizedBox(width: 6),
-                Text(
-                  _isImporting
-                      ? l10n.welcomeImportingConfig
-                      : '${l10n.welcomeExistingUserTitle} ${l10n.welcomeExistingUserButton}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    decoration: TextDecoration.underline,
-                    decorationColor: Colors.white.withValues(alpha: 0.5),
-                  ),
-                ),
-              ],
+              }).toList(),
             ),
           ),
         ],
@@ -325,682 +227,209 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     );
   }
 
-  /// 第2页：货币选择
-  Widget _buildCurrencyPage(
-      BuildContext context, ThemeData theme, AppLocalizations l10n) {
-    // 从工具类获取货币列表
-    final currencies = getCurrencies(context);
-
-    return Padding(
+  Widget _buildLoginPage(BuildContext context, ThemeData theme, AppLocalizations l10n) {
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 货币图标
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.attach_money,
-              size: 64,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // 标题
           Text(
-            l10n.ledgersCurrency,
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-
-          // 描述
-          Text(
-            l10n.welcomeCurrencyDescription,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: Colors.white.withValues(alpha: 0.9),
-            ),
-            textAlign: TextAlign.center,
-          ),
-
-          const SizedBox(height: 32),
-
-          // 货币选择列表
-          Container(
-            constraints: const BoxConstraints(maxHeight: 300),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              itemCount: currencies.length,
-              separatorBuilder: (context, index) => Divider(
-                height: 1,
-                color: Colors.white.withValues(alpha: 0.2),
-              ),
-              itemBuilder: (context, index) {
-                final currency = currencies[index];
-                final isSelected = _selectedCurrency == currency.code;
-                final symbol = getCurrencySymbol(currency.code);
-
-                return InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedCurrency = currency.code;
-                    });
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      children: [
-                        // 选中标记
-                        Icon(
-                          isSelected
-                              ? Icons.radio_button_checked
-                              : Icons.radio_button_unchecked,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-
-                        // 货币符号
-                        SizedBox(
-                          width: 40,
-                          child: Text(
-                            symbol,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-
-                        // 货币名称
-                        Expanded(
-                          child: Text(
-                            '${currency.name} (${currency.code})',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight:
-                                  isSelected ? FontWeight.w600 : FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 第5页：开源透明与社群驱动
-  Widget _buildPrivacyAndOpenSourcePage(
-      BuildContext context, ThemeData theme, AppLocalizations l10n) {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // 开源与社群图标
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.favorite_outline,
-              size: 64,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // 标题
-          Text(
-            l10n.welcomePrivacyTitle,
+            l10n.cloudCustomBeeCountTitle,
             style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
               color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
-
-          // 特性列表
-          Center(
-            child: IntrinsicWidth(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 开源代码
-                  _buildFeatureItem(
-                    context,
-                    Icons.code_outlined,
-                    Colors.white,
-                    l10n.welcomePrivacyFeature1,
-                  ),
-                  const SizedBox(height: 12),
-                  // 隐私保护
-                  _buildFeatureItem(
-                    context,
-                    Icons.shield_outlined,
-                    Colors.white,
-                    l10n.welcomePrivacyFeature2,
-                  ),
-                  const SizedBox(height: 12),
-                  // 社群驱动
-                  _buildFeatureItem(
-                    context,
-                    Icons.groups_outlined,
-                    Colors.white,
-                    l10n.welcomeOpenSourceFeature1,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // GitHub链接按钮
-          OutlinedButton.icon(
-            onPressed: () => _launchGitHub(context),
-            icon: const Icon(Icons.open_in_new, size: 18, color: Colors.white),
-            label: Text(l10n.welcomeViewGitHub,
-                style: const TextStyle(color: Colors.white)),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Colors.white),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 12,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 第4页：云同步说明
-  Widget _buildCloudSyncPage(
-      BuildContext context, ThemeData theme, AppLocalizations l10n) {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // 云同步图标
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.cloud_outlined,
-              size: 64,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // 标题
+          const SizedBox(height: 8),
           Text(
-            l10n.welcomeCloudSyncTitle,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-
-          // 描述
-          Text(
-            l10n.welcomeCloudSyncDescription,
+            _offlineSelected
+                ? l10n.mineCloudServiceOffline
+                : (_loggedIn ? l10n.mineSyncInSyncSimple : l10n.mineSyncNotLoggedIn),
             style: theme.textTheme.bodyMedium?.copyWith(
               color: Colors.white.withValues(alpha: 0.9),
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-
-          // 特性列表
-          Center(
-            child: IntrinsicWidth(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildFeatureItem(
-                    context,
-                    Icons.offline_bolt_outlined,
-                    Colors.white,
-                    l10n.welcomeCloudSyncFeature1,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildFeatureItem(
-                    context,
-                    Icons.dns_outlined,
-                    Colors.white,
-                    l10n.welcomeCloudSyncFeature2,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildFeatureItem(
-                    context,
-                    Icons.cloud_upload_outlined,
-                    Colors.white,
-                    l10n.welcomeCloudSyncFeature3,
-                  ),
-                ],
-              ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
             ),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _serverUrlController,
+                  enabled: !_isSubmitting && !_offlineSelected,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: l10n.cloudBeeCountServerUrlLabel,
+                    labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
+                    hintText: l10n.cloudBeeCountServerUrlHint,
+                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _usernameController,
+                  enabled: !_isSubmitting && !_offlineSelected,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: l10n.authEmail,
+                    labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _passwordController,
+                  enabled: !_isSubmitting && !_offlineSelected,
+                  obscureText: true,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: l10n.authPassword,
+                    labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: _isSubmitting || _offlineSelected ? null : () => _submitAuth(context),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: theme.primaryColor,
+                  ),
+                  child: Text(_isRegister ? l10n.authSignup : l10n.authLogin),
+                ),
+                TextButton(
+                  onPressed: _isSubmitting || _offlineSelected
+                      ? null
+                      : () => setState(() => _isRegister = !_isRegister),
+                  style: TextButton.styleFrom(foregroundColor: Colors.white),
+                  child: Text(_isRegister ? l10n.authLogin : l10n.authSignup),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton(
+            onPressed: _isSubmitting ? null : () => _useOfflineAndNext(context),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Colors.white),
+            ),
+            child: Text(l10n.mineCloudServiceOffline),
           ),
         ],
       ),
     );
   }
 
-  /// 构建特性条目
-  Widget _buildFeatureItem(
-    BuildContext context,
-    IconData icon,
-    Color color,
-    String text,
-  ) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: color, size: 24),
-        const SizedBox(width: 12),
-        Flexible(
-          child: Text(
-            text,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: color,
-                ),
+  Future<void> _useOfflineAndNext(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      await ref.read(beecountAuthControllerProvider).useOfflineMode();
+      if (!mounted) return;
+      setState(() {
+        _offlineSelected = true;
+        _loggedIn = false;
+      });
+      await _pageController.nextPage(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+      );
+    } catch (e, st) {
+      logger.error('WelcomeLogin', '离线模式切换失败', e, st);
+      if (!mounted) return;
+      await AppDialog.error(context, title: l10n.commonError, message: e.toString());
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _submitAuth(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final serverUrl = _serverUrlController.text.trim();
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+
+    if (serverUrl.isEmpty || username.isEmpty || password.isEmpty) {
+      await AppDialog.error(context, title: l10n.commonError, message: '请填写服务器地址、账号与密码');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final auth = ref.read(beecountAuthControllerProvider);
+      if (_isRegister) {
+        await auth.signUp(serverUrl: serverUrl, username: username, password: password);
+      } else {
+        await auth.signIn(serverUrl: serverUrl, username: username, password: password);
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _offlineSelected = false;
+        _loggedIn = true;
+      });
+      await _pageController.nextPage(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+      );
+    } catch (e, st) {
+      logger.error('WelcomeLogin', '登录/注册失败', e, st);
+      if (!mounted) return;
+      await AppDialog.error(context, title: l10n.commonError, message: e.toString());
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Widget _buildCategoryModePage(BuildContext context, ThemeData theme, AppLocalizations l10n) {
+    Widget modeTile({
+      required String value,
+      required String title,
+      required String subtitle,
+    }) {
+      final selected = _categoryMode == value;
+      return ListTile(
+        title: Text(
+          title,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
-      ],
-    );
-  }
-
-  /// 打开GitHub链接
-  Future<void> _launchGitHub(BuildContext context) async {
-    final url = Uri.parse('https://github.com/TNT-Likely/BeeCount');
-    try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        if (context.mounted) {
-          showToast(context, AppLocalizations.of(context).privacyOpenSourceUrlError);
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        showToast(context, AppLocalizations.of(context).privacyOpenSourceUrlError);
-      }
-    }
-  }
-
-  /// 完成欢迎页面
-  Future<void> _finishWelcome(BuildContext context) async {
-    // 设置初始化状态
-    setState(() {
-      _isInitializing = true;
-    });
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('welcome_shown', true);
-      // 保存用户选择的分类模式
-      await prefs.setString('category_mode', _categoryMode);
-      // 保存用户选择的货币
-      await prefs.setString('selected_currency', _selectedCurrency);
-
-      // 初始化数据库（使用用户选择的语言和设置）
-      if (context.mounted) {
-        logger.info('welcome', '开始初始化数据库');
-        logger.info('welcome', '货币: $_selectedCurrency');
-        final categoryModeText = _categoryMode == 'hierarchical'
-            ? '二级分类'
-            : _categoryMode == 'flat'
-                ? '一级分类'
-                : '不创建分类';
-        logger.info('welcome', '分类模式: $categoryModeText');
-
-        final l10n = AppLocalizations.of(context);
-        final db = ref.read(databaseProvider);
-
-        // 根据用户选择创建分类
-        // 注意: 使用 databaseProvider 直接访问数据库，因为 ensureSeed 是数据库初始化方法
-        if (_categoryMode != 'none') {
-          await db.ensureSeed(
-            l10n: l10n,
-            currency: _selectedCurrency,
-            useHierarchicalCategories: _categoryMode == 'hierarchical',
-          );
-        } else {
-          // 只创建默认账本，不创建分类
-          await db.ensureSeed(
-            l10n: l10n,
-            currency: _selectedCurrency,
-            skipCategories: true,
-          );
-        }
-
-        logger.info('welcome', '数据库初始化完成');
-      }
-
-      if (context.mounted) {
-        // 首次启动的情况，标记欢迎页面已完成，触发重新构建
-        // 这将显示启屏页面（如果初始化未完成）或主应用（如果已完成）
-        ref.read(shouldShowWelcomeProvider.notifier).state = false;
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isInitializing = false;
-        });
-      }
-    }
-  }
-
-  /// 导入配置文件（老用户）
-  Future<void> _importConfig(BuildContext context) async {
-    final l10n = AppLocalizations.of(context);
-
-    setState(() {
-      _isImporting = true;
-    });
-
-    try {
-      // 选择文件（使用 FilePickerHelper 处理部分设备不支持扩展名过滤的问题）
-      final result = await FilePickerHelper.pickYamlFile();
-
-      if (result == null || result.files.isEmpty) {
-        if (context.mounted) {
-          showToast(context, l10n.welcomeImportNoFile);
-        }
-        return;
-      }
-
-      final filePath = result.files.single.path;
-      if (filePath == null) {
-        if (context.mounted) {
-          showToast(context, l10n.welcomeImportNoFile);
-        }
-        return;
-      }
-
-      // 读取文件内容
-      final file = File(filePath);
-      final yamlContent = await file.readAsString();
-
-      logger.info('welcome', '开始导入配置文件');
-
-      // 获取数据库和仓库
-      final db = ref.read(databaseProvider);
-      final repo = ref.read(repositoryProvider);
-
-      // 导入配置
-      await ConfigExportService.importFromYaml(
-        yamlContent,
-        repository: repo,
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.85)),
+        ),
+        trailing: selected ? const Icon(Icons.check, color: Colors.white) : null,
+        onTap: () => setState(() => _categoryMode = value),
       );
-
-      logger.info('welcome', '配置文件导入成功');
-
-      // 检查是否有账本，如果没有则创建默认 CNY 账本
-      final ledgers = await repo.getAllLedgers();
-      if (ledgers.isEmpty) {
-        logger.info('welcome', '配置不包含账本，创建默认账本');
-        await SeedService.createDefaultLedger(db, l10n, 'CNY');
-        logger.info('welcome', '已创建默认 CNY 账本');
-      } else {
-        logger.info('welcome', '配置已包含 ${ledgers.length} 个账本');
-      }
-
-      // 标记欢迎页面已完成
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('welcome_shown', true);
-
-      // 刷新所有配置相关的 providers，使导入的配置立即生效
-      ref.invalidate(primaryColorInitProvider);
-      ref.invalidate(themeModeInitProvider);
-      ref.invalidate(darkModePatternStyleInitProvider);
-      ref.invalidate(compactAmountInitProvider);
-      ref.invalidate(showTransactionTimeInitProvider);
-      ref.invalidate(fontScaleInitProvider);
-      ref.invalidate(languageProvider);
-
-      if (context.mounted) {
-        showToast(context, l10n.welcomeImportSuccess);
-        // 切换到老用户流程（附件导入页面）
-        setState(() {
-          _isExistingUserFlow = true;
-          _currentPage = 0;
-        });
-      }
-    } catch (e, st) {
-      logger.error('welcome', '导入配置文件失败', e, st);
-      if (context.mounted) {
-        showToast(context, l10n.welcomeImportFailed(e.toString()));
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isImporting = false;
-        });
-      }
     }
-  }
 
-  /// 附件导入页面（老用户流程）
-  Widget _buildAttachmentImportPage(
-      BuildContext context, ThemeData theme, AppLocalizations l10n) {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // 图标
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.image_outlined,
-              size: 64,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // 标题
-          Text(
-            l10n.welcomeImportAttachmentTitle,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-
-          // 描述
-          Text(
-            l10n.welcomeImportAttachmentDesc,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: Colors.white.withValues(alpha: 0.9),
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 48),
-
-          // 导入按钮
-          FilledButton.icon(
-            onPressed: _isImportingAttachment ? null : () => _importAttachments(context),
-            icon: _isImportingAttachment
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.file_upload_outlined),
-            label: Text(
-              _isImportingAttachment
-                  ? l10n.welcomeImportingAttachment
-                  : l10n.welcomeImportAttachmentButton,
-            ),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: theme.primaryColor,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // 跳过按钮
-          TextButton(
-            onPressed: _isImportingAttachment ? null : _finishExistingUserFlow,
-            child: Text(
-              l10n.welcomeImportAttachmentSkip,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.8),
-                decoration: TextDecoration.underline,
-                decorationColor: Colors.white.withValues(alpha: 0.5),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 完成老用户流程
-  void _finishExistingUserFlow() {
-    ref.read(shouldShowWelcomeProvider.notifier).state = false;
-  }
-
-  /// 导入附件
-  Future<void> _importAttachments(BuildContext context) async {
-    final l10n = AppLocalizations.of(context);
-
-    try {
-      // 选择附件归档文件（使用 FilePickerHelper 处理部分设备不支持扩展名过滤的问题）
-      final result = await FilePickerHelper.pickArchiveFile();
-
-      if (result == null || result.files.isEmpty) {
-        return;
-      }
-
-      final filePath = result.files.single.path;
-      if (filePath == null) {
-        return;
-      }
-
-      if (!context.mounted) return;
-
-      // 显示加载状态
-      setState(() {
-        _isImportingAttachment = true;
-      });
-
-      // 执行导入
-      final importService = ref.read(attachmentExportImportServiceProvider);
-      final importResult = await importService.importAttachments(
-        archivePath: filePath,
-        conflictStrategy: AttachmentExportImportService.conflictSkip,
-      );
-
-      if (!context.mounted) return;
-
-      if (importResult.success) {
-        showToast(context, l10n.welcomeImportAttachmentSuccess(importResult.imported));
-        // 导入成功，完成流程
-        _finishExistingUserFlow();
-      } else {
-        showToast(context, l10n.welcomeImportAttachmentFailed(importResult.message ?? ''));
-      }
-    } catch (e, st) {
-      logger.error('welcome', '导入附件失败', e, st);
-      if (context.mounted) {
-        showToast(context, l10n.welcomeImportAttachmentFailed(e.toString()));
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isImportingAttachment = false;
-        });
-      }
-    }
-  }
-
-  /// 第5页：分类模式选择
-  Widget _buildCategoryModePage(
-      BuildContext context, ThemeData theme, AppLocalizations l10n) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 图标
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.category_outlined,
-              size: 64,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // 标题
           Text(
             l10n.welcomeCategoryModeTitle,
             style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
               color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
-
-          // 描述
+          const SizedBox(height: 8),
           Text(
             l10n.welcomeCategoryModeDescription,
             style: theme.textTheme.bodyMedium?.copyWith(
@@ -1008,151 +437,100 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
-
-          // 一级分类选项
-          _buildCategoryModeOption(
-            context,
-            theme,
-            l10n,
-            mode: 'flat',
-            title: l10n.welcomeCategoryModeFlatTitle,
-            description: l10n.welcomeCategoryModeFlatDescription,
-            features: [
-              l10n.welcomeCategoryModeFlatFeature1,
-              l10n.welcomeCategoryModeFlatFeature2,
-              l10n.welcomeCategoryModeFlatFeature3,
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // 二级分类选项
-          _buildCategoryModeOption(
-            context,
-            theme,
-            l10n,
-            mode: 'hierarchical',
-            title: l10n.welcomeCategoryModeHierarchicalTitle,
-            description: l10n.welcomeCategoryModeHierarchicalDescription,
-            features: [
-              l10n.welcomeCategoryModeHierarchicalFeature1,
-              l10n.welcomeCategoryModeHierarchicalFeature2,
-              l10n.welcomeCategoryModeHierarchicalFeature3,
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // 不创建分类选项
-          _buildCategoryModeOption(
-            context,
-            theme,
-            l10n,
-            mode: 'none',
-            title: l10n.welcomeCategoryModeNoneTitle,
-            description: l10n.welcomeCategoryModeNoneDescription,
-            features: [
-              l10n.welcomeCategoryModeNoneFeature1,
-              l10n.welcomeCategoryModeNoneFeature2,
-              l10n.welcomeCategoryModeNoneFeature3,
-            ],
+          const SizedBox(height: 24),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                modeTile(
+                  value: 'flat',
+                  title: l10n.welcomeCategoryModeFlatTitle,
+                  subtitle: l10n.welcomeCategoryModeFlatDescription,
+                ),
+                modeTile(
+                  value: 'hierarchical',
+                  title: l10n.welcomeCategoryModeHierarchicalTitle,
+                  subtitle: l10n.welcomeCategoryModeHierarchicalDescription,
+                ),
+                modeTile(
+                  value: 'none',
+                  title: l10n.welcomeCategoryModeNoneTitle,
+                  subtitle: l10n.welcomeCategoryModeNoneDescription,
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCategoryModeOption(
-    BuildContext context,
-    ThemeData theme,
-    AppLocalizations l10n, {
-    required String mode, // 'flat', 'hierarchical', or 'none'
-    required String title,
-    required String description,
-    required List<String> features,
-  }) {
-    final isSelected = _categoryMode == mode;
+  Future<void> _finishWelcome(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    setState(() => _isSubmitting = true);
 
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _categoryMode = mode;
-        });
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.white.withValues(alpha: 0.3)
-              : Colors.white.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.3),
-            width: 2,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        description,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ...features.map((feature) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.check_circle_outline,
-                    color: Colors.white.withValues(alpha: 0.8),
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      feature,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            )),
-          ],
-        ),
-      ),
-    );
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('welcome_shown', true);
+      await prefs.setString('selected_currency', 'CNY');
+      await prefs.setString('category_mode', _categoryMode);
+      await prefs.setString('app_mode', 'local');
+
+      final db = ref.read(databaseProvider);
+      await db.ensureSeed(
+        l10n: l10n,
+        currency: 'CNY',
+        useHierarchicalCategories: _categoryMode == 'hierarchical',
+        skipCategories: _categoryMode == 'none',
+      );
+
+      final syncEngine = ref.read(beecountSyncEngineProvider);
+      if (syncEngine != null) {
+        final ledgers = await db.select(db.ledgers).get();
+        for (final r in ledgers) {
+          await syncEngine.enqueueUpsert('ledgers', r.id);
+        }
+        final accounts = await db.select(db.accounts).get();
+        for (final r in accounts) {
+          await syncEngine.enqueueUpsert('accounts', r.id);
+        }
+        final categories = await db.select(db.categories).get();
+        for (final r in categories) {
+          await syncEngine.enqueueUpsert('categories', r.id);
+        }
+        final tags = await db.select(db.tags).get();
+        for (final r in tags) {
+          await syncEngine.enqueueUpsert('tags', r.id);
+        }
+        final budgets = await db.select(db.budgets).get();
+        for (final r in budgets) {
+          await syncEngine.enqueueUpsert('budgets', r.id);
+        }
+        final recurring = await db.select(db.recurringTransactions).get();
+        for (final r in recurring) {
+          await syncEngine.enqueueUpsert('recurring_transactions', r.id);
+        }
+        final txs = await db.select(db.transactions).get();
+        for (final r in txs) {
+          await syncEngine.enqueueUpsert('transactions', r.id);
+        }
+        final txTags = await db.select(db.transactionTags).get();
+        for (final r in txTags) {
+          await syncEngine.enqueueUpsert('transaction_tags', r.id);
+        }
+        await syncEngine.flush();
+      }
+
+      ref.read(shouldShowWelcomeProvider.notifier).state = false;
+    } catch (e, st) {
+      logger.error('WelcomeFinish', '完成引导失败', e, st);
+      if (!mounted) return;
+      await AppDialog.error(context, title: l10n.commonError, message: e.toString());
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 }

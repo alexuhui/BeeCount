@@ -210,10 +210,35 @@ class BeeDatabase extends _$BeeDatabase {
   BeeDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 15; // v15: 更新（新增/删除）预算表字段
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (migrator) async {
+          await migrator.createAll();
+          await customStatement('''
+            CREATE TABLE IF NOT EXISTS sync_queue_items (
+              entity TEXT NOT NULL,
+              local_id INTEGER NOT NULL,
+              action TEXT NOT NULL,
+              payload TEXT,
+              retry_count INTEGER NOT NULL DEFAULT 0,
+              last_error TEXT,
+              created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+              updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+              PRIMARY KEY (entity, local_id)
+            );
+          ''');
+          await customStatement('''
+            CREATE TABLE IF NOT EXISTS sync_id_maps (
+              entity TEXT NOT NULL,
+              local_id INTEGER NOT NULL,
+              remote_id INTEGER NOT NULL,
+              updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+              PRIMARY KEY (entity, local_id)
+            );
+          ''');
+        },
         onUpgrade: (migrator, from, to) async {
           if (from < 2) {
             // 添加 sortOrder 字段（使用原始 SQL，因为此时代码还未生成）
@@ -531,6 +556,30 @@ class BeeDatabase extends _$BeeDatabase {
             }
 
             print('[DB Migration] v15 迁移完成');
+          }
+          if (from < 16) {
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS sync_queue_items (
+                entity TEXT NOT NULL,
+                local_id INTEGER NOT NULL,
+                action TEXT NOT NULL,
+                payload TEXT,
+                retry_count INTEGER NOT NULL DEFAULT 0,
+                last_error TEXT,
+                created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+                updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+                PRIMARY KEY (entity, local_id)
+              );
+            ''');
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS sync_id_maps (
+                entity TEXT NOT NULL,
+                local_id INTEGER NOT NULL,
+                remote_id INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+                PRIMARY KEY (entity, local_id)
+              );
+            ''');
           }
         },
       );

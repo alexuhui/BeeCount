@@ -9,12 +9,10 @@ import '../data/export_page.dart';
 import '../settings/personalize_page.dart';
 import '../../providers.dart';
 import '../../providers/theme_providers.dart';
+import '../../providers/beecount_server_providers.dart';
 import '../../widgets/ui/ui.dart';
 import '../../widgets/biz/biz.dart';
 import '../../styles/tokens.dart';
-import 'package:flutter_cloud_sync/flutter_cloud_sync.dart' hide SyncStatus;
-import '../../cloud/sync_service.dart';
-import '../cloud/cloud_service_page.dart';
 import '../../services/system/logger_service.dart';
 import '../../services/ui/avatar_service.dart';
 import '../../services/export/share_poster_service.dart';
@@ -28,7 +26,7 @@ import '../account/accounts_page.dart';
 import '../settings/widget_management_page.dart';
 import '../automation/auto_billing_settings_page.dart';
 import '../ai/ai_settings_page.dart';
-import '../cloud/cloud_sync_page.dart';
+import '../settings/beecount_server_page.dart';
 import '../../utils/website_urls.dart';
 import '../../providers/github_star_provider.dart';
 import '../settings/data_management_page.dart';
@@ -49,9 +47,6 @@ class MinePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authAsync = ref.watch(authServiceProvider);
-    final ledgerId = ref.watch(currentLedgerIdProvider);
-
     return Scaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context), // ⭐ 使用 Token
       body: Column(
@@ -70,203 +65,64 @@ class MinePage extends ConsumerWidget {
               children: [
                 BeeTokens.cardDivider(context),
                 SizedBox(height: 8.0.scaled(context, ref)),
-                // 云同步与备份
-                Consumer(builder: (sectionContext, sectionRef, _) {
-                  final activeCfg = sectionRef.watch(activeCloudConfigProvider);
+                SectionCard(
+                  margin: EdgeInsets.fromLTRB(12.0.scaled(context, ref), 0, 12.0.scaled(context, ref), 0),
+                  child: Consumer(
+                    builder: (sectionContext, sectionRef, _) {
+                      final offlineAsync = sectionRef.watch(beecountOfflineModeProvider);
+                      final sessionAsync = sectionRef.watch(beecountSessionProvider);
+                      final pendingAsync = sectionRef.watch(beecountPendingSyncCountProvider);
 
-                  return SectionCard(
-                    margin: EdgeInsets.fromLTRB(
-                        12.0.scaled(sectionContext, sectionRef),
-                        0,
-                        12.0.scaled(sectionContext, sectionRef),
-                        0),
-                    child: Column(
-                      children: [
-                        // 云服务
-                        AppListTile(
-                          leading: Icons.cloud_queue_outlined,
-                          title: AppLocalizations.of(sectionContext)
-                              .mineCloudService,
-                          subtitle: activeCfg.when(
-                            loading: () => AppLocalizations.of(sectionContext)
-                                .mineCloudServiceLoading,
-                            error: (e, _) =>
-                                '${AppLocalizations.of(sectionContext).commonError}: $e',
-                            data: (cfg) {
-                              switch (cfg.type) {
-                                case CloudBackendType.local:
-                                  return AppLocalizations.of(sectionContext)
-                                      .mineCloudServiceOffline;
-                                case CloudBackendType.webdav:
-                                  return AppLocalizations.of(sectionContext)
-                                      .mineCloudServiceWebDAV;
-                                case CloudBackendType.icloud:
-                                  return 'iCloud';
-                                case CloudBackendType.supabase:
-                                  return AppLocalizations.of(sectionContext)
-                                      .mineCloudServiceCustom;
-                                case CloudBackendType.s3:
-                                  return 'S3';
-                                case CloudBackendType.beecount:
-                                  return AppLocalizations.of(sectionContext)
-                                      .mineCloudServiceBeeCount;
-                              }
+                      final offline = offlineAsync.asData?.value ?? false;
+                      final session = sessionAsync.asData?.value;
+
+                      return Column(
+                        children: [
+                          AppListTile(
+                            leading: Icons.cloud_queue_outlined,
+                            title: AppLocalizations.of(sectionContext).cloudCustomBeeCountTitle,
+                            subtitle: offline
+                                ? AppLocalizations.of(sectionContext).mineCloudServiceOffline
+                                : (session == null
+                                    ? AppLocalizations.of(sectionContext).mineSyncNotLoggedIn
+                                    : '${AppLocalizations.of(sectionContext).mineLoggedInEmail}: ${session.username}'),
+                            trailing: Icon(Icons.chevron_right, color: BeeTokens.iconTertiary(context), size: 20),
+                            onTap: () async {
+                              await Navigator.of(sectionContext).push(
+                                MaterialPageRoute(builder: (_) => const BeeCountServerPage()),
+                              );
                             },
                           ),
-                          onTap: () async {
-                            await Navigator.of(sectionContext).push(
-                              MaterialPageRoute(
-                                  builder: (_) => const CloudServicePage()),
-                            );
-                          },
-                        ),
-                        // 同步状态
-                        Builder(
-                          builder: (ctx) {
-                            return authAsync.when(
-                              loading: () => const Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child:
-                                    Center(child: CircularProgressIndicator()),
+                          BeeTokens.cardDivider(sectionContext),
+                          pendingAsync.when(
+                            data: (n) => AppListTile(
+                              leading: Icons.cloud_sync_outlined,
+                              title: AppLocalizations.of(sectionContext).mineSyncTitle,
+                              subtitle: '待同步: $n',
+                              trailing: Icon(Icons.chevron_right, color: BeeTokens.iconTertiary(context), size: 20),
+                              onTap: () async {
+                                await Navigator.of(sectionContext).push(
+                                  MaterialPageRoute(builder: (_) => const BeeCountServerPage()),
+                                );
+                              },
+                            ),
+                            loading: () => const Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
+                            error: (e, _) => Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(
+                                e.toString(),
+                                style: const TextStyle(color: Colors.red),
                               ),
-                              error: (e, _) => Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Text(
-                                  '${AppLocalizations.of(sectionContext).commonError}: $e',
-                                  style: const TextStyle(color: Colors.red),
-                                ),
-                              ),
-                              data: (auth) => FutureBuilder<CloudUser?>(
-                                future: auth.currentUser,
-                                builder: (ctx, snap) {
-                                  if (snap.hasError) {
-                                    return Padding(
-                                      padding: const EdgeInsets.all(16.0),
-                                      child: Text(
-                                        '${AppLocalizations.of(sectionContext).commonError}: ${snap.error}',
-                                        style:
-                                            const TextStyle(color: Colors.red),
-                                      ),
-                                    );
-                                  }
-
-                                  final user = snap.data;
-                                  final cloudConfig = sectionRef
-                                      .watch(activeCloudConfigProvider);
-                                  final isLocalMode = cloudConfig.hasValue &&
-                                      cloudConfig.value!.type ==
-                                          CloudBackendType.local;
-                                  final isICloudMode = cloudConfig.hasValue &&
-                                      cloudConfig.value!.type ==
-                                          CloudBackendType.icloud;
-                                  // iCloud 使用系统账号，不需要登录；其他云服务需要登录
-                                  final canUseCloud = !isLocalMode &&
-                                      (isICloudMode || user != null);
-                                  final asyncSt = sectionRef
-                                      .watch(syncStatusProvider(ledgerId));
-                                  final cached = sectionRef
-                                      .watch(lastSyncStatusProvider(ledgerId));
-                                  final st = asyncSt.asData?.value ?? cached;
-
-                                  // 计算简化的同步状态显示
-                                  String subtitle = '';
-                                  bool showCheckIcon = false;
-                                  final isFirstLoad = st == null;
-                                  final refreshing = asyncSt.isLoading;
-
-                                  if (!isFirstLoad) {
-                                    switch (st.diff) {
-                                      case SyncDiff.notLoggedIn:
-                                        subtitle =
-                                            AppLocalizations.of(sectionContext)
-                                                .mineSyncNotLoggedIn;
-                                        break;
-                                      case SyncDiff.notConfigured:
-                                        subtitle =
-                                            AppLocalizations.of(sectionContext)
-                                                .mineSyncNotConfigured;
-                                        break;
-                                      case SyncDiff.noRemote:
-                                        subtitle =
-                                            AppLocalizations.of(sectionContext)
-                                                .mineSyncNoRemote;
-                                        break;
-                                      case SyncDiff.inSync:
-                                        subtitle =
-                                            AppLocalizations.of(sectionContext)
-                                                .mineSyncInSyncSimple;
-                                        showCheckIcon = true;
-                                        break;
-                                      case SyncDiff.localNewer:
-                                        subtitle =
-                                            AppLocalizations.of(sectionContext)
-                                                .mineSyncLocalNewerSimple;
-                                        break;
-                                      case SyncDiff.cloudNewer:
-                                        subtitle =
-                                            AppLocalizations.of(sectionContext)
-                                                .mineSyncCloudNewerSimple;
-                                        break;
-                                      case SyncDiff.different:
-                                        subtitle =
-                                            AppLocalizations.of(sectionContext)
-                                                .mineSyncDifferent;
-                                        break;
-                                      case SyncDiff.error:
-                                        subtitle =
-                                            AppLocalizations.of(sectionContext)
-                                                .mineSyncError;
-                                        break;
-                                    }
-                                  }
-
-                                  return Column(
-                                    children: [
-                                      BeeTokens.cardDivider(sectionContext),
-                                      AppListTile(
-                                        leading: Icons.cloud_sync_outlined,
-                                        title:
-                                            AppLocalizations.of(sectionContext)
-                                                .mineSyncTitle,
-                                        subtitle: isFirstLoad ? null : subtitle,
-                                        enabled: !isLocalMode,
-                                        trailing: (canUseCloud &&
-                                                (isFirstLoad || refreshing))
-                                            ? const SizedBox(
-                                                width: 20,
-                                                height: 20,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                        strokeWidth: 2))
-                                            : showCheckIcon
-                                                ? Icon(Icons.check_circle,
-                                                    color: sectionRef.watch(
-                                                        primaryColorProvider),
-                                                    size: 20)
-                                                : Icon(Icons.chevron_right,
-                                                    color: BeeTokens.iconTertiary(
-                                                        context), // ⭐ 使用 Token
-                                                    size: 20),
-                                        onTap: () async {
-                                          await Navigator.of(sectionContext)
-                                              .push(
-                                            MaterialPageRoute(
-                                                builder: (_) =>
-                                                    const CloudSyncPage()),
-                                          );
-                                        },
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  );
-                }),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
                 // 功能管理
                 SizedBox(height: 8.0.scaled(context, ref)),
                 SectionCard(

@@ -82,10 +82,12 @@ class _CloudSyncPageState extends ConsumerState<CloudSyncPage> {
                 final cloudConfig = ref.watch(activeCloudConfigProvider);
                 final isLocalMode = cloudConfig.hasValue &&
                     cloudConfig.value!.type == CloudBackendType.local;
-                final isSupabaseMode = cloudConfig.hasValue &&
-                    cloudConfig.value!.type == CloudBackendType.supabase;
-                // 只有 Supabase 需要登录，其他云服务（iCloud/S3/WebDAV）使用配置文件认证
-                final canUseCloud = !isLocalMode && (!isSupabaseMode || user != null);
+                final isAuthRequiredMode = cloudConfig.hasValue &&
+                    (cloudConfig.value!.type == CloudBackendType.supabase ||
+                        cloudConfig.value!.type == CloudBackendType.beecount);
+                // Supabase / BeeCount Server 需要登录，其他云服务（iCloud/S3/WebDAV）使用配置文件认证
+                final canUseCloud =
+                    !isLocalMode && (!isAuthRequiredMode || user != null);
                 final asyncSt = ref.watch(syncStatusProvider(ledgerId));
                 final cached = ref.watch(lastSyncStatusProvider(ledgerId));
                 final st = asyncSt.asData?.value ?? cached;
@@ -418,8 +420,12 @@ class _CloudSyncPageState extends ConsumerState<CloudSyncPage> {
                               }
                             },
                           ),
-                          // 登录/登出 (仅 Supabase 需要，其他云服务使用配置文件认证)
-                          if (!isLocalMode && cloudConfig.value!.type == CloudBackendType.supabase)
+                          // 登录/登出 (Supabase / BeeCount Server 需要，其他云服务使用配置文件认证)
+                          if (!isLocalMode &&
+                              (cloudConfig.value!.type ==
+                                      CloudBackendType.supabase ||
+                                  cloudConfig.value!.type ==
+                                      CloudBackendType.beecount))
                             Consumer(builder: (ctx, r, _) {
                               final userNow = user;
                               final cloudConfig = r.watch(activeCloudConfigProvider);
@@ -437,7 +443,7 @@ class _CloudSyncPageState extends ConsumerState<CloudSyncPage> {
                                   // WebDAV: 显示用户名（去掉 @webdav 后缀）
                                   return userNow.id;
                                 } else {
-                                  // Supabase: 显示邮箱
+                                  // Supabase / BeeCount: 显示邮箱/用户名
                                   return userNow.email ??
                                       AppLocalizations.of(context)
                                           .mineLoggedInEmail;

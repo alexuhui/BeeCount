@@ -532,15 +532,30 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                                           final email = emailCtrl.text.trim();
                                           final pwd = pwdCtrl.text;
                                           final pwd2 = pwd2Ctrl.text;
+                                          final cloudConfig = await ref
+                                              .read(activeCloudConfigProvider.future);
+                                          final isBeeCountMode = cloudConfig.type ==
+                                              CloudBackendType.beecount;
                                           logger.info('auth', '开始注册：邮箱=$email');
-                                          if (!isValidEmail(email)) {
-                                            setState(
-                                                () => errorText = 'AppLocalizations.of(context).authInvalidEmail');
-                                            return;
+                                          if (!isBeeCountMode) {
+                                            if (!isValidEmail(email)) {
+                                              setState(() => errorText =
+                                                  AppLocalizations.of(context)
+                                                      .authInvalidEmail);
+                                              return;
+                                            }
+                                          } else {
+                                            if (email.isEmpty) {
+                                              setState(() => errorText =
+                                                  AppLocalizations.of(context)
+                                                      .authInvalidEmail);
+                                              return;
+                                            }
                                           }
                                           if (!isValidPassword(pwd)) {
                                             setState(() => errorText =
-                                                'AppLocalizations.of(context).authPasswordRequirementShort');
+                                                AppLocalizations.of(context)
+                                                    .authPasswordRequirementShort);
                                             return;
                                           }
                                           if (pwd != pwd2) {
@@ -601,15 +616,30 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                                       : () async {
                                           final email = emailCtrl.text.trim();
                                           final pwd = pwdCtrl.text;
+                                          final cloudConfig = await ref
+                                              .read(activeCloudConfigProvider.future);
+                                          final isBeeCountMode = cloudConfig.type ==
+                                              CloudBackendType.beecount;
                                           logger.info('auth', '开始登录：邮箱=$email');
-                                          if (!isValidEmail(email)) {
-                                            setState(
-                                                () => errorText = 'AppLocalizations.of(context).authInvalidEmail');
-                                            return;
+                                          if (!isBeeCountMode) {
+                                            if (!isValidEmail(email)) {
+                                              setState(() => errorText =
+                                                  AppLocalizations.of(context)
+                                                      .authInvalidEmail);
+                                              return;
+                                            }
+                                          } else {
+                                            if (email.isEmpty) {
+                                              setState(() => errorText =
+                                                  AppLocalizations.of(context)
+                                                      .authInvalidEmail);
+                                              return;
+                                            }
                                           }
                                           if (!isValidPassword(pwd)) {
                                             setState(() => errorText =
-                                                'AppLocalizations.of(context).authPasswordRequirementShort');
+                                                AppLocalizations.of(context)
+                                                    .authPasswordRequirementShort);
                                             return;
                                           }
                                           setState(() {
@@ -675,46 +705,64 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                                 ),
                         ),
                         const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: busy
-                                  ? null
-                                  : () async {
-                                      final email = emailCtrl.text.trim();
-                                      if (!isValidEmail(email)) {
-                                        setState(
-                                            () => errorText = 'AppLocalizations.of(context).authInvalidEmail');
-                                        return;
-                                      }
-                                      setState(() {
-                                        errorText = null;
-                                        infoText = null;
-                                        busy = true;
-                                      });
-                                      try {
-                                        final auth = await ref.read(authServiceProvider.future);
-                                        await auth.resendEmailVerification(
-                                            email: email);
-                                        if (!context.mounted) return;
-                                        showToast(context, AppLocalizations.of(context).authVerificationEmailResent);
-                                        setState(() => infoText = AppLocalizations.of(context).authVerificationEmailResent);
-                                      } catch (e) {
-                                        final msg = friendlyActionError(e,
-                                            action: AppLocalizations.of(context).authResendAction);
-                                        if (!context.mounted) return;
-                                        showToast(context, msg);
-                                        setState(() => errorText = msg);
-                                      } finally {
-                                        if (mounted) {
-                                          setState(() => busy = false);
-                                        }
-                                      }
-                                    },
-                              child: Text(AppLocalizations.of(context).authResendVerification),
-                            ),
-                          ],
+                        FutureBuilder<CloudServiceConfig>(
+                          future: ref.read(activeCloudConfigProvider.future),
+                          builder: (ctx, snap) {
+                            final cfg = snap.data;
+                            final showResend = cfg != null &&
+                                cfg.type == CloudBackendType.supabase;
+                            if (!showResend) return const SizedBox.shrink();
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton(
+                                  onPressed: busy
+                                      ? null
+                                      : () async {
+                                          final email = emailCtrl.text.trim();
+                                          if (!isValidEmail(email)) {
+                                            setState(() => errorText =
+                                                AppLocalizations.of(context)
+                                                    .authInvalidEmail);
+                                            return;
+                                          }
+                                          setState(() {
+                                            errorText = null;
+                                            infoText = null;
+                                            busy = true;
+                                          });
+                                          try {
+                                            final auth = await ref
+                                                .read(authServiceProvider.future);
+                                            await auth.resendEmailVerification(
+                                                email: email);
+                                            if (!context.mounted) return;
+                                            showToast(
+                                                context,
+                                                AppLocalizations.of(context)
+                                                    .authVerificationEmailResent);
+                                            setState(() => infoText =
+                                                AppLocalizations.of(context)
+                                                    .authVerificationEmailResent);
+                                          } catch (e) {
+                                            final msg = friendlyActionError(e,
+                                                action: AppLocalizations.of(context)
+                                                    .authResendAction);
+                                            if (!context.mounted) return;
+                                            showToast(context, msg);
+                                            setState(() => errorText = msg);
+                                          } finally {
+                                            if (mounted) {
+                                              setState(() => busy = false);
+                                            }
+                                          }
+                                        },
+                                  child: Text(AppLocalizations.of(context)
+                                      .authResendVerification),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ],
                     ),

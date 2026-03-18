@@ -4,7 +4,9 @@ import 'package:flutter_cloud_sync_beecount/flutter_cloud_sync_beecount.dart';
 
 import 'database_providers.dart';
 import '../services/sync/beecount_session_store.dart';
+import '../services/sync/beecount_initial_sync_service.dart';
 import '../services/sync/beecount_sync_engine.dart';
+import '../services/system/logger_service.dart';
 
 final beeCountSessionStoreProvider = Provider<BeeCountSessionStore>((ref) {
   return BeeCountSessionStore();
@@ -25,6 +27,7 @@ class BeeCountOfflineModeSetter {
     _ref.invalidate(beecountOfflineModeProvider);
     _ref.invalidate(beecountSessionProvider);
     _ref.invalidate(beecountProviderProvider);
+    _ref.read(_beecountBootstrappedProvider.notifier).state = false;
   }
 }
 
@@ -70,6 +73,32 @@ final beecountSyncEngineProvider = Provider<BeeCountSyncEngine?>((ref) {
   return engine;
 });
 
+final _beecountBootstrappedProvider = StateProvider<bool>((ref) => false);
+
+final beecountBootstrapProvider = Provider<void>((ref) {
+  final already = ref.watch(_beecountBootstrappedProvider);
+  if (already) return;
+
+  final providerAsync = ref.watch(beecountProviderProvider);
+  final syncEngine = ref.watch(beecountSyncEngineProvider);
+  if (!providerAsync.hasValue || providerAsync.value == null) return;
+  if (syncEngine == null) return;
+
+  ref.read(_beecountBootstrappedProvider.notifier).state = true;
+
+  final db = ref.watch(databaseProvider);
+  Future(() async {
+    final svc = BeeCountInitialSyncService(
+      db: db,
+      provider: providerAsync.value!,
+      sync: syncEngine,
+    );
+    await svc.run();
+  }).catchError((e, st) {
+    logger.error('BeeCountBootstrap', '启动拉取失败', e, st);
+  });
+});
+
 final beecountPendingSyncCountProvider = StreamProvider<int>((ref) {
   final db = ref.watch(databaseProvider);
   return Stream.periodic(const Duration(seconds: 1))
@@ -111,6 +140,7 @@ class BeeCountAuthController {
     _ref.invalidate(beecountOfflineModeProvider);
     _ref.invalidate(beecountSessionProvider);
     _ref.invalidate(beecountProviderProvider);
+    _ref.read(_beecountBootstrappedProvider.notifier).state = false;
   }
 
   Future<void> signUp({
@@ -140,6 +170,7 @@ class BeeCountAuthController {
     _ref.invalidate(beecountOfflineModeProvider);
     _ref.invalidate(beecountSessionProvider);
     _ref.invalidate(beecountProviderProvider);
+    _ref.read(_beecountBootstrappedProvider.notifier).state = false;
   }
 
   Future<void> signOut() async {
@@ -147,6 +178,7 @@ class BeeCountAuthController {
     await store.clearSession();
     _ref.invalidate(beecountSessionProvider);
     _ref.invalidate(beecountProviderProvider);
+    _ref.read(_beecountBootstrappedProvider.notifier).state = false;
   }
 
   Future<void> useOfflineMode() async {
@@ -156,6 +188,7 @@ class BeeCountAuthController {
     _ref.invalidate(beecountOfflineModeProvider);
     _ref.invalidate(beecountSessionProvider);
     _ref.invalidate(beecountProviderProvider);
+    _ref.read(_beecountBootstrappedProvider.notifier).state = false;
   }
 }
 

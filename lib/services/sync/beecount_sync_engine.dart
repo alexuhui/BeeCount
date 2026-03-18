@@ -21,6 +21,7 @@ class BeeCountSyncEngine {
   bool _flushing = false;
 
   void start() {
+    _ensureLocalTables();
     _poll ??= Timer.periodic(const Duration(seconds: 20), (_) {
       flush();
     });
@@ -32,6 +33,7 @@ class BeeCountSyncEngine {
   }
 
   Future<void> enqueueUpsert(String entity, int localId) async {
+    await _ensureLocalTables();
     await db.customStatement(
       '''
       INSERT INTO sync_queue_items(entity, local_id, action, payload, retry_count, last_error, created_at, updated_at)
@@ -43,10 +45,12 @@ class BeeCountSyncEngine {
       ''',
       [entity, localId],
     );
+    await _touchLocalChange(entity, localId);
     _scheduleFlush();
   }
 
   Future<void> enqueueDelete(String entity, int localId) async {
+    await _ensureLocalTables();
     await db.customStatement(
       '''
       INSERT INTO sync_queue_items(entity, local_id, action, payload, retry_count, last_error, created_at, updated_at)
@@ -58,14 +62,64 @@ class BeeCountSyncEngine {
       ''',
       [entity, localId],
     );
+    await _touchLocalChange(entity, localId);
     _scheduleFlush();
   }
 
   Future<int> pendingCount() async {
+    await _ensureLocalTables();
     final row = await db.customSelect(
       'SELECT COUNT(*) AS c FROM sync_queue_items',
     ).getSingle();
     return (row.data['c'] as int?) ?? 0;
+  }
+
+  Future<void> _ensureLocalTables() async {
+    await db.customStatement('''
+      CREATE TABLE IF NOT EXISTS sync_queue_items (
+        entity TEXT NOT NULL,
+        local_id INTEGER NOT NULL,
+        action TEXT NOT NULL,
+        payload TEXT,
+        retry_count INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT,
+        created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+        updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+        PRIMARY KEY (entity, local_id)
+      );
+    ''');
+    await db.customStatement('''
+      CREATE TABLE IF NOT EXISTS sync_id_maps (
+        entity TEXT NOT NULL,
+        local_id INTEGER NOT NULL,
+        remote_id INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+        PRIMARY KEY (entity, local_id)
+      );
+    ''');
+    await db.customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_sync_id_maps_remote ON sync_id_maps(entity, remote_id);',
+    );
+    await db.customStatement('''
+      CREATE TABLE IF NOT EXISTS local_change_log (
+        entity TEXT NOT NULL,
+        local_id INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+        PRIMARY KEY (entity, local_id)
+      );
+    ''');
+  }
+
+  Future<void> _touchLocalChange(String entity, int localId) async {
+    await db.customStatement(
+      '''
+      INSERT INTO local_change_log(entity, local_id, updated_at)
+      VALUES(?, ?, strftime('%s','now'))
+      ON CONFLICT(entity, local_id) DO UPDATE SET
+        updated_at=strftime('%s','now');
+      ''',
+      [entity, localId],
+    );
   }
 
   void _scheduleFlush() {
@@ -76,6 +130,7 @@ class BeeCountSyncEngine {
   }
 
   Future<void> flush() async {
+    await _ensureLocalTables();
     if (_flushing) return;
     if (provider.databaseService == null) return;
     if (provider.currentUserId == null) return;

@@ -104,6 +104,7 @@ final _ledgerChangeListener = Provider<void>((ref) {
 final appInitProvider = FutureProvider<void>((ref) async {
   // 读取以激活监听
   ref.read(_ledgerChangeListener);
+  ref.read(beecountBootstrapProvider);
 });
 
 // 分类Provider

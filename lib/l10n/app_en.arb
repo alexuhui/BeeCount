@@ -2526,5 +2526,21 @@
   "aiModelInputHelper": "Leave empty to use default model",
   "selectYear":"Selceted Year",
   "selectMonth":"Selected Month",
-  "wholeYear":"Whole Year"
+  "wholeYear":"Whole Year",
+  "mineCloudServiceBeeCount": "BeeCount Server (Custom Backend)",
+  "cloudCustomBeeCountTitle": "BeeCount Server",
+  "cloudCustomBeeCountSubtitle": "Click to configure custom BeeCount backend",
+  "cloudConfigureBeeCountTitle": "Configure BeeCount Server",
+  "cloudBeeCountServerUrlLabel": "Server URL",
+  "cloudBeeCountServerUrlHint": "https://your-beecount-server.com",
+  "cloudBeeCountHelpTitle": "BeeCount Server Guide",
+  "cloudBeeCountHelpIntro": "What is BeeCount Server",
+  "cloudBeeCountHelpIntro1": "BeeCount Server is a custom backend service",
+  "cloudBeeCountHelpIntro2": "Provides data storage and user management",
+  "cloudBeeCountHelpIntro3": "You have full control over your self-hosted server",
+  "cloudBeeCountHelpSteps": "Setup Steps",
+  "cloudBeeCountHelpStep1": "1. Deploy BeeCount Server",
+  "cloudBeeCountHelpStep2": "2. Get the server access URL",
+  "cloudBeeCountHelpStep3": "3. Paste it into the app configuration",
+  "cloudBeeCountHelpNote": "After configuration, you need to register/login to use sync"
 }

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter_cloud_sync_supabase/flutter_cloud_sync_supabase.dart';
 import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 
 import '../../db.dart';
@@ -10,9 +9,9 @@ import '../../../services/system/logger_service.dart';
 /// 云端分类Repository实现
 /// 基于 Supabase 实现
 class CloudCategoryRepository implements CategoryRepository {
-  final SupabaseProvider supabase;
+  final CloudProvider provider;
 
-  CloudCategoryRepository(this.supabase);
+  CloudCategoryRepository(this.provider);
 
   @override
   Future<int> createCategory({
@@ -23,7 +22,7 @@ class CloudCategoryRepository implements CategoryRepository {
   }) async {
     logger.info('CloudCategoryRepository', '📝 创建分类: name=$name, kind=$kind, icon=$icon, sortOrder=$sortOrder');
 
-    final result = await supabase.databaseService!.insert(
+    final result = await provider.databaseService!.insert(
       table: 'categories',
       data: {
         'name': name,
@@ -69,7 +68,7 @@ class CloudCategoryRepository implements CategoryRepository {
   }) async {
     logger.info('CloudCategoryRepository', '📝 创建子分类: name=$name, parentId=$parentId');
 
-    final result = await supabase.databaseService!.insert(
+    final result = await provider.databaseService!.insert(
       table: 'categories',
       data: {
         'name': name,
@@ -108,7 +107,7 @@ class CloudCategoryRepository implements CategoryRepository {
     if (level != null) data['level'] = level;
 
     if (data.isNotEmpty) {
-      await supabase.databaseService!.update(
+      await provider.databaseService!.update(
         table: 'categories',
         id: id.toString(),
         data: data,
@@ -119,20 +118,20 @@ class CloudCategoryRepository implements CategoryRepository {
   @override
   Future<void> deleteCategory(int id) async {
     // 先查询并删除该分类下的所有子分类
-    final subCategories = await supabase.databaseService!.query(
+    final subCategories = await provider.databaseService!.query(
       table: 'categories',
       filters: [
         QueryFilter(column: 'parent_id', operator: 'eq', value: id),
       ],
     );
     for (final sub in subCategories) {
-      await supabase.databaseService!.delete(
+      await provider.databaseService!.delete(
         table: 'categories',
         id: sub['id'].toString(),
       );
     }
     // 再删除该分类本身
-    await supabase.databaseService!.delete(
+    await provider.databaseService!.delete(
       table: 'categories',
       id: id.toString(),
     );
@@ -153,7 +152,7 @@ class CloudCategoryRepository implements CategoryRepository {
     required String kind,
   }) async {
     // 先查询是否存在
-    final existing = await supabase.databaseService!.query(
+    final existing = await provider.databaseService!.query(
       table: 'categories',
       filters: [
         QueryFilter(column: 'name', operator: 'eq', value: name),
@@ -172,7 +171,7 @@ class CloudCategoryRepository implements CategoryRepository {
 
   @override
   Future<Category?> getCategoryById(int categoryId) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'categories',
       filters: [
         QueryFilter(column: 'id', operator: 'eq', value: categoryId),
@@ -186,7 +185,7 @@ class CloudCategoryRepository implements CategoryRepository {
 
   @override
   Future<List<Category>> getTopLevelCategories(String kind) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'categories',
       filters: [
         QueryFilter(column: 'kind', operator: 'eq', value: kind),
@@ -200,7 +199,7 @@ class CloudCategoryRepository implements CategoryRepository {
 
   @override
   Future<List<Category>> getSubCategories(int parentId) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'categories',
       filters: [
         QueryFilter(column: 'parent_id', operator: 'eq', value: parentId),
@@ -213,7 +212,7 @@ class CloudCategoryRepository implements CategoryRepository {
 
   @override
   Future<List<Category>> getUsableCategories(String kind) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'categories',
       filters: [
         QueryFilter(column: 'kind', operator: 'eq', value: kind),
@@ -239,7 +238,7 @@ class CloudCategoryRepository implements CategoryRepository {
       );
     }
 
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'categories',
       filters: filters,
       limit: 1,
@@ -250,7 +249,7 @@ class CloudCategoryRepository implements CategoryRepository {
 
   @override
   Future<bool> hasSubCategories(int categoryId) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'categories',
       filters: [
         QueryFilter(column: 'parent_id', operator: 'eq', value: categoryId),
@@ -263,7 +262,7 @@ class CloudCategoryRepository implements CategoryRepository {
 
   @override
   Future<int> getSubCategoryCount(int categoryId) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'categories',
       filters: [
         QueryFilter(column: 'parent_id', operator: 'eq', value: categoryId),
@@ -275,7 +274,7 @@ class CloudCategoryRepository implements CategoryRepository {
 
   @override
   Future<int> getTransactionCountByCategory(int categoryId) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'category_id', operator: 'eq', value: categoryId),
@@ -288,7 +287,7 @@ class CloudCategoryRepository implements CategoryRepository {
   @override
   Future<Map<int, int>> getAllCategoryTransactionCounts() async {
     // 获取所有交易
-    final transactions = await supabase.databaseService!.query(
+    final transactions = await provider.databaseService!.query(
       table: 'transactions',
     );
 
@@ -307,7 +306,7 @@ class CloudCategoryRepository implements CategoryRepository {
   @override
   Future<({int totalCount, double totalAmount, double averageAmount})>
       getCategorySummary(int categoryId) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'category_id', operator: 'eq', value: categoryId),
@@ -326,15 +325,15 @@ class CloudCategoryRepository implements CategoryRepository {
     final averageAmount = totalAmount / totalCount;
 
     return (
-      totalCount: totalCount,
-      totalAmount: totalAmount,
-      averageAmount: averageAmount,
+      totalCount: totalCount as int,
+      totalAmount: totalAmount as double,
+      averageAmount: averageAmount as double,
     );
   }
 
   @override
   Future<List<Transaction>> getTransactionsByCategory(int categoryId) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'category_id', operator: 'eq', value: categoryId),
@@ -366,7 +365,7 @@ class CloudCategoryRepository implements CategoryRepository {
       orderBy += ' DESC';
     }
 
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'category_id', operator: 'eq', value: categoryId),
@@ -415,7 +414,7 @@ class CloudCategoryRepository implements CategoryRepository {
       List<({int id, int sortOrder})> updates) async {
     // 批量更新排序，需要逐个更新
     for (final update in updates) {
-      await supabase.databaseService!.update(
+      await provider.databaseService!.update(
         table: 'categories',
         id: update.id.toString(),
         data: {'sort_order': update.sortOrder},
@@ -450,32 +449,46 @@ class CloudCategoryRepository implements CategoryRepository {
       }
     });
 
-    // 创建 Realtime 频道
-    final channel = supabase.realtimeService!.channel('category:$categoryId');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道
+      final channel = provider.realtimeService!.channel('category:$categoryId');
 
-    channel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'categories',
-      callback: (payload) async {
+      channel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'categories',
+        callback: (payload) async {
+          try {
+            final category = await getCategoryById(categoryId);
+            if (!controller.isClosed) {
+              controller.add(category);
+            }
+          } catch (e) {
+            if (!controller.isClosed) {
+              controller.addError(e);
+            }
+          }
+        },
+      );
+
+      channel.subscribe();
+
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
+    } else {
+      // 轮询
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
         try {
           final category = await getCategoryById(categoryId);
           if (!controller.isClosed) {
             controller.add(category);
           }
-        } catch (e) {
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
-    );
-
-    channel.subscribe();
-
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
+    }
 
     return controller.stream;
   }
@@ -494,33 +507,47 @@ class CloudCategoryRepository implements CategoryRepository {
       }
     });
 
-    // 创建 Realtime 频道
-    final channel = supabase.realtimeService!
-        .channel('transactions:category:$categoryId');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道
+      final channel = provider.realtimeService!
+          .channel('transactions:category:$categoryId');
 
-    channel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'transactions',
-      callback: (payload) async {
+      channel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'transactions',
+        callback: (payload) async {
+          try {
+            final txs = await getTransactionsByCategory(categoryId);
+            if (!controller.isClosed) {
+              controller.add(txs);
+            }
+          } catch (e) {
+            if (!controller.isClosed) {
+              controller.addError(e);
+            }
+          }
+        },
+      );
+
+      channel.subscribe();
+
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
+    } else {
+      // 轮询
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
         try {
           final txs = await getTransactionsByCategory(categoryId);
           if (!controller.isClosed) {
             controller.add(txs);
           }
-        } catch (e) {
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
-    );
-
-    channel.subscribe();
-
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
+    }
 
     return controller.stream;
   }
@@ -536,33 +563,47 @@ class CloudCategoryRepository implements CategoryRepository {
       }
     });
 
-    // 创建 Realtime 频道
-    final channel = supabase.realtimeService!
-        .channel('categories:subs:$categoryId');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道
+      final channel = provider.realtimeService!
+          .channel('categories:subs:$categoryId');
 
-    channel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'categories',
-      callback: (payload) async {
+      channel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'categories',
+        callback: (payload) async {
+          try {
+            final categories = await _fetchCategoryWithSubs(categoryId);
+            if (!controller.isClosed) {
+              controller.add(categories);
+            }
+          } catch (e) {
+            if (!controller.isClosed) {
+              controller.addError(e);
+            }
+          }
+        },
+      );
+
+      channel.subscribe();
+
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
+    } else {
+      // 轮询
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
         try {
           final categories = await _fetchCategoryWithSubs(categoryId);
           if (!controller.isClosed) {
             controller.add(categories);
           }
-        } catch (e) {
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
-    );
-
-    channel.subscribe();
-
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
+    }
 
     return controller.stream;
   }
@@ -609,54 +650,73 @@ class CloudCategoryRepository implements CategoryRepository {
       }
     });
 
-    // 创建 Realtime 频道（监听分类和交易表）
-    final categoryChannel = supabase.realtimeService!.channel('categories:withcount');
-    final transactionChannel =
-        supabase.realtimeService!.channel('transactions:withcount');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道（监听分类和交易表）
+      final categoryChannel =
+          provider.realtimeService!.channel('categories:withcount');
+      final transactionChannel =
+          provider.realtimeService!.channel('transactions:withcount');
 
-    void refresh() async {
-      try {
-        final data = await _fetchCategoriesWithCount();
-        if (!controller.isClosed) {
-          controller.add(data);
-        }
-      } catch (e) {
-        if (!controller.isClosed) {
-          controller.addError(e);
+      void refresh() async {
+        try {
+          final data = await _fetchCategoriesWithCount();
+          if (!controller.isClosed) {
+            controller.add(data);
+          }
+        } catch (e) {
+          if (!controller.isClosed) {
+            controller.addError(e);
+          }
         }
       }
+
+      categoryChannel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'categories',
+        callback: (payload) {
+          logger.info(
+              'CloudCategoryRepository', '🔄 Categories changed, refreshing...');
+          refresh();
+        },
+      );
+
+      transactionChannel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'transactions',
+        callback: (payload) {
+          logger.info('CloudCategoryRepository',
+              '🔄 Transactions changed, refreshing...');
+          refresh();
+        },
+      );
+
+      logger.info('CloudCategoryRepository',
+          '📡 Subscribing to categories withcount channels');
+      categoryChannel.subscribe();
+      transactionChannel.subscribe();
+
+      // 当所有监听者都取消订阅时，取消 Realtime 订阅
+      controller.onCancel = () {
+        logger.info('CloudCategoryRepository',
+            '🔕 Unsubscribing from categories withcount channels');
+        categoryChannel.unsubscribe();
+        transactionChannel.unsubscribe();
+      };
+    } else {
+      // 轮询
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
+        try {
+          final data = await _fetchCategoriesWithCount();
+          if (!controller.isClosed) {
+            controller.add(data);
+          }
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
     }
-
-    categoryChannel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'categories',
-      callback: (payload) {
-        logger.info('CloudCategoryRepository', '🔄 Categories changed, refreshing...');
-        refresh();
-      },
-    );
-
-    transactionChannel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'transactions',
-      callback: (payload) {
-        logger.info('CloudCategoryRepository', '🔄 Transactions changed, refreshing...');
-        refresh();
-      },
-    );
-
-    logger.info('CloudCategoryRepository', '📡 Subscribing to categories withcount channels');
-    categoryChannel.subscribe();
-    transactionChannel.subscribe();
-
-    // 当所有监听者都取消订阅时，取消 Realtime 订阅
-    controller.onCancel = () {
-      logger.info('CloudCategoryRepository', '🔕 Unsubscribing from categories withcount channels');
-      categoryChannel.unsubscribe();
-      transactionChannel.unsubscribe();
-    };
 
     _categoriesWithCountStream = controller.stream;
     return _categoriesWithCountStream!;
@@ -665,7 +725,7 @@ class CloudCategoryRepository implements CategoryRepository {
   Future<List<({Category category, int transactionCount})>>
       _fetchCategoriesWithCount() async {
     // 获取所有分类（过滤掉虚拟转账分类）
-    final categories = await supabase.databaseService!.query(
+    final categories = await provider.databaseService!.query(
       table: 'categories',
       orderBy: 'sort_order',
       filters: [
@@ -777,7 +837,7 @@ class CloudCategoryRepository implements CategoryRepository {
   @override
   Future<Category> getTransferCategory() async {
     // 查找现有的转账分类
-    final categories = await supabase.databaseService!.query(
+    final categories = await provider.databaseService!.query(
       table: 'categories',
       filters: [
         QueryFilter(column: 'kind', operator: 'eq', value: 'transfer'),
@@ -790,7 +850,7 @@ class CloudCategoryRepository implements CategoryRepository {
 
     // 不存在则创建（理论上seed时已创建，这里是兜底逻辑）
     logger.warning('CloudCategoryRepository', '转账分类不存在，正在创建...');
-    final result = await supabase.databaseService!.insert(
+    final result = await provider.databaseService!.insert(
       table: 'categories',
       data: {
         'name': '转账',

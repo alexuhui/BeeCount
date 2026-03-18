@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter_cloud_sync_supabase/flutter_cloud_sync_supabase.dart';
 import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 
 import '../../db.dart';
@@ -10,12 +9,12 @@ import '../../../services/system/logger_service.dart';
 /// 云端交易Repository实现
 /// 基于 Supabase 实现
 class CloudTransactionRepository implements TransactionRepository {
-  final SupabaseProvider supabase;
+  final CloudProvider provider;
 
   // 缓存 Stream 以避免重复订阅
   final Map<String, Stream<List<({Transaction t, Category? category})>>> _streamCache = {};
 
-  CloudTransactionRepository(this.supabase);
+  CloudTransactionRepository(this.provider);
 
   @override
   Stream<List<Transaction>> watchRecentTransactions({
@@ -31,16 +30,42 @@ class CloudTransactionRepository implements TransactionRepository {
       }
     });
 
-    // 创建 Realtime 频道
-    final channel = supabase.realtimeService!.channel('transactions:$ledgerId');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道
+      final channel = provider.realtimeService!.channel('transactions:$ledgerId');
 
-    // 监听交易变化
-    channel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'transactions',
-      filter: 'ledger_id=eq.$ledgerId',  // 只监听指定账本的变化
-      callback: (payload) async {
+      // 监听交易变化
+      channel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'transactions',
+        filter: 'ledger_id=eq.$ledgerId', // 只监听指定账本的变化
+        callback: (payload) async {
+          try {
+            final txs = await _fetchRecentTransactions(
+              ledgerId: ledgerId,
+              limit: limit,
+            );
+            if (!controller.isClosed) {
+              controller.add(txs);
+            }
+          } catch (e) {
+            if (!controller.isClosed) {
+              controller.addError(e);
+            }
+          }
+        },
+      );
+
+      channel.subscribe();
+
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
+    } else {
+      // 轮询作为回退
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
         try {
           final txs = await _fetchRecentTransactions(
             ledgerId: ledgerId,
@@ -49,19 +74,10 @@ class CloudTransactionRepository implements TransactionRepository {
           if (!controller.isClosed) {
             controller.add(txs);
           }
-        } catch (e) {
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
-    );
-
-    channel.subscribe();
-
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
+    }
 
     return controller.stream;
   }
@@ -70,7 +86,7 @@ class CloudTransactionRepository implements TransactionRepository {
     required int ledgerId,
     int limit = 20,
   }) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
@@ -105,16 +121,43 @@ class CloudTransactionRepository implements TransactionRepository {
       }
     });
 
-    // 创建 Realtime 频道
-    final channel = supabase.realtimeService!
-        .channel('transactions:$ledgerId:${month.year}-${month.month}');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道
+      final channel = provider.realtimeService!
+          .channel('transactions:$ledgerId:${month.year}-${month.month}');
 
-    channel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'transactions',
-      filter: 'ledger_id=eq.$ledgerId',  // 只监听指定账本的变化
-      callback: (payload) async {
+      channel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'transactions',
+        filter: 'ledger_id=eq.$ledgerId', // 只监听指定账本的变化
+        callback: (payload) async {
+          try {
+            final txs = await _fetchTransactionsInRange(
+              ledgerId: ledgerId,
+              start: start,
+              end: end,
+            );
+            if (!controller.isClosed) {
+              controller.add(txs);
+            }
+          } catch (e) {
+            if (!controller.isClosed) {
+              controller.addError(e);
+            }
+          }
+        },
+      );
+
+      channel.subscribe();
+
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
+    } else {
+      // 轮询
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
         try {
           final txs = await _fetchTransactionsInRange(
             ledgerId: ledgerId,
@@ -124,19 +167,10 @@ class CloudTransactionRepository implements TransactionRepository {
           if (!controller.isClosed) {
             controller.add(txs);
           }
-        } catch (e) {
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
-    );
-
-    channel.subscribe();
-
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
+    }
 
     return controller.stream;
   }
@@ -146,7 +180,7 @@ class CloudTransactionRepository implements TransactionRepository {
     required DateTime start,
     required DateTime end,
   }) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
@@ -213,68 +247,82 @@ class CloudTransactionRepository implements TransactionRepository {
       }
     });
 
-    // 创建 Realtime 频道监听 transactions 表变化
-    final channelName = ledgerId != null
-        ? 'transactions_with_category:all:$ledgerId'
-        : 'transactions_with_category:all:global';
-    final channel = supabase.realtimeService!.channel(channelName);
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道监听 transactions 表变化
+      final channelName = ledgerId != null
+          ? 'transactions_with_category:all:$ledgerId'
+          : 'transactions_with_category:all:global';
+      final channel = provider.realtimeService!.channel(channelName);
 
-    logger.info('CloudTransactionRepo', '设置Realtime订阅: ledgerId=$ledgerId');
+      logger.info('CloudTransactionRepo', '设置Realtime订阅: ledgerId=$ledgerId');
 
-    if (ledgerId != null) {
-      // 指定账本：监听特定账本的变化
-      channel.onPostgresChanges(
-        event: '*',
-        schema: 'public',
-        table: 'transactions',
-        filter: 'ledger_id=eq.$ledgerId',
-        callback: (payload) async {
-          logger.info('CloudTransactionRepo', 'Realtime回调触发: ledgerId=$ledgerId');
-          try {
-            final data = await _fetchTransactionsWithCategory(filters: filters);
-            logger.info('CloudTransactionRepo', 'Realtime数据刷新成功: ledgerId=$ledgerId, count=${data.length}');
-            if (!controller.isClosed) {
-              controller.add(data);
+      if (ledgerId != null) {
+        // 指定账本：监听特定账本的变化
+        channel.onPostgresChanges(
+          event: '*',
+          schema: 'public',
+          table: 'transactions',
+          filter: 'ledger_id=eq.$ledgerId',
+          callback: (payload) async {
+            logger.info('CloudTransactionRepo', 'Realtime回调触发: ledgerId=$ledgerId');
+            try {
+              final data = await _fetchTransactionsWithCategory(filters: filters);
+              logger.info('CloudTransactionRepo', 'Realtime数据刷新成功: ledgerId=$ledgerId, count=${data.length}');
+              if (!controller.isClosed) {
+                controller.add(data);
+              }
+            } catch (e, stackTrace) {
+              logger.error('CloudTransactionRepo', 'Realtime数据刷新失败: ledgerId=$ledgerId', e, stackTrace);
+              if (!controller.isClosed) {
+                controller.addError(e);
+              }
             }
-          } catch (e, stackTrace) {
-            logger.error('CloudTransactionRepo', 'Realtime数据刷新失败: ledgerId=$ledgerId', e, stackTrace);
-            if (!controller.isClosed) {
-              controller.addError(e);
+          },
+        );
+      } else {
+        // 全局：监听所有交易变化
+        channel.onPostgresChanges(
+          event: '*',
+          schema: 'public',
+          table: 'transactions',
+          callback: (payload) async {
+            logger.info('CloudTransactionRepo', 'Realtime回调触发: global');
+            try {
+              final data = await _fetchTransactionsWithCategory(filters: filters);
+              logger.info('CloudTransactionRepo', 'Realtime数据刷新成功: global, count=${data.length}');
+              if (!controller.isClosed) {
+                controller.add(data);
+              }
+            } catch (e, stackTrace) {
+              logger.error('CloudTransactionRepo', 'Realtime数据刷新失败: global', e, stackTrace);
+              if (!controller.isClosed) {
+                controller.addError(e);
+              }
             }
-          }
-        },
-      );
+          },
+        );
+      }
+
+      channel.subscribe();
+      logger.info('CloudTransactionRepo', 'Realtime订阅已启动: ledgerId=$ledgerId');
+
+      // 当 controller 关闭时取消订阅
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
     } else {
-      // 全局：监听所有交易变化
-      channel.onPostgresChanges(
-        event: '*',
-        schema: 'public',
-        table: 'transactions',
-        callback: (payload) async {
-          logger.info('CloudTransactionRepo', 'Realtime回调触发: global');
-          try {
-            final data = await _fetchTransactionsWithCategory(filters: filters);
-            logger.info('CloudTransactionRepo', 'Realtime数据刷新成功: global, count=${data.length}');
-            if (!controller.isClosed) {
-              controller.add(data);
-            }
-          } catch (e, stackTrace) {
-            logger.error('CloudTransactionRepo', 'Realtime数据刷新失败: global', e, stackTrace);
-            if (!controller.isClosed) {
-              controller.addError(e);
-            }
+      // 轮询
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
+        try {
+          final data = await _fetchTransactionsWithCategory(filters: filters);
+          if (!controller.isClosed) {
+            controller.add(data);
           }
-        },
-      );
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
     }
-
-    channel.subscribe();
-    logger.info('CloudTransactionRepo', 'Realtime订阅已启动: ledgerId=$ledgerId');
-
-    // 当 controller 关闭时取消订阅
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
 
     final stream = controller.stream;
     _streamCache[cacheKey] = stream;
@@ -324,16 +372,45 @@ class CloudTransactionRepository implements TransactionRepository {
       }
     });
 
-    // 创建 Realtime 频道监听 transactions 表变化
-    final channel = supabase.realtimeService!
-        .channel('transactions_with_category:month:$ledgerId:${month.year}-${month.month}');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道监听 transactions 表变化
+      final channel = provider.realtimeService!
+          .channel('transactions_with_category:month:$ledgerId:${month.year}-${month.month}');
 
-    channel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'transactions',
-      filter: 'ledger_id=eq.$ledgerId',  // 只监听指定账本的变化
-      callback: (payload) async {
+      channel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'transactions',
+        filter: 'ledger_id=eq.$ledgerId', // 只监听指定账本的变化
+        callback: (payload) async {
+          try {
+            final data = await _fetchTransactionsWithCategory(
+              filters: [
+                QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
+                QueryFilter(column: 'happened_at', operator: 'gte', value: start.toIso8601String()),
+                QueryFilter(column: 'happened_at', operator: 'lt', value: end.toIso8601String()),
+              ],
+            );
+            if (!controller.isClosed) {
+              controller.add(data);
+            }
+          } catch (e) {
+            if (!controller.isClosed) {
+              controller.addError(e);
+            }
+          }
+        },
+      );
+
+      channel.subscribe();
+
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
+    } else {
+      // 轮询
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
         try {
           final data = await _fetchTransactionsWithCategory(
             filters: [
@@ -345,19 +422,10 @@ class CloudTransactionRepository implements TransactionRepository {
           if (!controller.isClosed) {
             controller.add(data);
           }
-        } catch (e) {
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
-    );
-
-    channel.subscribe();
-
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
+    }
 
     return controller.stream;
   }
@@ -387,16 +455,45 @@ class CloudTransactionRepository implements TransactionRepository {
       }
     });
 
-    // 创建 Realtime 频道监听 transactions 表变化
-    final channel = supabase.realtimeService!
-        .channel('transactions_with_category:year:$ledgerId:$year');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道监听 transactions 表变化
+      final channel = provider.realtimeService!
+          .channel('transactions_with_category:year:$ledgerId:$year');
 
-    channel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'transactions',
-      filter: 'ledger_id=eq.$ledgerId',  // 只监听指定账本的变化
-      callback: (payload) async {
+      channel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'transactions',
+        filter: 'ledger_id=eq.$ledgerId', // 只监听指定账本的变化
+        callback: (payload) async {
+          try {
+            final data = await _fetchTransactionsWithCategory(
+              filters: [
+                QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
+                QueryFilter(column: 'happened_at', operator: 'gte', value: start.toIso8601String()),
+                QueryFilter(column: 'happened_at', operator: 'lt', value: end.toIso8601String()),
+              ],
+            );
+            if (!controller.isClosed) {
+              controller.add(data);
+            }
+          } catch (e) {
+            if (!controller.isClosed) {
+              controller.addError(e);
+            }
+          }
+        },
+      );
+
+      channel.subscribe();
+
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
+    } else {
+      // 轮询
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
         try {
           final data = await _fetchTransactionsWithCategory(
             filters: [
@@ -408,19 +505,10 @@ class CloudTransactionRepository implements TransactionRepository {
           if (!controller.isClosed) {
             controller.add(data);
           }
-        } catch (e) {
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
-    );
-
-    channel.subscribe();
-
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
+    }
 
     return controller.stream;
   }
@@ -455,34 +543,48 @@ class CloudTransactionRepository implements TransactionRepository {
       }
     });
 
-    // 创建 Realtime 频道监听 transactions 表变化
-    final channel = supabase.realtimeService!
-        .channel('transactions_with_category:range:$ledgerId:$categoryId:$type');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道监听 transactions 表变化
+      final channel = provider.realtimeService!
+          .channel('transactions_with_category:range:$ledgerId:$categoryId:$type');
 
-    channel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'transactions',
-      filter: 'ledger_id=eq.$ledgerId',  // 只监听指定账本的变化
-      callback: (payload) async {
+      channel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'transactions',
+        filter: 'ledger_id=eq.$ledgerId', // 只监听指定账本的变化
+        callback: (payload) async {
+          try {
+            final data = await _fetchTransactionsWithCategory(filters: filters);
+            if (!controller.isClosed) {
+              controller.add(data);
+            }
+          } catch (e) {
+            if (!controller.isClosed) {
+              controller.addError(e);
+            }
+          }
+        },
+      );
+
+      channel.subscribe();
+
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
+    } else {
+      // 轮询
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
         try {
           final data = await _fetchTransactionsWithCategory(filters: filters);
           if (!controller.isClosed) {
             controller.add(data);
           }
-        } catch (e) {
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
-    );
-
-    channel.subscribe();
-
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
+    }
 
     return controller.stream;
   }
@@ -498,10 +600,10 @@ class CloudTransactionRepository implements TransactionRepository {
     required DateTime happenedAt,
     String? note,
   }) async {
-    final result = await supabase.databaseService!.insert(
+    final result = await provider.databaseService!.insert(
       table: 'transactions',
       data: {
-        'user_id': supabase.client?.auth.currentUser?.id, // 数据所有者
+        'user_id': provider.currentUserId, // 数据所有者
         'ledger_id': ledgerId,
         'type': type,
         'amount': amount,
@@ -510,7 +612,7 @@ class CloudTransactionRepository implements TransactionRepository {
         'to_account_id': toAccountId,
         'happened_at': happenedAt.toIso8601String(),
         'note': note,
-        'created_by': supabase.client?.auth.currentUser?.id, // 创建者（用于审计）
+        'created_by': provider.currentUserId, // 创建者（用于审计）
       },
     );
 
@@ -558,7 +660,7 @@ class CloudTransactionRepository implements TransactionRepository {
 
     logger.info('CloudTransactionRepo', '更新数据: $data');
 
-    await supabase.databaseService!.update(
+    await provider.databaseService!.update(
       table: 'transactions',
       id: id.toString(),
       data: data,
@@ -569,7 +671,7 @@ class CloudTransactionRepository implements TransactionRepository {
 
   @override
   Future<void> deleteTransaction(int id) async {
-    await supabase.databaseService!.delete(
+    await provider.databaseService!.delete(
       table: 'transactions',
       id: id.toString(),
     );
@@ -577,7 +679,7 @@ class CloudTransactionRepository implements TransactionRepository {
 
   @override
   Future<Transaction?> getTransactionById(int id) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'id', operator: 'eq', value: id),
@@ -594,7 +696,7 @@ class CloudTransactionRepository implements TransactionRepository {
     required DateTime start,
     required DateTime end,
   }) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
@@ -662,7 +764,7 @@ class CloudTransactionRepository implements TransactionRepository {
     logger.info('CloudTransactionRepo', '查询交易: filters=$filters, orderBy=$orderBy, descending=$descending, limit=$limit');
 
     // 1. 查询交易
-    final txResults = await supabase.databaseService!.query(
+    final txResults = await provider.databaseService!.query(
       table: 'transactions',
       filters: filters,
       orderBy: orderBy,
@@ -686,7 +788,7 @@ class CloudTransactionRepository implements TransactionRepository {
     // 3. 批量查询分类
     final Map<int, Category> categoryMap = {};
     if (categoryIds.isNotEmpty) {
-      final catResults = await supabase.databaseService!.query(
+      final catResults = await provider.databaseService!.query(
         table: 'categories',
         filters: [
           QueryFilter(column: 'id', operator: 'in', value: categoryIds),

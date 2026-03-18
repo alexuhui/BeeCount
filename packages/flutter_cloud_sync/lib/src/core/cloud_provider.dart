@@ -1,5 +1,8 @@
 import 'auth_service.dart';
 import 'storage_service.dart';
+import 'database_service.dart';
+import 'realtime_service.dart';
+import 'exceptions.dart';
 
 /// Abstract interface for cloud service providers
 ///
@@ -23,6 +26,15 @@ abstract class CloudProvider {
 
   /// Storage service instance
   CloudStorageService get storage;
+
+  /// Database service instance (optional)
+  CloudDatabaseService? get databaseService => null;
+
+  /// Realtime service instance (optional)
+  CloudRealtimeService? get realtimeService => null;
+
+  /// Current user ID (optional)
+  String? get currentUserId => null;
 
   /// Initialize the provider with configuration
   ///

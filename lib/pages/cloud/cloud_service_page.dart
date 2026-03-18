@@ -59,6 +59,7 @@ class _CloudServicePageState extends ConsumerState<CloudServicePage> {
     final supabaseAsync = ref.watch(supabaseConfigProvider);
     final webdavAsync = ref.watch(webdavConfigProvider);
     final s3Async = ref.watch(s3ConfigProvider);
+    final beecountAsync = ref.watch(beecountConfigProvider);
 
     return Scaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
@@ -173,6 +174,32 @@ class _CloudServicePageState extends ConsumerState<CloudServicePage> {
                       const SizedBox(height: 12),
                       _buildICloudCard(context, active, isDisabled: false),
                     ],
+
+                    const SizedBox(height: 12),
+
+                    // 2.5 BeeCount Server Card
+                    beecountAsync.when(
+                      loading: () => const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
+                      error: (e, _) => const SizedBox.shrink(),
+                      data: (beecountCfg) => _buildServiceCard(
+                        context: context,
+                        icon: Icons.dns_outlined,
+                        iconColor: Theme.of(context).colorScheme.primary,
+                        title: AppLocalizations.of(context).cloudCustomBeeCountTitle,
+                        subtitle: beecountCfg?.valid == true
+                            ? beecountCfg!.beecountServerUrl!
+                            : AppLocalizations.of(context).cloudCustomBeeCountSubtitle,
+                        isSelected: active.type == CloudBackendType.beecount,
+                        isConfigured: beecountCfg?.valid == true,
+                        isDisabled: false,
+                        onTap: () => beecountCfg?.valid == true
+                            ? _switchService(CloudBackendType.beecount)
+                            : _configureService(CloudBackendType.beecount),
+                        onConfigure: beecountCfg?.valid == true
+                            ? () => _configureService(CloudBackendType.beecount)
+                            : null,
+                      ),
+                    ),
 
                     const SizedBox(height: 12),
 
@@ -1200,6 +1227,8 @@ class _CloudServicePageState extends ConsumerState<CloudServicePage> {
       await _showWebdavConfigDialog();
     } else if (type == CloudBackendType.s3) {
       await _showS3ConfigDialog();
+    } else if (type == CloudBackendType.beecount) {
+      await _showBeeCountConfigDialog();
     }
   }
 
@@ -1386,6 +1415,54 @@ class _CloudServicePageState extends ConsumerState<CloudServicePage> {
     }
   }
 
+  Future<void> _showBeeCountConfigDialog() async {
+    final existing = await ref.read(beecountConfigProvider.future);
+
+    if (!mounted) return;
+
+    final result = await showDialog<Map<String, dynamic>?>(
+      context: context,
+      builder: (dialogContext) => _BeeCountConfigDialog(
+        initialUrl: existing?.beecountServerUrl ?? '',
+      ),
+    );
+
+    if (result != null) {
+      final url = result['url'] as String;
+
+      if (url.isEmpty) {
+        if (mounted) {
+          await AppDialog.error(context, title: AppLocalizations.of(context).cloudConfigInvalidTitle, message: AppLocalizations.of(context).cloudConfigInvalidMessage);
+        }
+        return;
+      }
+
+      final cfg = CloudServiceConfig(
+        type: CloudBackendType.beecount,
+        name: AppLocalizations.of(context).cloudCustomBeeCountTitle,
+        beecountServerUrl: url,
+      );
+
+      if (!cfg.valid) {
+        if (mounted) {
+          await AppDialog.error(context, title: AppLocalizations.of(context).cloudConfigInvalidTitle, message: AppLocalizations.of(context).cloudConfigInvalidMessage);
+        }
+        return;
+      }
+
+      try {
+        await ref.read(cloudServiceStoreProvider).saveOnly(cfg);
+        ref.invalidate(beecountConfigProvider);
+        ref.invalidate(activeCloudConfigProvider);
+        if (mounted) showToast(context, AppLocalizations.of(context).cloudConfigSaved);
+      } catch (e) {
+        if (mounted) {
+          await AppDialog.error(context, title: AppLocalizations.of(context).cloudSaveFailed, message: e.toString());
+        }
+      }
+    }
+  }
+
   String _getTypeName(CloudBackendType type) {
     switch (type) {
       case CloudBackendType.local:
@@ -1398,6 +1475,8 @@ class _CloudServicePageState extends ConsumerState<CloudServicePage> {
         return 'iCloud';
       case CloudBackendType.s3:
         return 'S3';
+      case CloudBackendType.beecount:
+        return 'BeeCount';
     }
   }
 
@@ -1526,6 +1605,36 @@ class _CloudServicePageState extends ConsumerState<CloudServicePage> {
                 errorMsg = errorMsg.replaceFirst('Exception: ', '');
               }
               throw Exception(errorMsg);
+            }
+            break;
+
+          case CloudBackendType.beecount:
+            // BeeCount 连接测试 - 尝试访问健康检查或公共 API
+            final testUrl = Uri.parse('${config.beecountServerUrl}/api/v1/public/health');
+            try {
+              final response = await http.get(testUrl).timeout(const Duration(seconds: 10));
+              if (response.statusCode == 200) {
+                connectionSuccess = true;
+              } else {
+                throw Exception(AppLocalizations.of(context).cloudErrorServerStatus('${response.statusCode}'));
+              }
+            } catch (e) {
+              // 如果 health 接口不存在，尝试访问 login 接口（POST 预期会返回 400/401/200）
+              final loginUrl = Uri.parse('${config.beecountServerUrl}/api/v1/public/login');
+              final response = await http
+                  .post(
+                    loginUrl,
+                    headers: const {'Content-Type': 'application/json'},
+                    body: jsonEncode({'username': '', 'password': ''}),
+                  )
+                  .timeout(const Duration(seconds: 10));
+              if (response.statusCode == 400 ||
+                  response.statusCode == 401 ||
+                  response.statusCode == 200) {
+                connectionSuccess = true;
+              } else {
+                rethrow;
+              }
             }
             break;
         }
@@ -1659,6 +1768,108 @@ class _SupabaseConfigDialogState extends State<_SupabaseConfigDialog> {
               'url': urlController.text.trim(),
               'key': keyController.text.trim(),
               'bucket': bucketController.text.trim(),
+            });
+          },
+          child: Text(AppLocalizations.of(context).commonSave),
+        ),
+      ],
+    );
+  }
+}
+
+// BeeCount配置对话框
+class _BeeCountConfigDialog extends StatefulWidget {
+  final String initialUrl;
+
+  const _BeeCountConfigDialog({
+    required this.initialUrl,
+  });
+
+  @override
+  State<_BeeCountConfigDialog> createState() => _BeeCountConfigDialogState();
+}
+
+class _BeeCountConfigDialogState extends State<_BeeCountConfigDialog> {
+  late final TextEditingController urlController;
+
+  @override
+  void initState() {
+    super.initState();
+    urlController = TextEditingController(text: widget.initialUrl);
+  }
+
+  @override
+  void dispose() {
+    urlController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(AppLocalizations.of(context).cloudConfigureBeeCountTitle),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: urlController,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).cloudBeeCountServerUrlLabel,
+                hintText: AppLocalizations.of(context).cloudBeeCountServerUrlHint,
+              ),
+              keyboardType: TextInputType.url,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.help_outline, color: Theme.of(context).colorScheme.primary, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        AppLocalizations.of(context).cloudBeeCountHelpTitle,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '• ${AppLocalizations.of(context).cloudBeeCountHelpStep1}\n'
+                    '• ${AppLocalizations.of(context).cloudBeeCountHelpStep2}\n'
+                    '• ${AppLocalizations.of(context).cloudBeeCountHelpStep3}\n'
+                    '• ${AppLocalizations.of(context).cloudBeeCountHelpNote}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: BeeTokens.textSecondary(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(null),
+          child: Text(AppLocalizations.of(context).commonCancel),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.of(context).pop({
+              'url': urlController.text.trim(),
             });
           },
           child: Text(AppLocalizations.of(context).commonSave),

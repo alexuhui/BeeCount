@@ -33,19 +33,19 @@ final repositoryProvider = Provider<BaseRepository>((ref) {
       return LocalRepository(db);
 
     case AppMode.cloud:
-      // 仅云端模式：使用 CloudRepository（基于 Supabase）
-      final supabaseAsync = ref.watch(supabaseInstanceProvider);
+      // 仅云端模式：使用 CloudRepository
+      final cloudProviderAsync = ref.watch(cloudProviderInstanceProvider);
 
-      logger.info('RepositoryProvider', 'Supabase 状态: hasValue=${supabaseAsync.hasValue}, value=${supabaseAsync.value != null ? "已加载" : "null"}');
+      logger.info('RepositoryProvider', 'CloudProvider 状态: hasValue=${cloudProviderAsync.hasValue}, value=${cloudProviderAsync.value != null ? "已加载" : "null"}');
 
-      // 如果 Supabase 未加载完成或为 null，回退到本地模式
-      if (!supabaseAsync.hasValue || supabaseAsync.value == null) {
-        logger.warning('RepositoryProvider', '⚠️ Supabase 未就绪，回退到 LocalRepository');
+      // 如果 CloudProvider 未加载完成或为 null，回退到本地模式
+      if (!cloudProviderAsync.hasValue || cloudProviderAsync.value == null) {
+        logger.warning('RepositoryProvider', '⚠️ CloudProvider 未就绪，回退到 LocalRepository');
         return LocalRepository(db);
       }
 
       logger.info('RepositoryProvider', '✅ 使用 CloudRepository (仅云端模式)');
-      return CloudRepository(supabaseAsync.value!);
+      return CloudRepository(cloudProviderAsync.value!);
   }
 });
 
@@ -61,15 +61,15 @@ final dynamicRepositoryProvider = Provider<Object>((ref) {
       return LocalRepository(db);
 
     case AppMode.cloud:
-      // 云端模式：使用 CloudRepository（基于 Supabase）
-      final supabaseAsync = ref.watch(supabaseInstanceProvider);
+      // 云端模式：使用 CloudRepository
+      final cloudProviderAsync = ref.watch(cloudProviderInstanceProvider);
 
-      // 如果 Supabase 未加载完成或为 null，回退到本地模式
-      if (!supabaseAsync.hasValue || supabaseAsync.value == null) {
+      // 如果 CloudProvider 未加载完成或为 null，回退到本地模式
+      if (!cloudProviderAsync.hasValue || cloudProviderAsync.value == null) {
         return LocalRepository(db);
       }
 
-      return CloudRepository(supabaseAsync.value!);
+      return CloudRepository(cloudProviderAsync.value!);
   }
 });
 

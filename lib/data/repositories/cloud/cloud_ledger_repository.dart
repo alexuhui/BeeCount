@@ -9,9 +9,9 @@ import '../ledger_repository.dart';
 /// 云端账本Repository实现
 /// 基于 Supabase 实现
 class CloudLedgerRepository implements LedgerRepository {
-  final SupabaseProvider supabase;
+  final CloudProvider provider;
 
-  CloudLedgerRepository(this.supabase);
+  CloudLedgerRepository(this.provider);
 
   @override
   Stream<List<Ledger>> watchLedgers() {
@@ -25,43 +25,57 @@ class CloudLedgerRepository implements LedgerRepository {
       }
     });
 
-    // 创建 Realtime 频道
-    final channel = supabase.realtimeService!.channel('ledgers');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道
+      final channel = provider.realtimeService!.channel('ledgers');
 
-    // 监听所有变化
-    channel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'ledgers',
-      callback: (payload) async {
-        // 数据变化时重新获取
+      // 监听所有变化
+      channel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'ledgers',
+        callback: (payload) async {
+          // 数据变化时重新获取
+          try {
+            final ledgers = await _fetchLedgers();
+            if (!controller.isClosed) {
+              controller.add(ledgers);
+            }
+          } catch (e) {
+            if (!controller.isClosed) {
+              controller.addError(e);
+            }
+          }
+        },
+      );
+
+      // 订阅频道
+      channel.subscribe();
+
+      // 清理资源
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
+    } else {
+      // 轮询作为回退 (可选)
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
         try {
           final ledgers = await _fetchLedgers();
           if (!controller.isClosed) {
             controller.add(ledgers);
           }
-        } catch (e) {
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
-    );
-
-    // 订阅频道
-    channel.subscribe();
-
-    // 清理资源
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
+    }
 
     return controller.stream;
   }
 
   /// 获取所有账本
   Future<List<Ledger>> _fetchLedgers() async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'ledgers',
       orderBy: 'created_at',
     );
@@ -76,7 +90,7 @@ class CloudLedgerRepository implements LedgerRepository {
 
   @override
   Future<Ledger?> getLedgerById(int id) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'ledgers',
       filters: [QueryFilter(column: 'id', operator: 'eq', value: id)],
     );
@@ -87,7 +101,7 @@ class CloudLedgerRepository implements LedgerRepository {
 
   @override
   Future<int> getLedgerCount() async {
-    final results = await supabase.databaseService!.query(table: 'ledgers');
+    final results = await provider.databaseService!.query(table: 'ledgers');
     return results.length;
   }
 
@@ -99,7 +113,7 @@ class CloudLedgerRepository implements LedgerRepository {
     required int ledgerId,
   }) async {
     // 查询交易数量
-    final transactions = await supabase.databaseService!.query(
+    final transactions = await provider.databaseService!.query(
       table: 'transactions',
       filters: [QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId)],
     );
@@ -122,13 +136,13 @@ class CloudLedgerRepository implements LedgerRepository {
       }
     }
 
-    return (dayCount: dayCount, txCount: txCount);
+    return (dayCount: dayCount as int, txCount: txCount as int);
   }
 
   @override
   Future<({int dayCount, int txCount})> getCountsAll() async {
     // 查询所有交易
-    final transactions = await supabase.databaseService!.query(
+    final transactions = await provider.databaseService!.query(
       table: 'transactions',
     );
 
@@ -150,7 +164,7 @@ class CloudLedgerRepository implements LedgerRepository {
       }
     }
 
-    return (dayCount: dayCount, txCount: txCount);
+    return (dayCount: dayCount as int, txCount: txCount as int);
   }
 
   @override
@@ -162,7 +176,7 @@ class CloudLedgerRepository implements LedgerRepository {
     // 如果没有传入 transactions，则查询
     List<Map<String, dynamic>> txData;
     if (transactions == null) {
-      txData = await supabase.databaseService!.query(
+      txData = await provider.databaseService!.query(
         table: 'transactions',
         filters: [QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId)],
       );
@@ -194,13 +208,13 @@ class CloudLedgerRepository implements LedgerRepository {
     required String name,
     String currency = 'CNY',
   }) async {
-    final result = await supabase.databaseService!.insert(
+    final result = await provider.databaseService!.insert(
       table: 'ledgers',
       data: {
         'name': name,
         'currency': currency,
         'type': 'personal',  // 默认创建个人账本
-        'user_id': supabase.client?.auth.currentUser?.id,
+        'user_id': provider.currentUserId,
       },
     );
 
@@ -209,7 +223,7 @@ class CloudLedgerRepository implements LedgerRepository {
 
   @override
   Future<void> updateLedgerName({required int id, required String name}) async {
-    await supabase.databaseService!.update(
+    await provider.databaseService!.update(
       table: 'ledgers',
       id: id.toString(),
       data: {'name': name},
@@ -227,7 +241,7 @@ class CloudLedgerRepository implements LedgerRepository {
     if (currency != null) data['currency'] = currency;
 
     if (data.isNotEmpty) {
-      await supabase.databaseService!.update(
+      await provider.databaseService!.update(
         table: 'ledgers',
         id: id.toString(),
         data: data,
@@ -237,7 +251,7 @@ class CloudLedgerRepository implements LedgerRepository {
 
   @override
   Future<void> deleteLedger(int id) async {
-    await supabase.databaseService!.delete(
+    await provider.databaseService!.delete(
       table: 'ledgers',
       id: id.toString(),
     );
@@ -245,7 +259,7 @@ class CloudLedgerRepository implements LedgerRepository {
 
   @override
   Future<int> getMaxLedgerId() async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'ledgers',
       orderBy: 'id',
       descending: true,
@@ -273,13 +287,13 @@ class CloudLedgerRepository implements LedgerRepository {
 
   @override
   Future<int> clearLedgerTransactions(int ledgerId) async {
-    final transactions = await supabase.databaseService!.query(
+    final transactions = await provider.databaseService!.query(
       table: 'transactions',
       filters: [QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId)],
     );
 
     for (final tx in transactions) {
-      await supabase.databaseService!.delete(
+      await provider.databaseService!.delete(
         table: 'transactions',
         id: tx['id'].toString(),
       );
@@ -290,7 +304,7 @@ class CloudLedgerRepository implements LedgerRepository {
 
   @override
   Future<double> getTotalInitialBalance(int ledgerId) async {
-    final accounts = await supabase.databaseService!.query(
+    final accounts = await provider.databaseService!.query(
       table: 'accounts',
       filters: [QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId)],
     );

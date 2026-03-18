@@ -75,6 +75,15 @@ class ICloudProvider implements CloudProvider {
   }
 
   @override
+  CloudDatabaseService? get databaseService => null;
+
+  @override
+  CloudRealtimeService? get realtimeService => null;
+
+  @override
+  String? get currentUserId => null;
+
+  @override
   Future<void> dispose() async {
     _authService = null;
     _storageService = null;

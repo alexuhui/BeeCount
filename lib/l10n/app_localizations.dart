@@ -10323,6 +10323,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Whole Year'**
   String get wholeYear;
+
+  /// No description provided for @mineCloudServiceBeeCount.
+  ///
+  /// In en, this message translates to:
+  /// **'BeeCount Server (Custom Backend)'**
+  String get mineCloudServiceBeeCount;
+
+  /// No description provided for @cloudCustomBeeCountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'BeeCount Server'**
+  String get cloudCustomBeeCountTitle;
+
+  /// No description provided for @cloudCustomBeeCountSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Click to configure custom BeeCount backend'**
+  String get cloudCustomBeeCountSubtitle;
+
+  /// No description provided for @cloudConfigureBeeCountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure BeeCount Server'**
+  String get cloudConfigureBeeCountTitle;
+
+  /// No description provided for @cloudBeeCountServerUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Server URL'**
+  String get cloudBeeCountServerUrlLabel;
+
+  /// No description provided for @cloudBeeCountServerUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'https://your-beecount-server.com'**
+  String get cloudBeeCountServerUrlHint;
+
+  /// No description provided for @cloudBeeCountHelpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'BeeCount Server Guide'**
+  String get cloudBeeCountHelpTitle;
+
+  /// No description provided for @cloudBeeCountHelpIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'What is BeeCount Server'**
+  String get cloudBeeCountHelpIntro;
+
+  /// No description provided for @cloudBeeCountHelpIntro1.
+  ///
+  /// In en, this message translates to:
+  /// **'BeeCount Server is a custom backend service'**
+  String get cloudBeeCountHelpIntro1;
+
+  /// No description provided for @cloudBeeCountHelpIntro2.
+  ///
+  /// In en, this message translates to:
+  /// **'Provides data storage and user management'**
+  String get cloudBeeCountHelpIntro2;
+
+  /// No description provided for @cloudBeeCountHelpIntro3.
+  ///
+  /// In en, this message translates to:
+  /// **'You have full control over your self-hosted server'**
+  String get cloudBeeCountHelpIntro3;
+
+  /// No description provided for @cloudBeeCountHelpSteps.
+  ///
+  /// In en, this message translates to:
+  /// **'Setup Steps'**
+  String get cloudBeeCountHelpSteps;
+
+  /// No description provided for @cloudBeeCountHelpStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Deploy BeeCount Server'**
+  String get cloudBeeCountHelpStep1;
+
+  /// No description provided for @cloudBeeCountHelpStep2.
+  ///
+  /// In en, this message translates to:
+  /// **'2. Get the server access URL'**
+  String get cloudBeeCountHelpStep2;
+
+  /// No description provided for @cloudBeeCountHelpStep3.
+  ///
+  /// In en, this message translates to:
+  /// **'3. Paste it into the app configuration'**
+  String get cloudBeeCountHelpStep3;
+
+  /// No description provided for @cloudBeeCountHelpNote.
+  ///
+  /// In en, this message translates to:
+  /// **'After configuration, you need to register/login to use sync'**
+  String get cloudBeeCountHelpNote;
 }
 
 class _AppLocalizationsDelegate

@@ -5456,6 +5456,54 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get wholeYear => '整年';
+
+  @override
+  String get mineCloudServiceBeeCount => 'BeeCount Server (自定义后端)';
+
+  @override
+  String get cloudCustomBeeCountTitle => 'BeeCount Server';
+
+  @override
+  String get cloudCustomBeeCountSubtitle => '点击配置自定义 BeeCount 后端';
+
+  @override
+  String get cloudConfigureBeeCountTitle => '配置 BeeCount Server';
+
+  @override
+  String get cloudBeeCountServerUrlLabel => '服务器地址';
+
+  @override
+  String get cloudBeeCountServerUrlHint => 'https://your-beecount-server.com';
+
+  @override
+  String get cloudBeeCountHelpTitle => 'BeeCount Server 配置说明';
+
+  @override
+  String get cloudBeeCountHelpIntro => '什么是 BeeCount Server';
+
+  @override
+  String get cloudBeeCountHelpIntro1 => 'BeeCount Server 是一个自定义的后端服务';
+
+  @override
+  String get cloudBeeCountHelpIntro2 => '提供数据存储和用户管理功能';
+
+  @override
+  String get cloudBeeCountHelpIntro3 => '数据完全由您自己部署的服务器掌控';
+
+  @override
+  String get cloudBeeCountHelpSteps => '配置步骤';
+
+  @override
+  String get cloudBeeCountHelpStep1 => '1. 部署 BeeCount Server';
+
+  @override
+  String get cloudBeeCountHelpStep2 => '2. 获取服务器访问地址';
+
+  @override
+  String get cloudBeeCountHelpStep3 => '3. 粘贴到应用的配置中';
+
+  @override
+  String get cloudBeeCountHelpNote => '配置完成后需要注册/登录账号才能使用同步功能';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).

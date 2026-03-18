@@ -107,6 +107,9 @@ class MinePage extends ConsumerWidget {
                                       .mineCloudServiceCustom;
                                 case CloudBackendType.s3:
                                   return 'S3';
+                                case CloudBackendType.beecount:
+                                  return AppLocalizations.of(sectionContext)
+                                      .mineCloudServiceBeeCount;
                               }
                             },
                           ),

@@ -126,6 +126,15 @@ class S3Provider implements CloudProvider {
   }
 
   @override
+  CloudDatabaseService? get databaseService => null;
+
+  @override
+  CloudRealtimeService? get realtimeService => null;
+
+  @override
+  String? get currentUserId => _authService?.accessKey;
+
+  @override
   Future<void> dispose() async {
     _client?.dispose();
     _client = null;

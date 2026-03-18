@@ -10,6 +10,9 @@ class S3AuthService implements CloudAuthService {
   final S3Client client;
   final String bucket;
 
+  /// Get the access key from the client
+  String get accessKey => client.accessKey;
+
   S3AuthService(this.client, this.bucket);
 
   @override

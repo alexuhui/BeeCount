@@ -115,6 +115,15 @@ class WebDAVProvider implements CloudProvider {
   }
 
   @override
+  CloudDatabaseService? get databaseService => null;
+
+  @override
+  CloudRealtimeService? get realtimeService => null;
+
+  @override
+  String? get currentUserId => _authService?.username;
+
+  @override
   Future<void> dispose() async {
     _authService?.dispose();
     _authService = null;

@@ -5,6 +5,7 @@ enum CloudBackendType {
   local,     // 本地存储(不同步)
   supabase,  // Supabase (自建)
   webdav,    // WebDAV (坚果云、Nextcloud、群晖等)
+  beecount,  // BeeCount Server (自定义后端)
   icloud,    // iCloud (iOS only)
   s3,        // S3 协议（AWS S3、Cloudflare R2、MinIO等）
 }
@@ -25,6 +26,11 @@ class CloudServiceConfig {
   final String? webdavUsername;
   final String? webdavPassword;
   final String? webdavRemotePath;
+
+  // BeeCount 配置
+  final String? beecountServerUrl;
+  final String? beecountUsername;
+  final String? beecountPassword;
 
   // S3 配置
   final String? s3Endpoint;
@@ -49,6 +55,10 @@ class CloudServiceConfig {
     this.webdavUsername,
     this.webdavPassword,
     this.webdavRemotePath,
+    // BeeCount
+    this.beecountServerUrl,
+    this.beecountUsername,
+    this.beecountPassword,
     // S3
     this.s3Endpoint,
     this.s3Region,
@@ -72,6 +82,8 @@ class CloudServiceConfig {
         return (webdavUrl?.isNotEmpty ?? false) &&
                (webdavUsername?.isNotEmpty ?? false) &&
                (webdavPassword?.isNotEmpty ?? false);
+      case CloudBackendType.beecount:
+        return (beecountServerUrl?.isNotEmpty ?? false);
       case CloudBackendType.icloud:
         return true; // iCloud 无需配置，始终有效
       case CloudBackendType.s3:
@@ -96,6 +108,10 @@ class CloudServiceConfig {
         'webdavUsername': webdavUsername,
         'webdavPassword': webdavPassword,
         'webdavRemotePath': webdavRemotePath,
+        // BeeCount
+        'beecountServerUrl': beecountServerUrl,
+        'beecountUsername': beecountUsername,
+        'beecountPassword': beecountPassword,
         // S3
         's3Endpoint': s3Endpoint,
         's3Region': s3Region,
@@ -128,6 +144,10 @@ class CloudServiceConfig {
       webdavUsername: j['webdavUsername'] as String?,
       webdavPassword: j['webdavPassword'] as String?,
       webdavRemotePath: j['webdavRemotePath'] as String?,
+      // BeeCount
+      beecountServerUrl: j['beecountServerUrl'] as String?,
+      beecountUsername: j['beecountUsername'] as String?,
+      beecountPassword: j['beecountPassword'] as String?,
       // S3
       s3Endpoint: s3Endpoint,
       s3Region: j['s3Region'] as String?,
@@ -173,6 +193,18 @@ class CloudServiceConfig {
           return uri.host;
         } catch (_) {
           return webdavUrl!; // 解析失败，返回原始URL
+        }
+
+      case CloudBackendType.beecount:
+        if (beecountServerUrl == null || beecountServerUrl!.isEmpty) {
+          return '__NOT_CONFIGURED__';
+        }
+        try {
+          final uri = Uri.parse(beecountServerUrl!);
+          if (uri.host.isEmpty) return beecountServerUrl!;
+          return uri.host;
+        } catch (_) {
+          return beecountServerUrl!;
         }
 
       case CloudBackendType.icloud:

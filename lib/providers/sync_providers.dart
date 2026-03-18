@@ -86,6 +86,28 @@ final s3ConfigProvider = FutureProvider<CloudServiceConfig?>((ref) async {
   return store.loadS3();
 });
 
+// BeeCount配置(不管是否激活)
+final beecountConfigProvider = FutureProvider<CloudServiceConfig?>((ref) async {
+  final store = ref.watch(cloudServiceStoreProvider);
+  return store.loadBeecount();
+});
+
+final cloudProviderInstanceProvider = FutureProvider<CloudProvider?>((ref) async {
+  final activeAsync = ref.watch(activeCloudConfigProvider);
+  if (!activeAsync.hasValue) return null;
+
+  final config = activeAsync.value!;
+  if (!config.valid || config.type == CloudBackendType.local) return null;
+
+  try {
+    final services = await createCloudServices(config);
+    return services.provider;
+  } catch (e) {
+    logger.error('CloudProviderInstance', '初始化失败: $e');
+    return null;
+  }
+});
+
 final authServiceProvider = FutureProvider<CloudAuthService>((ref) async {
   final activeAsync = ref.watch(activeCloudConfigProvider);
   if (!activeAsync.hasValue) {
@@ -141,6 +163,7 @@ final syncServiceProvider = Provider<SyncService>((ref) {
     case CloudBackendType.webdav:
     case CloudBackendType.icloud:
     case CloudBackendType.s3:
+    case CloudBackendType.beecount:
       // 使用新的 TransactionsSyncManager (基于 flutter_cloud_sync 包)
       // 采用延迟初始化，首次使用时自动初始化
       return TransactionsSyncManager(

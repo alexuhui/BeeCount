@@ -2371,5 +2371,21 @@
   "aiModelInputHelper": "留空则使用默认模型",
   "selectYear":"选择年份",
   "selectMonth":"选择月份",
-  "wholeYear":"整年"
+  "wholeYear":"整年",
+  "mineCloudServiceBeeCount": "BeeCount Server (自定义后端)",
+  "cloudCustomBeeCountTitle": "BeeCount Server",
+  "cloudCustomBeeCountSubtitle": "点击配置自定义 BeeCount 后端",
+  "cloudConfigureBeeCountTitle": "配置 BeeCount Server",
+  "cloudBeeCountServerUrlLabel": "服务器地址",
+  "cloudBeeCountServerUrlHint": "https://your-beecount-server.com",
+  "cloudBeeCountHelpTitle": "BeeCount Server 配置说明",
+  "cloudBeeCountHelpIntro": "什么是 BeeCount Server",
+  "cloudBeeCountHelpIntro1": "BeeCount Server 是一个自定义的后端服务",
+  "cloudBeeCountHelpIntro2": "提供数据存储和用户管理功能",
+  "cloudBeeCountHelpIntro3": "数据完全由您自己部署的服务器掌控",
+  "cloudBeeCountHelpSteps": "配置步骤",
+  "cloudBeeCountHelpStep1": "1. 部署 BeeCount Server",
+  "cloudBeeCountHelpStep2": "2. 获取服务器访问地址",
+  "cloudBeeCountHelpStep3": "3. 粘贴到应用的配置中",
+  "cloudBeeCountHelpNote": "配置完成后需要注册/登录账号才能使用同步功能"
 }

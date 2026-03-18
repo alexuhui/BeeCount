@@ -71,6 +71,8 @@ dependencies:
     path: packages/flutter_cloud_sync_icloud
   flutter_cloud_sync_s3:
     path: packages/flutter_cloud_sync_s3
+  flutter_cloud_sync_beecount:
+    path: packages/flutter_cloud_sync_beecount
   quick_actions: ^1.1.0
   table_calendar: ^3.1.0
 

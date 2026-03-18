@@ -1,4 +1,3 @@
-import 'package:flutter_cloud_sync_supabase/flutter_cloud_sync_supabase.dart';
 import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 
 import '../statistics_repository.dart';
@@ -6,9 +5,9 @@ import '../statistics_repository.dart';
 /// 云端统计Repository实现
 /// 基于 Supabase 实现
 class CloudStatisticsRepository implements StatisticsRepository {
-  final SupabaseProvider supabase;
+  final CloudProvider provider;
 
-  CloudStatisticsRepository(this.supabase);
+  CloudStatisticsRepository(this.provider);
 
   @override
   Future<List<({int? id, String name, String? icon, double total})>>
@@ -19,7 +18,7 @@ class CloudStatisticsRepository implements StatisticsRepository {
     required DateTime end,
   }) async {
     // 获取时间范围内的交易
-    final transactions = await supabase.databaseService!.query(
+    final transactions = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
@@ -48,7 +47,7 @@ class CloudStatisticsRepository implements StatisticsRepository {
     }
 
     // 获取分类信息
-    final categories = await supabase.databaseService!.query(
+    final categories = await provider.databaseService!.query(
       table: 'categories',
     );
 
@@ -94,7 +93,7 @@ class CloudStatisticsRepository implements StatisticsRepository {
     required DateTime end,
   }) async {
     // 查询时间范围内的交易
-    final transactions = await supabase.databaseService!.query(
+    final transactions = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
@@ -125,7 +124,7 @@ class CloudStatisticsRepository implements StatisticsRepository {
     // 查询所有相关分类
     Map<int, Map<String, dynamic>> categoryMap = {};
     if (categoryIds.isNotEmpty) {
-      final categories = await supabase.databaseService!.query(
+      final categories = await provider.databaseService!.query(
         table: 'categories',
       );
 
@@ -197,7 +196,7 @@ class CloudStatisticsRepository implements StatisticsRepository {
     required DateTime end,
   }) async {
     // 获取时间范围内的交易
-    final transactions = await supabase.databaseService!.query(
+    final transactions = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
@@ -254,7 +253,7 @@ class CloudStatisticsRepository implements StatisticsRepository {
     final end = DateTime(year + 1, 1, 1);
 
     // 获取该年的所有交易
-    final transactions = await supabase.databaseService!.query(
+    final transactions = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
@@ -300,7 +299,7 @@ class CloudStatisticsRepository implements StatisticsRepository {
     required String type,
   }) async {
     // 获取所有交易
-    final transactions = await supabase.databaseService!.query(
+    final transactions = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
@@ -337,7 +336,7 @@ class CloudStatisticsRepository implements StatisticsRepository {
     required DateTime end,
   }) async {
     // 获取时间范围内的所有交易
-    final transactions = await supabase.databaseService!.query(
+    final transactions = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),

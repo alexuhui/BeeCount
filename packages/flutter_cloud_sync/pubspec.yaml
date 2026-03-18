@@ -23,6 +23,8 @@ dependencies:
     path: ../flutter_cloud_sync_icloud
   flutter_cloud_sync_s3:
     path: ../flutter_cloud_sync_s3
+  flutter_cloud_sync_beecount:
+    path: ../flutter_cloud_sync_beecount
 
 dev_dependencies:
   flutter_test:

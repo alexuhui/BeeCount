@@ -1,4 +1,4 @@
-import 'package:flutter_cloud_sync_supabase/flutter_cloud_sync_supabase.dart';
+import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 
 import '../../db.dart';
 import '../base_repository.dart';
@@ -13,7 +13,7 @@ import 'cloud_recurring_transaction_repository.dart';
 /// 云端 Repository 组合类
 /// 将所有云端 Repository 实现组合在一起
 class CloudRepository extends BaseRepository {
-  final SupabaseProvider supabase;
+  final CloudProvider provider;
   final CloudLedgerRepository _ledger;
   final CloudTransactionRepository _transaction;
   final CloudCategoryRepository _category;
@@ -21,13 +21,13 @@ class CloudRepository extends BaseRepository {
   final CloudStatisticsRepository _statistics;
   final CloudRecurringTransactionRepository _recurringTransaction;
 
-  CloudRepository(this.supabase)
-      : _ledger = CloudLedgerRepository(supabase),
-        _transaction = CloudTransactionRepository(supabase),
-        _category = CloudCategoryRepository(supabase),
-        _account = CloudAccountRepository(supabase),
-        _statistics = CloudStatisticsRepository(supabase),
-        _recurringTransaction = CloudRecurringTransactionRepository(supabase);
+  CloudRepository(this.provider)
+      : _ledger = CloudLedgerRepository(provider),
+        _transaction = CloudTransactionRepository(provider),
+        _category = CloudCategoryRepository(provider),
+        _account = CloudAccountRepository(provider),
+        _statistics = CloudStatisticsRepository(provider),
+        _recurringTransaction = CloudRecurringTransactionRepository(provider);
 
   // ============================================
   // LedgerRepository 接口实现（委托给 _ledger）

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter_cloud_sync_supabase/flutter_cloud_sync_supabase.dart';
 import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 
 import '../recurring_transaction_repository.dart';
@@ -9,18 +8,18 @@ import '../../../services/system/logger_service.dart';
 /// 云端周期记账 Repository 实现
 class CloudRecurringTransactionRepository
     implements RecurringTransactionRepository {
-  final SupabaseProvider supabase;
+  final CloudProvider provider;
   final Map<String, Stream<List<RecurringTransaction>>> _streamCache = {};
   final Map<String, StreamController<List<RecurringTransaction>>>
       _controllerCache = {};
 
-  CloudRecurringTransactionRepository(this.supabase);
+  CloudRecurringTransactionRepository(this.provider);
 
   @override
   Future<List<RecurringTransaction>> getAllRecurringTransactions() async {
     logger.info('CloudRecurringTransactionRepo', '查询所有周期记账');
 
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'recurring_transactions',
       orderBy: 'created_at',
       descending: true,
@@ -36,7 +35,7 @@ class CloudRecurringTransactionRepository
       int ledgerId) async {
     logger.info('CloudRecurringTransactionRepo', '查询账本的周期记账: ledgerId=$ledgerId');
 
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'recurring_transactions',
       filters: [
         QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
@@ -57,7 +56,7 @@ class CloudRecurringTransactionRepository
     logger.info('CloudRecurringTransactionRepo',
         '查询启用的周期记账: ledgerId=$ledgerId');
 
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'recurring_transactions',
       filters: [
         QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
@@ -94,7 +93,7 @@ class CloudRecurringTransactionRepository
     logger.info('CloudRecurringTransactionRepo',
         '添加周期记账: ledgerId=$ledgerId, type=$type, amount=$amount');
 
-    final userId = supabase.client?.auth.currentUser?.id;
+    final userId = provider.currentUserId;
 
     final data = {
       'user_id': userId,
@@ -116,7 +115,7 @@ class CloudRecurringTransactionRepository
       'created_by': userId,
     };
 
-    final result = await supabase.databaseService!.insert(
+    final result = await provider.databaseService!.insert(
       table: 'recurring_transactions',
       data: data,
     );
@@ -169,7 +168,7 @@ class CloudRecurringTransactionRepository
       data['enabled'] = enabled;
     }
 
-    await supabase.databaseService!.update(
+    await provider.databaseService!.update(
       table: 'recurring_transactions',
       id: id.toString(),
       data: data,
@@ -182,7 +181,7 @@ class CloudRecurringTransactionRepository
   Future<void> deleteRecurringTransaction(int id) async {
     logger.info('CloudRecurringTransactionRepo', '删除周期记账: id=$id');
 
-    await supabase.databaseService!.delete(
+    await provider.databaseService!.delete(
       table: 'recurring_transactions',
       id: id.toString(),
     );
@@ -196,16 +195,17 @@ class CloudRecurringTransactionRepository
         'CloudRecurringTransactionRepo', '切换周期记账状态: id=$id, enabled=$enabled');
 
     // 更新数据
-    final result = await supabase.databaseService!.update(
+    final result = await provider.databaseService!.update(
       table: 'recurring_transactions',
       id: id.toString(),
       data: {'enabled': enabled},
     );
 
-    logger.info('CloudRecurringTransactionRepo', '切换成功: id=$id, enabled=$enabled, result=$result');
+    logger.info('CloudRecurringTransactionRepo',
+        '切换成功: id=$id, enabled=$enabled, result=$result');
 
     // 验证更新是否成功：重新查询数据
-    final verifyResult = await supabase.databaseService!.query(
+    final verifyResult = await provider.databaseService!.query(
       table: 'recurring_transactions',
       filters: [QueryFilter(column: 'id', operator: 'eq', value: id)],
     );
@@ -227,7 +227,7 @@ class CloudRecurringTransactionRepository
     logger.info('CloudRecurringTransactionRepo',
         '更新最后生成日期: id=$id, date=${date.toIso8601String()}');
 
-    await supabase.databaseService!.update(
+    await provider.databaseService!.update(
       table: 'recurring_transactions',
       id: id.toString(),
       data: {'last_generated_date': date.toIso8601String()},
@@ -272,41 +272,55 @@ class CloudRecurringTransactionRepository
       }
     });
 
-    // 创建 Realtime 频道监听变化
-    final channel = supabase.realtimeService!
-        .channel('recurring_transactions:all');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道监听变化
+      final channel =
+          provider.realtimeService!.channel('recurring_transactions:all');
 
-    logger.info('CloudRecurringTransactionRepo', '设置Realtime订阅');
+      logger.info('CloudRecurringTransactionRepo', '设置Realtime订阅');
 
-    channel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'recurring_transactions',
-      callback: (payload) async {
-        logger.info('CloudRecurringTransactionRepo', 'Realtime回调触发');
+      channel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'recurring_transactions',
+        callback: (payload) async {
+          logger.info('CloudRecurringTransactionRepo', 'Realtime回调触发');
+          try {
+            final data = await getAllRecurringTransactions();
+            logger.info('CloudRecurringTransactionRepo',
+                'Realtime数据刷新成功: count=${data.length}');
+            if (!controller.isClosed) {
+              controller.add(data);
+            }
+          } catch (e, stackTrace) {
+            logger.error('CloudRecurringTransactionRepo', 'Realtime数据刷新失败', e,
+                stackTrace);
+            if (!controller.isClosed) {
+              controller.addError(e);
+            }
+          }
+        },
+      );
+
+      channel.subscribe();
+      logger.info('CloudRecurringTransactionRepo', 'Realtime订阅已启动');
+
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
+    } else {
+      // 轮询
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
         try {
           final data = await getAllRecurringTransactions();
-          logger.info('CloudRecurringTransactionRepo',
-              'Realtime数据刷新成功: count=${data.length}');
           if (!controller.isClosed) {
             controller.add(data);
           }
-        } catch (e, stackTrace) {
-          logger.error(
-              'CloudRecurringTransactionRepo', 'Realtime数据刷新失败', e, stackTrace);
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
-    );
-
-    channel.subscribe();
-    logger.info('CloudRecurringTransactionRepo', 'Realtime订阅已启动');
-
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
+    }
 
     final stream = controller.stream;
     _streamCache[cacheKey] = stream;
@@ -375,45 +389,59 @@ class CloudRecurringTransactionRepository
       }
     });
 
-    // 创建 Realtime 频道监听变化（过滤指定账本）
-    final channel = supabase.realtimeService!
-        .channel('recurring_transactions:ledger:$ledgerId');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道监听变化（过滤指定账本）
+      final channel = provider.realtimeService!
+          .channel('recurring_transactions:ledger:$ledgerId');
 
-    logger.info('CloudRecurringTransactionRepo',
-        '设置Realtime订阅: ledgerId=$ledgerId, filter=ledger_id=eq.$ledgerId');
+      logger.info('CloudRecurringTransactionRepo',
+          '设置Realtime订阅: ledgerId=$ledgerId, filter=ledger_id=eq.$ledgerId');
 
-    channel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'recurring_transactions',
-      filter: 'ledger_id=eq.$ledgerId',
-      callback: (payload) async {
-        logger.info('CloudRecurringTransactionRepo',
-            'Realtime回调触发: ledgerId=$ledgerId');
+      channel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'recurring_transactions',
+        filter: 'ledger_id=eq.$ledgerId',
+        callback: (payload) async {
+          logger.info('CloudRecurringTransactionRepo',
+              'Realtime回调触发: ledgerId=$ledgerId');
+          try {
+            final data = await getRecurringTransactionsByLedger(ledgerId);
+            logger.info('CloudRecurringTransactionRepo',
+                'Realtime数据刷新成功: ledgerId=$ledgerId, count=${data.length}');
+            if (!controller.isClosed) {
+              controller.add(data);
+            }
+          } catch (e, stackTrace) {
+            logger.error('CloudRecurringTransactionRepo',
+                'Realtime数据刷新失败: ledgerId=$ledgerId', e, stackTrace);
+            if (!controller.isClosed) {
+              controller.addError(e);
+            }
+          }
+        },
+      );
+
+      channel.subscribe();
+      logger.info('CloudRecurringTransactionRepo',
+          'Realtime订阅已启动: ledgerId=$ledgerId');
+
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
+    } else {
+      // 轮询
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
         try {
           final data = await getRecurringTransactionsByLedger(ledgerId);
-          logger.info('CloudRecurringTransactionRepo',
-              'Realtime数据刷新成功: ledgerId=$ledgerId, count=${data.length}');
           if (!controller.isClosed) {
             controller.add(data);
           }
-        } catch (e, stackTrace) {
-          logger.error('CloudRecurringTransactionRepo',
-              'Realtime数据刷新失败: ledgerId=$ledgerId', e, stackTrace);
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
-    );
-
-    channel.subscribe();
-    logger.info(
-        'CloudRecurringTransactionRepo', 'Realtime订阅已启动: ledgerId=$ledgerId');
-
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
+    }
 
     final stream = controller.stream;
     _streamCache[cacheKey] = stream;

@@ -36,3 +36,8 @@ class CloudStorageException extends CloudSyncException {
 class CloudAuthException extends CloudSyncException {
   CloudAuthException(String message, [dynamic error]) : super(message, error);
 }
+
+/// Thrown when database operations fail
+class CloudDatabaseException extends CloudSyncException {
+  CloudDatabaseException(String message, [dynamic error]) : super(message, error);
+}

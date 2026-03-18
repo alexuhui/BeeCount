@@ -5683,4 +5683,57 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wholeYear => 'Whole Year';
+
+  @override
+  String get mineCloudServiceBeeCount => 'BeeCount Server (Custom Backend)';
+
+  @override
+  String get cloudCustomBeeCountTitle => 'BeeCount Server';
+
+  @override
+  String get cloudCustomBeeCountSubtitle =>
+      'Click to configure custom BeeCount backend';
+
+  @override
+  String get cloudConfigureBeeCountTitle => 'Configure BeeCount Server';
+
+  @override
+  String get cloudBeeCountServerUrlLabel => 'Server URL';
+
+  @override
+  String get cloudBeeCountServerUrlHint => 'https://your-beecount-server.com';
+
+  @override
+  String get cloudBeeCountHelpTitle => 'BeeCount Server Guide';
+
+  @override
+  String get cloudBeeCountHelpIntro => 'What is BeeCount Server';
+
+  @override
+  String get cloudBeeCountHelpIntro1 =>
+      'BeeCount Server is a custom backend service';
+
+  @override
+  String get cloudBeeCountHelpIntro2 =>
+      'Provides data storage and user management';
+
+  @override
+  String get cloudBeeCountHelpIntro3 =>
+      'You have full control over your self-hosted server';
+
+  @override
+  String get cloudBeeCountHelpSteps => 'Setup Steps';
+
+  @override
+  String get cloudBeeCountHelpStep1 => '1. Deploy BeeCount Server';
+
+  @override
+  String get cloudBeeCountHelpStep2 => '2. Get the server access URL';
+
+  @override
+  String get cloudBeeCountHelpStep3 => '3. Paste it into the app configuration';
+
+  @override
+  String get cloudBeeCountHelpNote =>
+      'After configuration, you need to register/login to use sync';
 }

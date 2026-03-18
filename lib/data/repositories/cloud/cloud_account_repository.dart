@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter_cloud_sync_supabase/flutter_cloud_sync_supabase.dart';
 import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 
 import '../../db.dart';
@@ -10,9 +9,9 @@ import '../../../services/system/logger_service.dart';
 /// 云端账户Repository实现
 /// 基于 Supabase 实现
 class CloudAccountRepository implements AccountRepository {
-  final SupabaseProvider supabase;
+  final CloudProvider provider;
 
-  CloudAccountRepository(this.supabase);
+  CloudAccountRepository(this.provider);
 
   @override
   Stream<List<Account>> watchAccountsForLedger(int ledgerId) {
@@ -25,33 +24,47 @@ class CloudAccountRepository implements AccountRepository {
       }
     });
 
-    // 创建 Realtime 频道
-    final channel =
-        supabase.realtimeService!.channel('accounts:ledger:$ledgerId');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道
+      final channel =
+          provider.realtimeService!.channel('accounts:ledger:$ledgerId');
 
-    channel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'accounts',
-      callback: (payload) async {
+      channel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'accounts',
+        callback: (payload) async {
+          try {
+            final accounts = await getAvailableAccountsForLedger(ledgerId);
+            if (!controller.isClosed) {
+              controller.add(accounts);
+            }
+          } catch (e) {
+            if (!controller.isClosed) {
+              controller.addError(e);
+            }
+          }
+        },
+      );
+
+      channel.subscribe();
+
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
+    } else {
+      // 轮询
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
         try {
           final accounts = await getAvailableAccountsForLedger(ledgerId);
           if (!controller.isClosed) {
             controller.add(accounts);
           }
-        } catch (e) {
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
-    );
-
-    channel.subscribe();
-
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
+    }
 
     return controller.stream;
   }
@@ -71,39 +84,53 @@ class CloudAccountRepository implements AccountRepository {
       logger.error('CloudAccountRepository', '❌ 获取云端账户失败', error, null);
     });
 
-    // 创建 Realtime 频道
-    final channel = supabase.realtimeService!.channel('accounts:all');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道
+      final channel = provider.realtimeService!.channel('accounts:all');
 
-    channel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'accounts',
-      callback: (payload) async {
+      channel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'accounts',
+        callback: (payload) async {
+          try {
+            final accounts = await getAllAccounts();
+            if (!controller.isClosed) {
+              controller.add(accounts);
+            }
+          } catch (e) {
+            if (!controller.isClosed) {
+              controller.addError(e);
+            }
+          }
+        },
+      );
+
+      channel.subscribe();
+
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
+    } else {
+      // 轮询
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
         try {
           final accounts = await getAllAccounts();
           if (!controller.isClosed) {
             controller.add(accounts);
           }
-        } catch (e) {
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
-    );
-
-    channel.subscribe();
-
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
+    }
 
     return controller.stream;
   }
 
   @override
   Future<List<Account>> getAllAccounts() async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'accounts',
       orderBy: 'created_at',
       descending: true,
@@ -114,7 +141,7 @@ class CloudAccountRepository implements AccountRepository {
 
   @override
   Future<Account?> getAccount(int accountId) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'accounts',
       filters: [
         QueryFilter(column: 'id', operator: 'eq', value: accountId),
@@ -128,7 +155,7 @@ class CloudAccountRepository implements AccountRepository {
 
   @override
   Future<List<Account>> getAvailableAccountsForLedger(int ledgerId) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'accounts',
       filters: [
         QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
@@ -142,7 +169,7 @@ class CloudAccountRepository implements AccountRepository {
 
   @override
   Future<List<Account>> getAccountsByCurrency(String currency) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'accounts',
       filters: [
         QueryFilter(column: 'currency', operator: 'eq', value: currency),
@@ -177,7 +204,7 @@ class CloudAccountRepository implements AccountRepository {
     logger.info('CloudAccountRepository', '📝 创建账户: name=$name, type=$type, currency=$currency, initialBalance=$initialBalance (ledgerId=$ledgerId 已忽略)');
 
     try {
-      final result = await supabase.databaseService!.insert(
+      final result = await provider.databaseService!.insert(
         table: 'accounts',
         data: {
           // 不传递 ledger_id，账户不绑定账本
@@ -186,6 +213,7 @@ class CloudAccountRepository implements AccountRepository {
           'currency': currency,
           'initial_balance': initialBalance,
           'created_at': DateTime.now().toIso8601String(),
+          'user_id': provider.currentUserId,
         },
       );
 
@@ -214,7 +242,7 @@ class CloudAccountRepository implements AccountRepository {
 
     if (data.isNotEmpty) {
       data['updated_at'] = DateTime.now().toIso8601String();
-      await supabase.databaseService!.update(
+      await provider.databaseService!.update(
         table: 'accounts',
         id: id.toString(),
         data: data,
@@ -224,7 +252,7 @@ class CloudAccountRepository implements AccountRepository {
 
   @override
   Future<void> deleteAccount(int id) async {
-    await supabase.databaseService!.delete(
+    await provider.databaseService!.delete(
       table: 'accounts',
       id: id.toString(),
     );
@@ -236,7 +264,7 @@ class CloudAccountRepository implements AccountRepository {
     if (account == null) return 0.0;
 
     // 获取该账户的所有交易
-    final transactions = await supabase.databaseService!.query(
+    final transactions = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'account_id', operator: 'eq', value: accountId),
@@ -280,7 +308,7 @@ class CloudAccountRepository implements AccountRepository {
     if (account == null) return 0.0;
 
     // 获取该账户在指定账本中的交易
-    final transactions = await supabase.databaseService!.query(
+    final transactions = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'account_id', operator: 'eq', value: accountId),
@@ -321,7 +349,7 @@ class CloudAccountRepository implements AccountRepository {
 
   @override
   Future<int> getTransactionCountByAccount(int accountId) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'account_id', operator: 'eq', value: accountId),
@@ -333,7 +361,7 @@ class CloudAccountRepository implements AccountRepository {
 
   @override
   Future<double> getAccountExpense(int accountId) async {
-    final transactions = await supabase.databaseService!.query(
+    final transactions = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'account_id', operator: 'eq', value: accountId),
@@ -349,7 +377,7 @@ class CloudAccountRepository implements AccountRepository {
 
   @override
   Future<double> getAccountIncome(int accountId) async {
-    final transactions = await supabase.databaseService!.query(
+    final transactions = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'account_id', operator: 'eq', value: accountId),
@@ -412,7 +440,7 @@ class CloudAccountRepository implements AccountRepository {
   @override
   Future<Map<int, int>> getAccountUsageInLedgers(int accountId) async {
     // 获取该账户在各账本中的交易数量
-    final transactions = await supabase.databaseService!.query(
+    final transactions = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'account_id', operator: 'eq', value: accountId),
@@ -453,32 +481,46 @@ class CloudAccountRepository implements AccountRepository {
       }
     });
 
-    // 创建 Realtime 频道
-    final channel = supabase.realtimeService!.channel('account:$accountId');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道
+      final channel = provider.realtimeService!.channel('account:$accountId');
 
-    channel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'accounts',
-      callback: (payload) async {
+      channel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'accounts',
+        callback: (payload) async {
+          try {
+            final account = await getAccount(accountId);
+            if (!controller.isClosed) {
+              controller.add(account);
+            }
+          } catch (e) {
+            if (!controller.isClosed) {
+              controller.addError(e);
+            }
+          }
+        },
+      );
+
+      channel.subscribe();
+
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
+    } else {
+      // 轮询
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
         try {
           final account = await getAccount(accountId);
           if (!controller.isClosed) {
             controller.add(account);
           }
-        } catch (e) {
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
-    );
-
-    channel.subscribe();
-
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
+    }
 
     return controller.stream;
   }
@@ -494,39 +536,53 @@ class CloudAccountRepository implements AccountRepository {
       }
     });
 
-    // 创建 Realtime 频道
-    final channel = supabase.realtimeService!
-        .channel('transactions:account:$accountId');
+    // 如果支持实时同步
+    if (provider.realtimeService != null) {
+      // 创建 Realtime 频道
+      final channel = provider.realtimeService!
+          .channel('transactions:account:$accountId');
 
-    channel.onPostgresChanges(
-      event: '*',
-      schema: 'public',
-      table: 'transactions',
-      callback: (payload) async {
+      channel.onPostgresChanges(
+        event: '*',
+        schema: 'public',
+        table: 'transactions',
+        callback: (payload) async {
+          try {
+            final transactions = await _fetchAccountTransactions(accountId);
+            if (!controller.isClosed) {
+              controller.add(transactions);
+            }
+          } catch (e) {
+            if (!controller.isClosed) {
+              controller.addError(e);
+            }
+          }
+        },
+      );
+
+      channel.subscribe();
+
+      controller.onCancel = () {
+        channel.unsubscribe();
+      };
+    } else {
+      // 轮询
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) async {
         try {
           final transactions = await _fetchAccountTransactions(accountId);
           if (!controller.isClosed) {
             controller.add(transactions);
           }
-        } catch (e) {
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
-    );
-
-    channel.subscribe();
-
-    controller.onCancel = () {
-      channel.unsubscribe();
-    };
+        } catch (_) {}
+      });
+      controller.onCancel = () => timer.cancel();
+    }
 
     return controller.stream;
   }
 
   Future<List<Transaction>> _fetchAccountTransactions(int accountId) async {
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'transactions',
       filters: [
         QueryFilter(column: 'account_id', operator: 'eq', value: accountId),
@@ -583,7 +639,7 @@ class CloudAccountRepository implements AccountRepository {
   Future<List<Account>> getAccountsByIds(List<int> accountIds) async {
     if (accountIds.isEmpty) return [];
 
-    final results = await supabase.databaseService!.query(
+    final results = await provider.databaseService!.query(
       table: 'accounts',
       filters: [
         QueryFilter(column: 'id', operator: 'in', value: accountIds),

@@ -64,11 +64,26 @@ class SupabaseProvider implements CloudProvider {
     return _storageService!;
   }
 
-  /// Database service for direct database operations
-  CloudDatabaseService? get databaseService => _databaseService;
+  @override
+  CloudDatabaseService get databaseService {
+    if (_databaseService == null) {
+      throw CloudConfigurationException(
+          'Provider not initialized. Call initialize() first.');
+    }
+    return _databaseService!;
+  }
 
-  /// Realtime service for WebSocket-based subscriptions
-  CloudRealtimeService? get realtimeService => _realtimeService;
+  @override
+  CloudRealtimeService get realtimeService {
+    if (_realtimeService == null) {
+      throw CloudConfigurationException(
+          'Provider not initialized. Call initialize() first.');
+    }
+    return _realtimeService!;
+  }
+
+  @override
+  String? get currentUserId => _client?.auth.currentUser?.id;
 
   /// Supabase client instance
   supabase.SupabaseClient? get client => _client;

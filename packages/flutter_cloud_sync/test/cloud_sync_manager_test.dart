@@ -16,6 +16,15 @@ class MockCloudProvider implements CloudProvider {
   CloudStorageService get storage => _storage;
 
   @override
+  CloudDatabaseService? get databaseService => null;
+
+  @override
+  CloudRealtimeService? get realtimeService => null;
+
+  @override
+  String? get currentUserId => _auth._currentUser?.id;
+
+  @override
   String get providerId => 'mock';
 
   @override

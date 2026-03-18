@@ -48,19 +48,27 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   }
 
   Future<void> _loadSavedCredentials() async {
-    // Only load credentials when in Supabase mode and login mode
+    // Only load credentials when in Supabase or BeeCount mode and login mode
     try {
       final cloudConfig = await ref.read(activeCloudConfigProvider.future);
-      if (cloudConfig.type != CloudBackendType.supabase) {
+      if (cloudConfig.type != CloudBackendType.supabase &&
+          cloudConfig.type != CloudBackendType.beecount) {
         return;
       }
 
-      if (cloudConfig.supabaseEmail != null && cloudConfig.supabaseEmail!.isNotEmpty) {
+      final email = cloudConfig.type == CloudBackendType.supabase
+          ? cloudConfig.supabaseEmail
+          : cloudConfig.beecountUsername;
+      final password = cloudConfig.type == CloudBackendType.supabase
+          ? cloudConfig.supabasePassword
+          : cloudConfig.beecountPassword;
+
+      if (email != null && email.isNotEmpty) {
         if (mounted) {
           setState(() {
-            emailCtrl.text = cloudConfig.supabaseEmail!;
-            if (cloudConfig.supabasePassword != null && cloudConfig.supabasePassword!.isNotEmpty) {
-              pwdCtrl.text = cloudConfig.supabasePassword!;
+            emailCtrl.text = email;
+            if (password != null && password.isNotEmpty) {
+              pwdCtrl.text = password;
               _rememberAccount = true;
             }
           });
@@ -73,28 +81,41 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   }
 
   Future<void> _saveCredentials(String email, String password) async {
-    // Only save credentials when in Supabase mode
+    // Only save credentials when in Supabase or BeeCount mode
     try {
       final cloudConfig = await ref.read(activeCloudConfigProvider.future);
-      if (cloudConfig.type != CloudBackendType.supabase) {
+      if (cloudConfig.type != CloudBackendType.supabase &&
+          cloudConfig.type != CloudBackendType.beecount) {
         return;
       }
 
       final store = ref.read(cloudServiceStoreProvider);
 
       // Create updated config with or without credentials based on checkbox
-      final updatedConfig = CloudServiceConfig(
-        type: cloudConfig.type,
-        name: cloudConfig.name,
-        supabaseUrl: cloudConfig.supabaseUrl,
-        supabaseAnonKey: cloudConfig.supabaseAnonKey,
-        supabaseBucket: cloudConfig.supabaseBucket ?? 'beecount-backups',  // 确保有默认值
-        supabaseEmail: _rememberAccount ? email : null,
-        supabasePassword: _rememberAccount ? password : null,
-      );
+      CloudServiceConfig updatedConfig;
+      if (cloudConfig.type == CloudBackendType.supabase) {
+        updatedConfig = CloudServiceConfig(
+          type: cloudConfig.type,
+          name: cloudConfig.name,
+          supabaseUrl: cloudConfig.supabaseUrl,
+          supabaseAnonKey: cloudConfig.supabaseAnonKey,
+          supabaseBucket: cloudConfig.supabaseBucket ?? 'beecount-backups',
+          supabaseEmail: _rememberAccount ? email : null,
+          supabasePassword: _rememberAccount ? password : null,
+        );
+      } else {
+        updatedConfig = CloudServiceConfig(
+          type: cloudConfig.type,
+          name: cloudConfig.name,
+          beecountServerUrl: cloudConfig.beecountServerUrl,
+          beecountUsername: _rememberAccount ? email : null,
+          beecountPassword: _rememberAccount ? password : null,
+        );
+      }
 
       await store.saveOnly(updatedConfig);
       ref.invalidate(supabaseConfigProvider);
+      ref.invalidate(beecountConfigProvider);
       ref.invalidate(activeCloudConfigProvider);
 
       logger.info('auth', '账号密码保存状态：${_rememberAccount ? "已保存" : "已清除"}');
@@ -135,6 +156,13 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   }
 
   String friendlyAuthError(Object e) {
+    if (e is CloudAuthException) {
+      final msg = e.message.toLowerCase();
+      if (msg.contains('invalid') || msg.contains('password') || msg.contains('username')) {
+        return AppLocalizations.of(context).authErrorInvalidCredentials;
+      }
+      return e.message;
+    }
     final code = _supabaseCode(e);
     if (code != null) {
       switch (code) {
@@ -169,6 +197,16 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   }
 
   String friendlySignupError(Object e) {
+    if (e is CloudAuthException) {
+      final msg = e.message.toLowerCase();
+      if (msg.contains('exists') || msg.contains('already')) {
+        return AppLocalizations.of(context).authErrorEmailExists;
+      }
+      if (msg.contains('weak') || msg.contains('at least')) {
+        return AppLocalizations.of(context).authErrorWeakPassword;
+      }
+      return e.message;
+    }
     final code = _supabaseCode(e);
     if (code != null) {
       switch (code) {

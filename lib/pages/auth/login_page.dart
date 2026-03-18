@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as s;
 import '../../providers.dart';
 import 'package:flutter_cloud_sync/flutter_cloud_sync.dart' hide SyncStatus;
+import '../../cloud/sync_service.dart';
 import '../../widgets/ui/ui.dart';
 import '../../styles/tokens.dart';
 import '../../services/system/logger_service.dart';
@@ -657,6 +658,13 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                                             // Save credentials if "remember account" is checked
                                             await _saveCredentials(email, pwd);
 
+                                            // 显示数据加载提示
+                                            setState(() {
+                                              busy = true;
+                                              infoText = '正在同步数据，请稍候...';
+                                              errorText = null;
+                                            });
+
                                             // 刷新认证服务和同步服务以触发状态更新
                                             ref.invalidate(authServiceProvider);
                                             ref.invalidate(syncServiceProvider);
@@ -666,6 +674,70 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                                                 .read(syncStatusRefreshProvider
                                                     .notifier)
                                                 .state++;
+
+                                            // 等待BeeCount初始化完成，确保从服务器拉取数据
+                                            await Future.delayed(Duration(seconds: 1)); // 给初始化一些时间
+                                            
+                                            // 尝试同步数据，确保前后端数据一致
+                                            try {
+                                              final syncService = ref.read(syncServiceProvider);
+                                              if (syncService is! LocalOnlySyncService) {
+                                                // 检查本地是否有账本
+                                                final repo = ref.read(repositoryProvider);
+                                                final ledgers = await repo.getAllLedgers();
+                                                
+                                                if (ledgers.isEmpty) {
+                                                  // 本地没有账本，先从服务器拉取数据
+                                                  logger.info('LoginSync', '本地没有账本，等待服务器数据同步');
+                                                  await Future.delayed(Duration(seconds: 2)); // 等待初始化完成
+                                                  
+                                                  // 再次检查账本
+                                                  final updatedLedgers = await repo.getAllLedgers();
+                                                  if (updatedLedgers.isEmpty) {
+                                                    // 服务器也没有账本，创建一个新的
+                                                    logger.info('LoginSync', '服务器也没有账本，创建新账本');
+                                                    await repo.createLedger(name: '默认账本', currency: 'CNY');
+                                                  }
+                                                }
+                                                
+                                                // 获取当前账本ID
+                                                final ledgerId = ref.read(currentLedgerIdProvider);
+                                                final status = await syncService.getStatus(ledgerId: ledgerId);
+                                                logger.info('LoginSync', '同步状态: ${status.diff}');
+
+                                                // 根据同步状态进行相应操作
+                                                switch (status.diff) {
+                                                  case SyncDiff.inSync:
+                                                    // 数据已同步，无需操作
+                                                    break;
+                                                  case SyncDiff.localNewer:
+                                                    // 本地数据较新，上传到服务器
+                                                    await syncService.uploadCurrentLedger(ledgerId: ledgerId);
+                                                    break;
+                                                  case SyncDiff.cloudNewer:
+                                                    // 服务器数据较新，下载到本地
+                                                    await syncService.downloadAndRestoreToCurrentLedger(ledgerId: ledgerId);
+                                                    break;
+                                                  case SyncDiff.different:
+                                                    // 数据不同，下载服务器数据
+                                                    await syncService.downloadAndRestoreToCurrentLedger(ledgerId: ledgerId);
+                                                    break;
+                                                  case SyncDiff.noRemote:
+                                                    // 服务器没有数据，上传本地数据
+                                                    await syncService.uploadCurrentLedger(ledgerId: ledgerId);
+                                                    break;
+                                                  default:
+                                                    // 其他状态，忽略
+                                                    break;
+                                                }
+                                              }
+                                            } catch (syncError) {
+                                              // 同步失败，忽略错误
+                                              logger.warning('LoginSync', '同步失败: $syncError');
+                                            }
+
+                                            if (!context.mounted) return;
+
                                             // 直接切到"我的"页并关闭登录页
                                             ref
                                                 .read(bottomTabIndexProvider

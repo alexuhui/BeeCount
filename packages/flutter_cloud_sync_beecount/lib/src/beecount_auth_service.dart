@@ -38,11 +38,20 @@ class BeeCountAuthService implements CloudAuthService {
     required String password,
   }) async {
     // Note: server uses 'username' instead of 'email'
+    final url = '$serverUrl/api/v1/public/login';
+    final body = jsonEncode({'username': email, 'password': password});
+    
+    print('📡 POST $url');
+    print('📤 Request body: $body');
+    
     final response = await http.post(
-      Uri.parse('$serverUrl/api/v1/public/login'),
+      Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'username': email, 'password': password}),
+      body: body,
     );
+    
+    print('📥 Response status: ${response.statusCode}');
+    print('📥 Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -65,11 +74,20 @@ class BeeCountAuthService implements CloudAuthService {
     required String email,
     required String password,
   }) async {
+    final url = '$serverUrl/api/v1/public/register';
+    final body = jsonEncode({'username': email, 'password': password});
+    
+    print('📡 POST $url');
+    print('📤 Request body: $body');
+    
     final response = await http.post(
-      Uri.parse('$serverUrl/api/v1/public/register'),
+      Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'username': email, 'password': password}),
+      body: body,
     );
+    
+    print('📥 Response status: ${response.statusCode}');
+    print('📥 Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);

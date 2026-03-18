@@ -23,11 +23,20 @@ class BeeCountDatabaseService implements CloudDatabaseService {
     required Map<String, dynamic> data,
     bool autoInjectUserId = true,
   }) async {
+    final url = '$serverUrl/api/v1/$table';
+    final body = jsonEncode(data);
+    
+    print('📡 POST $url');
+    print('📤 Request body: $body');
+    
     final response = await http.post(
-      Uri.parse('$serverUrl/api/v1/$table'),
+      Uri.parse(url),
       headers: _headers,
-      body: jsonEncode(data),
+      body: body,
     );
+    
+    print('📥 Response status: ${response.statusCode}');
+    print('📥 Response body: ${response.body}');
 
     if (response.statusCode == 201 || response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -43,11 +52,20 @@ class BeeCountDatabaseService implements CloudDatabaseService {
     required Map<String, dynamic> data,
     bool autoFilterByUser = true,
   }) async {
+    final url = '$serverUrl/api/v1/$table/$id';
+    final body = jsonEncode(data);
+    
+    print('📡 PUT $url');
+    print('📤 Request body: $body');
+    
     final response = await http.put(
-      Uri.parse('$serverUrl/api/v1/$table/$id'),
+      Uri.parse(url),
       headers: _headers,
-      body: jsonEncode(data),
+      body: body,
     );
+    
+    print('📥 Response status: ${response.statusCode}');
+    print('📥 Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -62,10 +80,17 @@ class BeeCountDatabaseService implements CloudDatabaseService {
     required String id,
     bool autoFilterByUser = true,
   }) async {
+    final url = '$serverUrl/api/v1/$table/$id';
+    
+    print('📡 DELETE $url');
+    
     final response = await http.delete(
-      Uri.parse('$serverUrl/api/v1/$table/$id'),
+      Uri.parse(url),
       headers: _headers,
     );
+    
+    print('📥 Response status: ${response.statusCode}');
+    print('📥 Response body: ${response.body}');
 
     if (response.statusCode != 204 && response.statusCode != 200) {
       throw CloudDatabaseException('Failed to delete from $table: ${response.body}');
@@ -82,10 +107,18 @@ class BeeCountDatabaseService implements CloudDatabaseService {
     int? offset,
     bool autoFilterByUser = true,
   }) async {
+    final url = '$serverUrl/api/v1/$table';
+    
+    print('📡 GET $url');
+    print('📤 Filters: ${filters?.map((f) => '${f.column} ${f.operator} ${f.value}').join(', ')}');
+    
     final response = await http.get(
-      Uri.parse('$serverUrl/api/v1/$table'),
+      Uri.parse(url),
       headers: _headers,
     );
+    
+    print('📥 Response status: ${response.statusCode}');
+    print('📥 Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);

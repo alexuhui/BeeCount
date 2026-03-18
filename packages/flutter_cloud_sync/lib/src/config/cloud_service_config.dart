@@ -83,7 +83,9 @@ class CloudServiceConfig {
                (webdavUsername?.isNotEmpty ?? false) &&
                (webdavPassword?.isNotEmpty ?? false);
       case CloudBackendType.beecount:
-        return (beecountServerUrl?.isNotEmpty ?? false);
+        return (beecountServerUrl?.isNotEmpty ?? false) &&
+               (beecountUsername?.isNotEmpty ?? false) &&
+               (beecountPassword?.isNotEmpty ?? false);
       case CloudBackendType.icloud:
         return true; // iCloud 无需配置，始终有效
       case CloudBackendType.s3:

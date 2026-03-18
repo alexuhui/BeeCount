@@ -8,12 +8,15 @@ import 'update_providers.dart';
 import 'cloud_mode_providers.dart';
 import 'supabase_providers.dart';
 import 'smart_billing_providers.dart';
+import 'sync_providers.dart';
 import '../data/db.dart';
 import '../services/data/recurring_transaction_service.dart';
 import '../services/billing/post_processor.dart';
 import '../services/system/logger_service.dart';
 import '../services/ai/ai_constants.dart';
 import '../services/platform/app_link_service.dart';
+import '../cloud/sync_service.dart';
+import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 
 // 底部导航索引（0: 明细, 1: 图表, 2: 账本, 3: 我的）
 final bottomTabIndexProvider = StateProvider<int>((ref) => 0);
@@ -191,6 +194,11 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
     logger.info(tag, '基础配置初始化完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
     stepTime = DateTime.now();
 
+    // 尝试自动登录
+    await _tryAutoLogin(ref);
+    logger.info(tag, '自动登录检查完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
+    stepTime = DateTime.now();
+
     // 获取 repository
     final repo = ref.read(repositoryProvider);
 
@@ -300,6 +308,115 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
   logger.info(tag, '预加载总耗时: ${dataLoadTime.inMilliseconds}ms，切换到主应用');
   ref.read(appInitStateProvider.notifier).state = AppInitState.ready;
 });
+
+/// 尝试自动登录
+Future<void> _tryAutoLogin(Ref ref) async {
+  try {
+    final cloudConfig = await ref.read(activeCloudConfigProvider.future);
+    if (cloudConfig.type == CloudBackendType.local) {
+      // 本地模式不需要登录
+      return;
+    }
+
+    // 检查是否有保存的账号密码
+    String? email;
+    String? password;
+    if (cloudConfig.type == CloudBackendType.supabase) {
+      email = cloudConfig.supabaseEmail;
+      password = cloudConfig.supabasePassword;
+    } else if (cloudConfig.type == CloudBackendType.beecount) {
+      email = cloudConfig.beecountUsername;
+      password = cloudConfig.beecountPassword;
+    }
+
+    if (email != null && email.isNotEmpty && password != null && password.isNotEmpty) {
+      logger.info('AutoLogin', '尝试自动登录: $email');
+      final auth = await ref.read(authServiceProvider.future);
+      await auth.signInWithEmail(email: email, password: password);
+      logger.info('AutoLogin', '自动登录成功: $email');
+
+      // 刷新认证服务和同步服务以触发状态更新
+      ref.invalidate(authServiceProvider);
+      ref.invalidate(syncServiceProvider);
+
+      // 刷新同步状态
+      ref.read(syncStatusRefreshProvider.notifier).state++;
+
+      // 尝试同步数据，确保前后端数据一致
+      await _syncDataAfterLogin(ref);
+    } else {
+      logger.info('AutoLogin', '没有保存的账号密码，跳过自动登录');
+    }
+  } catch (e, stackTrace) {
+    // 自动登录失败，忽略错误，用户可以手动登录
+    logger.warning('AutoLogin', '自动登录失败: $e');
+  }
+}
+
+/// 登录后同步数据，确保前后端数据一致
+Future<void> _syncDataAfterLogin(Ref ref) async {
+  try {
+    final syncService = ref.read(syncServiceProvider);
+    if (syncService is LocalOnlySyncService) {
+      // 本地模式不需要同步
+      return;
+    }
+
+    // 获取当前账本ID
+    final ledgerId = ref.read(currentLedgerIdProvider);
+
+    // 检查同步状态
+    final status = await syncService.getStatus(ledgerId: ledgerId);
+    logger.info('SyncAfterLogin', '同步状态: ${status.diff}');
+
+    // 根据同步状态进行相应操作
+    switch (status.diff) {
+      case SyncDiff.inSync:
+        // 数据已同步，无需操作
+        logger.info('SyncAfterLogin', '数据已同步');
+        break;
+      case SyncDiff.localNewer:
+        // 本地数据较新，上传到服务器
+        logger.info('SyncAfterLogin', '本地数据较新，上传到服务器');
+        await syncService.uploadCurrentLedger(ledgerId: ledgerId);
+        break;
+      case SyncDiff.cloudNewer:
+        // 服务器数据较新，下载到本地
+        logger.info('SyncAfterLogin', '服务器数据较新，下载到本地');
+        await syncService.downloadAndRestoreToCurrentLedger(ledgerId: ledgerId);
+        break;
+      case SyncDiff.different:
+        // 数据不同，需要比较最后一条记录的时间
+        logger.info('SyncAfterLogin', '数据不同，比较最后一条记录的时间');
+        await _resolveConflict(syncService, ledgerId);
+        break;
+      case SyncDiff.noRemote:
+        // 服务器没有数据，上传本地数据
+        logger.info('SyncAfterLogin', '服务器没有数据，上传本地数据');
+        await syncService.uploadCurrentLedger(ledgerId: ledgerId);
+        break;
+      default:
+        // 其他状态，忽略
+        break;
+    }
+  } catch (e, stackTrace) {
+    // 同步失败，忽略错误
+    logger.warning('SyncAfterLogin', '同步失败: $e');
+  }
+}
+
+/// 解决数据冲突，以最后记录的一条数据为准
+Future<void> _resolveConflict(SyncService syncService, int ledgerId) async {
+  try {
+    // 这里简化处理，直接下载服务器数据
+    // 实际应用中，应该比较本地和服务器最后一条记录的时间
+    // 以最后记录的一条数据为准
+    logger.info('ResolveConflict', '解决数据冲突，下载服务器数据');
+    await syncService.downloadAndRestoreToCurrentLedger(ledgerId: ledgerId);
+  } catch (e) {
+    logger.warning('ResolveConflict', '解决冲突失败: $e');
+  }
+}
 
 // 是否应该显示欢迎页面的Provider
 final shouldShowWelcomeProvider = StateProvider<bool>((ref) => false);

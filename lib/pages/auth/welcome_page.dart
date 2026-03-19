@@ -23,6 +23,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
   final TextEditingController _serverUrlController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
 
   int _currentPage = 0;
   String _categoryMode = 'flat';
@@ -30,6 +31,18 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
   bool _offlineSelected = false;
   bool _loggedIn = false;
   bool _isRegister = false;
+
+  final defaultServerUrl = 'http://172.25.26.17:8080';
+
+  _setDefaultServerUrl() {
+    _serverUrlController.text = defaultServerUrl;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _setDefaultServerUrl();
+  }
 
   @override
   void dispose() {
@@ -278,7 +291,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                   enabled: !_isSubmitting && !_offlineSelected,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    labelText: l10n.authEmail,
+                    labelText: l10n.cloudWebdavUsernameLabel,
                     labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -290,11 +303,32 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                   obscureText: true,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    labelText: l10n.authPassword,
+                    labelText: l10n.cloudWebdavPasswordLabel,
                     labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
+                // 如果是注册，需要再次输入确认密码
+                if (_isRegister)
+                  Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _confirmPasswordController,
+                        enabled: !_isSubmitting && !_offlineSelected,
+                        obscureText: true,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: l10n.authConfirmPassword,
+                          labelStyle: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9)),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ],
+                  ),
+                
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: _isSubmitting || _offlineSelected ? null : () => _submitAuth(context),
@@ -363,6 +397,13 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     if (serverUrl.isEmpty || username.isEmpty || password.isEmpty) {
       await AppDialog.error(context, title: l10n.commonError, message: '请填写服务器地址、账号与密码');
       return;
+    }
+    if (_isRegister) {
+      final confirmPassword = _confirmPasswordController.text;
+      if (confirmPassword.isEmpty || confirmPassword != password) {
+        await AppDialog.error(context, title: l10n.commonError, message: '两次输入的密码不一致');
+        return;
+      }
     }
 
     setState(() => _isSubmitting = true);

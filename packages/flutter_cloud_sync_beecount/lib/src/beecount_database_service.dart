@@ -26,8 +26,7 @@ class BeeCountDatabaseService implements CloudDatabaseService {
     final url = '$serverUrl/api/v1/$table';
     final body = jsonEncode(data);
     
-    print('📡 POST $url');
-    print('📤 Request body: $body');
+    print('📡 POST $url  📤 Request body: $body');
     
     final response = await http.post(
       Uri.parse(url),
@@ -35,8 +34,7 @@ class BeeCountDatabaseService implements CloudDatabaseService {
       body: body,
     );
     
-    print('📥 Response status: ${response.statusCode}');
-    print('📥 Response body: ${response.body}');
+    print('📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
 
     if (response.statusCode == 201 || response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -55,8 +53,7 @@ class BeeCountDatabaseService implements CloudDatabaseService {
     final url = '$serverUrl/api/v1/$table/$id';
     final body = jsonEncode(data);
     
-    print('📡 PUT $url');
-    print('📤 Request body: $body');
+    print('📡 PUT $url  📤 Request body: $body');
     
     final response = await http.put(
       Uri.parse(url),
@@ -64,8 +61,7 @@ class BeeCountDatabaseService implements CloudDatabaseService {
       body: body,
     );
     
-    print('📥 Response status: ${response.statusCode}');
-    print('📥 Response body: ${response.body}');
+    print('📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -89,8 +85,7 @@ class BeeCountDatabaseService implements CloudDatabaseService {
       headers: _headers,
     );
     
-    print('📥 Response status: ${response.statusCode}');
-    print('📥 Response body: ${response.body}');
+    print('📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
 
     if (response.statusCode != 204 && response.statusCode != 200) {
       throw CloudDatabaseException('Failed to delete from $table: ${response.body}');
@@ -109,16 +104,14 @@ class BeeCountDatabaseService implements CloudDatabaseService {
   }) async {
     final url = '$serverUrl/api/v1/$table';
     
-    print('📡 GET $url');
-    print('📤 Filters: ${filters?.map((f) => '${f.column} ${f.operator} ${f.value}').join(', ')}');
+    print('📡 GET $url  📤 Filters: ${filters?.map((f) => '${f.column} ${f.operator} ${f.value}').join(', ')}');
     
     final response = await http.get(
       Uri.parse(url),
       headers: _headers,
     );
     
-    print('📥 Response status: ${response.statusCode}');
-    print('📥 Response body: ${response.body}');
+    print('📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);

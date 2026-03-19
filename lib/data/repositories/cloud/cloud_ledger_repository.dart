@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_cloud_sync_supabase/flutter_cloud_sync_supabase.dart';
 import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 
+import '../../../services/system/logger_service.dart';
 import '../../db.dart';
 import '../ledger_repository.dart';
 
@@ -217,7 +218,6 @@ class CloudLedgerRepository implements LedgerRepository {
         'user_id': provider.currentUserId,
       },
     );
-
     return result['id'] as int;
   }
 

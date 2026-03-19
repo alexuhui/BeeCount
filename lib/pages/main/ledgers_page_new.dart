@@ -733,6 +733,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
 
     try {
       final repo = ref.read(repositoryProvider);
+      logger.info('ledger', '创建账本：${result.name.trim()}，货币：${result.currency}');
       await repo.createLedger(
         name: result.name.trim(),
         currency: result.currency,

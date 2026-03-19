@@ -533,34 +533,42 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
       if (syncEngine != null) {
         final ledgers = await db.select(db.ledgers).get();
         for (final r in ledgers) {
+          logger.info('WelcomeFinish', '同步账本 ${r.name} ID: ${r.id}');
           await syncEngine.enqueueUpsert('ledgers', r.id);
         }
         final accounts = await db.select(db.accounts).get();
         for (final r in accounts) {
+          logger.info('WelcomeFinish', '同步账户 ${r.name} ID: ${r.id}');
           await syncEngine.enqueueUpsert('accounts', r.id);
         }
         final categories = await db.select(db.categories).get();
         for (final r in categories) {
+          logger.info('WelcomeFinish', '同步分类 ${r.name} ID: ${r.id}');
           await syncEngine.enqueueUpsert('categories', r.id);
         }
         final tags = await db.select(db.tags).get();
         for (final r in tags) {
+          logger.info('WelcomeFinish', '同步标签 ${r.name} ID: ${r.id}');
           await syncEngine.enqueueUpsert('tags', r.id);
         }
         final budgets = await db.select(db.budgets).get();
         for (final r in budgets) {
+          logger.info('WelcomeFinish', '同步预算 ${r.categoryId} ID: ${r.id}');
           await syncEngine.enqueueUpsert('budgets', r.id);
         }
         final recurring = await db.select(db.recurringTransactions).get();
         for (final r in recurring) {
+          logger.info('WelcomeFinish', '同步重复交易 ${r.categoryId} ID: ${r.id}');
           await syncEngine.enqueueUpsert('recurring_transactions', r.id);
         }
         final txs = await db.select(db.transactions).get();
         for (final r in txs) {
+          logger.info('WelcomeFinish', '同步交易 ${r.ledgerId} ID: ${r.id}');
           await syncEngine.enqueueUpsert('transactions', r.id);
         }
         final txTags = await db.select(db.transactionTags).get();
         for (final r in txTags) {
+          logger.info('WelcomeFinish', '同步交易标签 ${r.transactionId} ID: ${r.id}');
           await syncEngine.enqueueUpsert('transaction_tags', r.id);
         }
         await syncEngine.flush();

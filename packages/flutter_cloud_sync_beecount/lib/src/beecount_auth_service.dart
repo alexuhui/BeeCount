@@ -41,8 +41,7 @@ class BeeCountAuthService implements CloudAuthService {
     final url = '$serverUrl/api/v1/public/login';
     final body = jsonEncode({'username': email, 'password': password});
     
-    print('📡 POST $url');
-    print('📤 Request body: $body');
+    print('📡 POST $url  📤 Request body: $body');
     
     final response = await http.post(
       Uri.parse(url),
@@ -50,8 +49,7 @@ class BeeCountAuthService implements CloudAuthService {
       body: body,
     );
     
-    print('📥 Response status: ${response.statusCode}');
-    print('📥 Response body: ${response.body}');
+    print('📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -77,8 +75,7 @@ class BeeCountAuthService implements CloudAuthService {
     final url = '$serverUrl/api/v1/public/register';
     final body = jsonEncode({'username': email, 'password': password});
     
-    print('📡 POST $url');
-    print('📤 Request body: $body');
+    print('📡 POST $url  📤 Request body: $body');
     
     final response = await http.post(
       Uri.parse(url),
@@ -86,8 +83,7 @@ class BeeCountAuthService implements CloudAuthService {
       body: body,
     );
     
-    print('📥 Response status: ${response.statusCode}');
-    print('📥 Response body: ${response.body}');
+    print('📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);

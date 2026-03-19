@@ -2202,6 +2202,7 @@ class ConfigExportService {
 
         if (newItems.isNotEmpty) {
           for (final item in newItems) {
+            logger.info('ConfigImport', '创建账本：${item.name.trim()}，货币：${item.currency}');
             await repository.createLedger(
               name: item.name,
               currency: item.currency,

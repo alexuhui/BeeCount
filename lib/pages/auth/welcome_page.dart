@@ -368,6 +368,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     setState(() => _isSubmitting = true);
     try {
       final auth = ref.read(beecountAuthControllerProvider);
+      logger.info("welcome", "登录/注册 :  ${_isRegister ? '注册' : '登录'} url : $serverUrl  账号 : $username 密码 : $password");
       if (_isRegister) {
         await auth.signUp(serverUrl: serverUrl, username: username, password: password);
       } else {

@@ -12,67 +12,71 @@ class SeedService {
 
   /// 默认支出分类 key 列表（一级分类模式）
   static const List<String> flatExpenseCategoryKeys = [
-    'dining', 'transport', 'shopping', 'entertainment', 'home', 'family',
-    'communication', 'utilities', 'housing', 'medical', 'education',
-    'pets', 'sports', 'digital', 'travel', 'alcohol_tobacco', 'baby_care',
-    'beauty', 'repair', 'social', 'learning', 'car', 'taxi', 'subway',
-    'delivery', 'property', 'parking', 'donation', 'gift', 'tax',
-    'beverage', 'clothing', 'snacks', 'red_packet', 'fruit', 'game',
-    'book', 'lover', 'decoration', 'daily_goods', 'lottery', 'stock',
-    'social_security', 'express', 'work'
+    'dining'
+    // , 'transport', 'shopping', 'entertainment', 'home', 'family',
+    // 'communication', 'utilities', 'housing', 'medical', 'education',
+    // 'pets', 'sports', 'digital', 'travel', 'alcohol_tobacco', 'baby_care',
+    // 'beauty', 'repair', 'social', 'learning', 'car', 'taxi', 'subway',
+    // 'delivery', 'property', 'parking', 'donation', 'gift', 'tax',
+    // 'beverage', 'clothing', 'snacks', 'red_packet', 'fruit', 'game',
+    // 'book', 'lover', 'decoration', 'daily_goods', 'lottery', 'stock',
+    // 'social_security', 'express', 'work'
   ];
 
   /// 默认收入分类 key 列表（一级分类模式）
   static const List<String> flatIncomeCategoryKeys = [
-    'salary', 'investment', 'red_packet', 'bonus', 'reimbursement',
-    'part_time', 'gift', 'interest', 'refund', 'invest_income',
-    'second_hand', 'social_benefit', 'tax_refund', 'provident_fund'
+    'salary'
+    // , 'investment', 'red_packet', 'bonus', 'reimbursement',
+    // 'part_time', 'gift', 'interest', 'refund', 'invest_income',
+    // 'second_hand', 'social_benefit', 'tax_refund', 'provident_fund'
   ];
 
   // ========== 二级分类模式的默认分类（父分类 -> 子分类列表）==========
 
   /// 二级分类模式的默认支出分类
   static const Map<String, List<String>> hierarchicalExpenseCategories = {
-    'dining': ['dining_breakfast', 'dining_lunch', 'dining_dinner', 'dining_meituan', 'dining_eleme', 'dining_jd', 'dining_restaurant', 'dining_food'],
-    'snacks': ['snacks_biscuit', 'snacks_chips', 'snacks_candy', 'snacks_chocolate', 'snacks_nuts'],
-    'fruit': ['fruit_apple', 'fruit_banana', 'fruit_orange', 'fruit_grape', 'fruit_watermelon', 'fruit_other'],
-    'beverage': ['beverage_milk_tea', 'beverage_coffee', 'beverage_juice', 'beverage_soda', 'beverage_water'],
-    'pastry': ['pastry_cake', 'pastry_bread', 'pastry_dessert', 'pastry_biscuit'],
-    'cooking': ['cooking_vegetable', 'cooking_meat', 'cooking_seafood', 'cooking_seasoning', 'cooking_grain'],
-    'shopping': ['shopping_clothing', 'shopping_shoes', 'shopping_bag', 'shopping_accessory', 'shopping_daily'],
-    'pets': ['pets_food', 'pets_supplies', 'pets_medical', 'pets_grooming'],
-    'transport': ['transport_subway', 'transport_bus', 'transport_taxi', 'transport_ride', 'transport_parking', 'transport_fuel'],
-    'car': ['car_maintenance', 'car_repair', 'car_insurance', 'car_wash', 'car_fine'],
-    'clothing': ['clothing_top', 'clothing_pants', 'clothing_skirt', 'clothing_shoes', 'clothing_accessory'],
-    'daily_goods': ['daily_toiletries', 'daily_paper', 'daily_cleaning', 'daily_kitchen'],
-    'education': ['education_tuition', 'education_training', 'education_books', 'education_stationery', 'education_office'],
-    'invest_loss': ['invest_loss_stock', 'invest_loss_fund', 'invest_loss_other'],
-    'entertainment': ['entertainment_movie', 'entertainment_ktv', 'entertainment_amusement', 'entertainment_bar', 'entertainment_other'],
-    'game': ['game_recharge', 'game_equipment', 'game_membership'],
-    'health_products': ['health_vitamin', 'health_food', 'health_nutrition'],
-    'subscription': ['subscription_video', 'subscription_music', 'subscription_cloud', 'subscription_other'],
-    'sports': ['sports_gym', 'sports_equipment', 'sports_course', 'sports_outdoor'],
-    'housing': ['housing_rent', 'housing_property', 'housing_mortgage', 'housing_decoration'],
-    'home': ['home_furniture', 'home_appliance', 'home_decor', 'home_bedding'],
-    'beauty': ['beauty_skincare', 'beauty_cosmetics', 'beauty_salon', 'beauty_nail'],
+    'dining': ['dining_breakfast', 'dining_lunch', 'dining_dinner']
+    // , 'dining_meituan', 'dining_eleme', 'dining_jd', 'dining_restaurant', 'dining_food'],
+    // 'snacks': ['snacks_biscuit', 'snacks_chips', 'snacks_candy', 'snacks_chocolate', 'snacks_nuts'],
+    // 'fruit': ['fruit_apple', 'fruit_banana', 'fruit_orange', 'fruit_grape', 'fruit_watermelon', 'fruit_other'],
+    // 'beverage': ['beverage_milk_tea', 'beverage_coffee', 'beverage_juice', 'beverage_soda', 'beverage_water'],
+    // 'pastry': ['pastry_cake', 'pastry_bread', 'pastry_dessert', 'pastry_biscuit'],
+    // 'cooking': ['cooking_vegetable', 'cooking_meat', 'cooking_seafood', 'cooking_seasoning', 'cooking_grain'],
+    // 'shopping': ['shopping_clothing', 'shopping_shoes', 'shopping_bag', 'shopping_accessory', 'shopping_daily'],
+    // 'pets': ['pets_food', 'pets_supplies', 'pets_medical', 'pets_grooming'],
+    // 'transport': ['transport_subway', 'transport_bus', 'transport_taxi', 'transport_ride', 'transport_parking', 'transport_fuel'],
+    // 'car': ['car_maintenance', 'car_repair', 'car_insurance', 'car_wash', 'car_fine'],
+    // 'clothing': ['clothing_top', 'clothing_pants', 'clothing_skirt', 'clothing_shoes', 'clothing_accessory'],
+    // 'daily_goods': ['daily_toiletries', 'daily_paper', 'daily_cleaning', 'daily_kitchen'],
+    // 'education': ['education_tuition', 'education_training', 'education_books', 'education_stationery', 'education_office'],
+    // 'invest_loss': ['invest_loss_stock', 'invest_loss_fund', 'invest_loss_other'],
+    // 'entertainment': ['entertainment_movie', 'entertainment_ktv', 'entertainment_amusement', 'entertainment_bar', 'entertainment_other'],
+    // 'game': ['game_recharge', 'game_equipment', 'game_membership'],
+    // 'health_products': ['health_vitamin', 'health_food', 'health_nutrition'],
+    // 'subscription': ['subscription_video', 'subscription_music', 'subscription_cloud', 'subscription_other'],
+    // 'sports': ['sports_gym', 'sports_equipment', 'sports_course', 'sports_outdoor'],
+    // 'housing': ['housing_rent', 'housing_property', 'housing_mortgage', 'housing_decoration'],
+    // 'home': ['home_furniture', 'home_appliance', 'home_decor', 'home_bedding'],
+    // 'beauty': ['beauty_skincare', 'beauty_cosmetics', 'beauty_salon', 'beauty_nail'],
   };
 
   /// 二级分类模式的默认收入分类
   static const Map<String, List<String>> hierarchicalIncomeCategories = {
-    'salary': ['salary_basic', 'salary_performance', 'salary_year_end', 'salary_overtime'],
-    'investment': ['investment_fund', 'investment_dividend', 'investment_product', 'investment_other'],
-    'red_packet': ['red_packet_festival', 'red_packet_birthday', 'red_packet_return'],
-    'bonus': ['bonus_year_end', 'bonus_quarterly', 'bonus_project', 'bonus_other'],
-    'reimbursement': ['reimbursement_travel', 'reimbursement_meal', 'reimbursement_other'],
-    'part_time': ['part_time_income', 'part_time_extra'],
-    'gift': ['gift_wedding', 'gift_birthday', 'gift_other'],
-    'interest': ['interest_bank', 'interest_other'],
-    'refund': ['refund_shopping', 'refund_service', 'refund_other'],
-    'invest_income': ['invest_income_stock', 'invest_income_fund', 'invest_income_other'],
-    'second_hand': ['second_hand_idle', 'second_hand_goods'],
-    'social_benefit': ['social_benefit_unemployment', 'social_benefit_maternity', 'social_benefit_other'],
-    'tax_refund': ['tax_refund_personal', 'tax_refund_other'],
-    'provident_fund': ['provident_fund_withdrawal', 'provident_fund_interest'],
+    'salary': ['salary_basic']
+    // , 'salary_performance', 'salary_year_end', 'salary_overtime'],
+    // 'investment': ['investment_fund', 'investment_dividend', 'investment_product', 'investment_other'],
+    // 'red_packet': ['red_packet_festival', 'red_packet_birthday', 'red_packet_return'],
+    // 'bonus': ['bonus_year_end', 'bonus_quarterly', 'bonus_project', 'bonus_other'],
+    // 'reimbursement': ['reimbursement_travel', 'reimbursement_meal', 'reimbursement_other'],
+    // 'part_time': ['part_time_income', 'part_time_extra'],
+    // 'gift': ['gift_wedding', 'gift_birthday', 'gift_other'],
+    // 'interest': ['interest_bank', 'interest_other'],
+    // 'refund': ['refund_shopping', 'refund_service', 'refund_other'],
+    // 'invest_income': ['invest_income_stock', 'invest_income_fund', 'invest_income_other'],
+    // 'second_hand': ['second_hand_idle', 'second_hand_goods'],
+    // 'social_benefit': ['social_benefit_unemployment', 'social_benefit_maternity', 'social_benefit_other'],
+    // 'tax_refund': ['tax_refund_personal', 'tax_refund_other'],
+    // 'provident_fund': ['provident_fund_withdrawal', 'provident_fund_interest'],
   };
 
   // ========== 分类图标映射 ==========

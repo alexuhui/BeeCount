@@ -1,3 +1,5 @@
+import 'package:beecount/data/db.dart';
+import 'package:beecount/services/sync/beecount_sync_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -8,7 +10,9 @@ import '../../providers/beecount_server_providers.dart';
 import '../../providers/database_providers.dart';
 import '../../providers/language_provider.dart';
 import '../../providers/ui_state_providers.dart';
+import '../../services/data/seed_service.dart';
 import '../../services/system/logger_service.dart';
+import '../../services/sync/beecount_initial_sync_service.dart';
 import '../../widgets/ui/ui.dart';
 
 class WelcomePage extends ConsumerStatefulWidget {
@@ -522,56 +526,102 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
       await prefs.setString('app_mode', 'local');
 
       final db = ref.read(databaseProvider);
-      await db.ensureSeed(
-        l10n: l10n,
-        currency: 'CNY',
-        useHierarchicalCategories: _categoryMode == 'hierarchical',
-        skipCategories: _categoryMode == 'none',
-      );
+      
+      // 检查是否是在线模式
+      final providerAsync = ref.watch(beecountProviderProvider);
+      if (providerAsync.hasValue && providerAsync.value != null) {
+        final provider = providerAsync.value!;
+        logger.info('WelcomeFinish', '在线模式，按数据表维度拉取数据');
+        
+        // 创建同步引擎
+        final syncEngine = BeeCountSyncEngine(db: db, provider: provider);
+        syncEngine.start();
+        
+        try {
+          // 创建初始同步服务
+          final initialSyncService = BeeCountInitialSyncService(
+            db: db,
+            provider: provider,
+            sync: syncEngine,
+          );
+          
+          // 运行同步服务，拉取并合并服务器数据
+          await initialSyncService.run();
+          
+          // 检查每个数据表是否有服务器数据
+          final ledgers = await db.select(db.ledgers).get();
+          final accounts = await db.select(db.accounts).get();
+          final categories = await db.select(db.categories).get();
+          
+          final hasLedgers = ledgers.isNotEmpty;
+          final hasAccounts = accounts.isNotEmpty;
+          final hasCategories = categories.isNotEmpty;
+          
+          // 如果服务器没有账本数据，初始化默认账本
+          if (!hasLedgers) {
+            logger.info('WelcomeFinish', '服务器没有账本数据，初始化默认账本');
+            await SeedService.createDefaultLedger(db, l10n, 'CNY');
+            // 同步默认账本到服务器
+            final ledgers = await db.select(db.ledgers).get();
+            for (final r in ledgers) {
+              logger.info('WelcomeFinish', '同步账本 ${r.name} ID: ${r.id}');
+              await syncEngine.enqueueUpsert('ledgers', r.id);
+            }
+          }else{
+            logger.info('WelcomeFinish', '服务器已有账本数据，不需要初始化默认账本');
+          }
+          
+          // 如果服务器没有账户数据，初始化默认账户
+          if (!hasAccounts) {
+            logger.info('WelcomeFinish', '服务器没有账户数据，初始化默认账户');
+            final ledgers = await db.select(db.ledgers).get();
+            if (ledgers.isNotEmpty) {
+              await SeedService.createDefaultAccounts(db, ledgers.first.id, l10n, 'CNY');
+            }
+            // 同步默认账户到服务器
+            final accounts = await db.select(db.accounts).get();
+            for (final r in accounts) {
+              logger.info('WelcomeFinish', '同步账户 ${r.name} ID: ${r.id}');
+              await syncEngine.enqueueUpsert('accounts', r.id);
+            }
+          }else{
+            logger.info('WelcomeFinish', '服务器已有账户数据，不需要初始化默认账户');
+          }
+          
+          // 如果服务器没有分类数据，初始化默认分类
+          if (!hasCategories && _categoryMode != 'none') {
+            logger.info('WelcomeFinish', '服务器没有分类数据，初始化默认分类');
+            if (_categoryMode == 'hierarchical') {
+              await SeedService.createHierarchicalCategories(db, l10n);
+            } else {
+              await SeedService.createFlatCategories(db, l10n);
+            }
+            // 同步默认分类到服务器
+            final categories = await db.select(db.categories).get();
+            for (final r in categories) {
+              logger.info('WelcomeFinish', '同步分类 ${r.name} ID: ${r.id}');
+              await syncEngine.enqueueUpsert('categories', r.id);
+            }
+          }else{
+            logger.info('WelcomeFinish', '服务器已有分类数据，不需要初始化默认分类');
+          }
+          
+          // 确保创建虚拟转账分类
+          await SeedService.createTransferCategory(db, l10n);
+          await syncEngine.flush();
 
-      final syncEngine = ref.read(beecountSyncEngineProvider);
-      if (syncEngine != null) {
-        final ledgers = await db.select(db.ledgers).get();
-        for (final r in ledgers) {
-          logger.info('WelcomeFinish', '同步账本 ${r.name} ID: ${r.id}');
-          await syncEngine.enqueueUpsert('ledgers', r.id);
+        } finally {
+          syncEngine.dispose();
         }
-        final accounts = await db.select(db.accounts).get();
-        for (final r in accounts) {
-          logger.info('WelcomeFinish', '同步账户 ${r.name} ID: ${r.id}');
-          await syncEngine.enqueueUpsert('accounts', r.id);
-        }
-        final categories = await db.select(db.categories).get();
-        for (final r in categories) {
-          logger.info('WelcomeFinish', '同步分类 ${r.name} ID: ${r.id}');
-          await syncEngine.enqueueUpsert('categories', r.id);
-        }
-        final tags = await db.select(db.tags).get();
-        for (final r in tags) {
-          logger.info('WelcomeFinish', '同步标签 ${r.name} ID: ${r.id}');
-          await syncEngine.enqueueUpsert('tags', r.id);
-        }
-        final budgets = await db.select(db.budgets).get();
-        for (final r in budgets) {
-          logger.info('WelcomeFinish', '同步预算 ${r.categoryId} ID: ${r.id}');
-          await syncEngine.enqueueUpsert('budgets', r.id);
-        }
-        final recurring = await db.select(db.recurringTransactions).get();
-        for (final r in recurring) {
-          logger.info('WelcomeFinish', '同步重复交易 ${r.categoryId} ID: ${r.id}');
-          await syncEngine.enqueueUpsert('recurring_transactions', r.id);
-        }
-        final txs = await db.select(db.transactions).get();
-        for (final r in txs) {
-          logger.info('WelcomeFinish', '同步交易 ${r.ledgerId} ID: ${r.id}');
-          await syncEngine.enqueueUpsert('transactions', r.id);
-        }
-        final txTags = await db.select(db.transactionTags).get();
-        for (final r in txTags) {
-          logger.info('WelcomeFinish', '同步交易标签 ${r.transactionId} ID: ${r.id}');
-          await syncEngine.enqueueUpsert('transaction_tags', r.id);
-        }
-        await syncEngine.flush();
+      } else {
+        logger.info('WelcomeFinish', '离线模式，初始化默认本地数据');
+        // 离线模式，直接初始化默认本地数据
+        await db.ensureSeed(
+          l10n: l10n,
+          currency: 'CNY',
+          useHierarchicalCategories: _categoryMode == 'hierarchical',
+          skipCategories: _categoryMode == 'none',
+        );
       }
 
       ref.read(shouldShowWelcomeProvider.notifier).state = false;

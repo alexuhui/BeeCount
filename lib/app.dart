@@ -124,16 +124,12 @@ class _BeeAppState extends ConsumerState<BeeApp>
     logger.info('AppLink', 'BeeApp: AppLink 监听已设置');
   }
 
-  /// 后台刷新账本同步状态
+  /// 后台刷新账本状态
   void _refreshLedgersStatusInBackground() {
     Future.microtask(() async {
       try {
-        final syncService = ref.read(syncServiceProvider);
-        if (syncService is TransactionsSyncManager) {
-          await syncService.refreshAllLedgersStatus();
-          // 刷新完成后触发账本列表更新
-          ref.read(ledgerListRefreshProvider.notifier).state++;
-        }
+        // 直接触发账本列表更新，从服务器获取最新数据
+        ref.read(ledgerListRefreshProvider.notifier).state++;
       } catch (e) {
         // 静默失败，不影响App启动
       }

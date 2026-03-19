@@ -17,6 +17,8 @@ import '../../services/data/seed_service.dart';
 import '../../services/attachment_export_import_service.dart';
 import '../../utils/currencies.dart';
 import '../../widgets/ui/ui.dart';
+import '../../services/api/api_service.dart';
+import 'login_page.dart';
 
 /// 首次启动欢迎页面
 /// 展示应用的独特价值：隐私保护、开源透明、数据自主
@@ -37,6 +39,27 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
   bool _isImporting = false; // 导入状态
   bool _isExistingUserFlow = false; // 老用户流程
   bool _isImportingAttachment = false; // 附件导入状态
+  bool _isAuthenticated = false; // 认证状态
+  bool _isCheckingAuth = true; // 正在检查认证状态
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthStatus();
+  }
+
+  Future<void> _checkAuthStatus() async {
+    try {
+      _isAuthenticated = await ApiService.isAuthenticated();
+    } catch (e) {
+      logger.error('welcome', '检查认证状态失败', e);
+      _isAuthenticated = false;
+    } finally {
+      setState(() {
+        _isCheckingAuth = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -49,21 +72,29 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
 
-    // 老用户流程：只有1页（附件导入）
-    final existingUserPages = [
-      _buildAttachmentImportPage(context, theme, l10n),
-    ];
+    // 检查认证状态
+    if (_isCheckingAuth) {
+      return Scaffold(
+        backgroundColor: theme.primaryColor,
+        body: SafeArea(
+          child: Center(
+            child: CircularProgressIndicator(
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+    }
 
-    // 新用户流程：5页
-    final newUserPages = [
-      _buildWelcomePage(context, theme, l10n), // 第1屏：语言选择
-      _buildCurrencyPage(context, theme, l10n), // 第2屏：货币选择
-      _buildCategoryModePage(context, theme, l10n), // 第3屏：分类模式
-      _buildCloudSyncPage(context, theme, l10n), // 第4屏：云同步
-      _buildPrivacyAndOpenSourcePage(context, theme, l10n), // 第5屏：隐私保护+开源透明
-    ];
+    // 未认证：显示登录/注册页面
+    if (!_isAuthenticated) {
+      return LoginPage();
+    }
 
-    final pages = _isExistingUserFlow ? existingUserPages : newUserPages;
+    // 已认证：显示分类选择界面
+    final pages = [
+      _buildCategoryModePage(context, theme, l10n), // 分类模式选择
+    ];
     final pageCount = pages.length;
 
     return Scaffold(
@@ -71,33 +102,11 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
       body: SafeArea(
         child: Column(
           children: [
-            // 页面指示器
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  pageCount,
-                  (index) => Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: _currentPage == index ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: _currentPage == index
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
             // 页面内容
             Expanded(
               child: PageView(
                 controller: _pageController,
-                physics: _isExistingUserFlow ? const NeverScrollableScrollPhysics() : null,
+                physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (index) {
                   setState(() {
                     _currentPage = index;
@@ -107,55 +116,26 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
               ),
             ),
 
-            // 底部按钮（老用户流程不显示，由页面内自带按钮处理）
-            if (!_isExistingUserFlow)
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  children: [
-                    if (_currentPage > 0)
-                      TextButton(
-                        onPressed: () {
-                          _pageController.previousPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                        ),
-                        child: Text(l10n.commonPrevious),
-                      ),
-                    const Spacer(),
-                    if (_currentPage < 4)
-                      FilledButton(
-                        onPressed: () {
-                          _pageController.nextPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        },
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: theme.primaryColor,
-                        ),
-                        child: Text(l10n.commonNext),
-                      )
-                    else
-                      FilledButton(
-                        onPressed: _isInitializing ? null : () => _finishWelcome(context),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: theme.primaryColor,
-                        ),
-                        child: _isInitializing
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : Text(l10n.commonFinish),
-                      ),
+            // 底部按钮
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  const Spacer(),
+                  FilledButton(
+                    onPressed: _isInitializing ? null : () => _finishWelcome(context),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: theme.primaryColor,
+                    ),
+                    child: _isInitializing
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(l10n.commonFinish),
+                  ),
                 ],
               ),
             ),
@@ -680,9 +660,9 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
       // 保存用户选择的货币
       await prefs.setString('selected_currency', _selectedCurrency);
 
-      // 初始化数据库（使用用户选择的语言和设置）
+      // 初始化服务器数据
       if (context.mounted) {
-        logger.info('welcome', '开始初始化数据库');
+        logger.info('welcome', '开始初始化服务器数据');
         logger.info('welcome', '货币: $_selectedCurrency');
         final categoryModeText = _categoryMode == 'hierarchical'
             ? '二级分类'
@@ -692,32 +672,49 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
         logger.info('welcome', '分类模式: $categoryModeText');
 
         final l10n = AppLocalizations.of(context);
-        final db = ref.read(databaseProvider);
-
+        
+        // 创建默认账本
+        await ApiService.createLedger('默认账本', _selectedCurrency, 'personal');
+        
         // 根据用户选择创建分类
-        // 注意: 使用 databaseProvider 直接访问数据库，因为 ensureSeed 是数据库初始化方法
         if (_categoryMode != 'none') {
-          await db.ensureSeed(
-            l10n: l10n,
-            currency: _selectedCurrency,
-            useHierarchicalCategories: _categoryMode == 'hierarchical',
-          );
-        } else {
-          // 只创建默认账本，不创建分类
-          await db.ensureSeed(
-            l10n: l10n,
-            currency: _selectedCurrency,
-            skipCategories: true,
-          );
+          // 创建默认分类
+          final expenseCategories = [
+            {'name': '餐饮', 'kind': 'expense', 'icon': 'restaurant', 'sort_order': 0, 'level': 1},
+            {'name': '交通', 'kind': 'expense', 'icon': 'directions_car', 'sort_order': 1, 'level': 1},
+            {'name': '购物', 'kind': 'expense', 'icon': 'shopping_cart', 'sort_order': 2, 'level': 1},
+            {'name': '娱乐', 'kind': 'expense', 'icon': 'movie', 'sort_order': 3, 'level': 1},
+            {'name': '医疗', 'kind': 'expense', 'icon': 'local_hospital', 'sort_order': 4, 'level': 1},
+          ];
+          
+          final incomeCategories = [
+            {'name': '工资', 'kind': 'income', 'icon': 'work', 'sort_order': 0, 'level': 1},
+            {'name': '奖金', 'kind': 'income', 'icon': 'card_giftcard', 'sort_order': 1, 'level': 1},
+            {'name': '投资', 'kind': 'income', 'icon': 'trending_up', 'sort_order': 2, 'level': 1},
+            {'name': '其他', 'kind': 'income', 'icon': 'more_horiz', 'sort_order': 3, 'level': 1},
+          ];
+          
+          for (final category in expenseCategories) {
+            await ApiService.createCategory(category);
+          }
+          
+          for (final category in incomeCategories) {
+            await ApiService.createCategory(category);
+          }
         }
 
-        logger.info('welcome', '数据库初始化完成');
+        logger.info('welcome', '服务器数据初始化完成');
       }
 
       if (context.mounted) {
         // 首次启动的情况，标记欢迎页面已完成，触发重新构建
         // 这将显示启屏页面（如果初始化未完成）或主应用（如果已完成）
         ref.read(shouldShowWelcomeProvider.notifier).state = false;
+      }
+    } catch (e, st) {
+      logger.error('welcome', '初始化失败', e, st);
+      if (context.mounted) {
+        showToast(context, '初始化失败：$e');
       }
     } finally {
       if (mounted) {

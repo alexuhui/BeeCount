@@ -35,23 +35,11 @@ class LedgerCard extends ConsumerWidget {
     final primaryColor = ref.watch(primaryColorProvider);
     final l10n = AppLocalizations.of(context);
 
-    // 获取同步状态
-    final syncStatusAsync = ref.watch(syncStatusProvider(ledger.id));
-    final syncStatus = syncStatusAsync.valueOrNull;
-
-    // 检查是否正在上传
-    final uploadingIds = ref.watch(uploadingLedgerIdsProvider);
-    final isUploading = !ledger.isRemoteOnly && uploadingIds.contains(ledger.id);
-
     // 判断同步状态
     final isRemote = ledger.isRemoteOnly;
-    final isSynced = syncStatus?.diff == SyncDiff.inSync;
-
-    // 非同步状态：除了inSync和noRemote之外的所有状态
-    final isNotSynced = syncStatus != null &&
-        syncStatus.diff != SyncDiff.inSync &&
-        syncStatus.diff != SyncDiff.noRemote &&
-        syncStatus.diff != SyncDiff.notConfigured;
+    final isSynced = true; // 现在所有数据都在服务器上，默认已同步
+    final isUploading = false; // 不再需要上传状态
+    final isNotSynced = false; // 不再需要未同步状态
 
     return GestureDetector(
       onTap: onTap,

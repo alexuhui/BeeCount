@@ -3,12 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drift/drift.dart';
 import '../data/db.dart';
 import '../data/repositories/local/local_repository.dart';
-import '../data/repositories/cloud/cloud_repository.dart';
 import '../data/repositories/base_repository.dart';
 import '../services/system/logger_service.dart';
 import 'sync_providers.dart';
-import 'cloud_mode_providers.dart';
-import 'supabase_providers.dart';
 
 // 数据库Provider
 final databaseProvider = Provider<BeeDatabase>((ref) {
@@ -17,60 +14,18 @@ final databaseProvider = Provider<BeeDatabase>((ref) {
   return db;
 });
 
-// 仓储Provider - 根据 AppMode 自动切换实现
-// 返回 BaseRepository 类型，确保类型安全
-// LocalRepository (本地模式) 和 CloudRepository (云端模式) 都继承 BaseRepository
+// 仓储Provider - 现在只使用本地存储作为缓存
+// 所有数据操作都会通过 API 与服务器同步
 final repositoryProvider = Provider<BaseRepository>((ref) {
-  final mode = ref.watch(appModeProvider);
   final db = ref.watch(databaseProvider);
-
-  logger.info('RepositoryProvider', '当前模式: ${mode.label}');
-
-  switch (mode) {
-    case AppMode.local:
-      // 本地优先模式：使用 LocalRepository（基于 Drift）
-      logger.info('RepositoryProvider', '✅ 使用 LocalRepository (本地模式)');
-      return LocalRepository(db);
-
-    case AppMode.cloud:
-      // 仅云端模式：使用 CloudRepository（基于 Supabase）
-      final supabaseAsync = ref.watch(supabaseInstanceProvider);
-
-      logger.info('RepositoryProvider', 'Supabase 状态: hasValue=${supabaseAsync.hasValue}, value=${supabaseAsync.value != null ? "已加载" : "null"}');
-
-      // 如果 Supabase 未加载完成或为 null，回退到本地模式
-      if (!supabaseAsync.hasValue || supabaseAsync.value == null) {
-        logger.warning('RepositoryProvider', '⚠️ Supabase 未就绪，回退到 LocalRepository');
-        return LocalRepository(db);
-      }
-
-      logger.info('RepositoryProvider', '✅ 使用 CloudRepository (仅云端模式)');
-      return CloudRepository(supabaseAsync.value!);
-  }
+  logger.info('RepositoryProvider', '✅ 使用 LocalRepository (作为缓存)');
+  return LocalRepository(db);
 });
 
-// 新增：根据 AppMode 返回对应的 Repository 实现
-// 这个 Provider 返回抽象接口类型，可以是本地或云端实现
+// 新增：统一返回本地存储实现
 final dynamicRepositoryProvider = Provider<Object>((ref) {
-  final mode = ref.watch(appModeProvider);
   final db = ref.watch(databaseProvider);
-
-  switch (mode) {
-    case AppMode.local:
-      // 本地模式：使用 LocalRepository（基于 Drift）
-      return LocalRepository(db);
-
-    case AppMode.cloud:
-      // 云端模式：使用 CloudRepository（基于 Supabase）
-      final supabaseAsync = ref.watch(supabaseInstanceProvider);
-
-      // 如果 Supabase 未加载完成或为 null，回退到本地模式
-      if (!supabaseAsync.hasValue || supabaseAsync.value == null) {
-        return LocalRepository(db);
-      }
-
-      return CloudRepository(supabaseAsync.value!);
-  }
+  return LocalRepository(db);
 });
 
 // 记住当前账本：启动时加载，切换时持久化
@@ -120,12 +75,12 @@ final _currentLedgerPersist = Provider<void>((ref) {
   });
 });
 
-// 当账本切换时，顺便触发一次设置页状态刷新（确保"我的"页及时反映）
+// 当账本切换时，确保持久化监听
 final _ledgerChangeListener = Provider<void>((ref) {
   // 激活持久化监听
   ref.read(_currentLedgerPersist);
   ref.listen<int>(currentLedgerIdProvider, (prev, next) {
-    ref.read(syncStatusRefreshProvider.notifier).state++;
+    // 账本切换时不需要触发同步状态刷新
   });
 });
 

@@ -551,8 +551,7 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
           container.invalidate(countsForLedgerProvider(ledgerId));
           // 触发全局统计刷新（用于"我的"页顶部聚合信息）
           container.read(statsRefreshProvider.notifier).state++;
-          // 触发一次同步状态刷新（UI 端会复用缓存避免闪烁）
-          container.read(syncStatusRefreshProvider.notifier).state++;
+
         } catch (_) {
           // 忽略延迟刷新错误
         }

@@ -89,7 +89,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         final docDir = await getApplicationDocumentsDirectory();
         directory = docDir.path;
         shareAfter = true;
-      } else {
+      } else if (Platform.isAndroid) {
         // Android: 直接保存到公共 Download/BeeCount 目录
         const downloadPath = '/storage/emulated/0/Download/BeeCount';
         final dir = Directory(downloadPath);
@@ -97,6 +97,18 @@ class _ExportPageState extends ConsumerState<ExportPage> {
           await dir.create(recursive: true);
         }
         directory = downloadPath;
+      } else if (Platform.isWindows) {
+        // Windows: 下载目录， 
+        final docDir = await getDownloadsDirectory();
+        directory = docDir?.path ?? '';
+        if (directory.isEmpty) {
+          showToast(context, '无法获取下载目录');
+          return;
+        }
+      } else {
+        // 其他平台: 不支持导出
+        showToast(context, '不支持在${Platform.operatingSystem}上导出数据');
+        return;
       }
 
       // 获取交易和分类数据

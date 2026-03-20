@@ -24,7 +24,6 @@ class WelcomePage extends ConsumerStatefulWidget {
 
 class _WelcomePageState extends ConsumerState<WelcomePage> {
   final PageController _pageController = PageController();
-  final TextEditingController _serverUrlController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
@@ -36,22 +35,18 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
   bool _loggedIn = false;
   bool _isRegister = false;
 
-  final defaultServerUrl = 'http://172.25.26.17:8080';
+  /// 服务器列表
+  final serverUrls = [
+    {'name': '测试服务器', 'ip': '172.25.26.17', 'port': 6060, 'scheme':'http://'},
+    {'name': '线上服务器', 'ip': '43.139.239.34', 'port': 6060, 'scheme':'http://'},
+  ];
 
-  _setDefaultServerUrl() {
-    _serverUrlController.text = defaultServerUrl;
-  }
+  int _selectedServerIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _setDefaultServerUrl();
-  }
 
   @override
   void dispose() {
     _pageController.dispose();
-    _serverUrlController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -277,17 +272,33 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
             ),
             child: Column(
               children: [
-                TextField(
-                  controller: _serverUrlController,
-                  enabled: !_isSubmitting && !_offlineSelected,
+                DropdownButtonFormField<int>(
+                  value: _selectedServerIndex,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: l10n.cloudBeeCountServerUrlLabel,
                     labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
-                    hintText: l10n.cloudBeeCountServerUrlHint,
-                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
+                  dropdownColor: Colors.black.withValues(alpha: 0.8),
+                  onChanged: (!_isSubmitting && !_offlineSelected) ? (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedServerIndex = value;
+                      });
+                    }
+                  } : null,
+                  items: serverUrls.asMap().entries.map((entry) {
+                    int index = entry.key;
+                    Map<String, dynamic> server = entry.value;
+                    return DropdownMenuItem<int>(
+                      value: index,
+                      child: Text(
+                        '${server['name']} (${server['ip']})',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    );
+                  }).toList(),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -394,7 +405,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
 
   Future<void> _submitAuth(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
-    final serverUrl = _serverUrlController.text.trim();
+    final serverUrl = '${serverUrls[_selectedServerIndex]['scheme']}${serverUrls[_selectedServerIndex]['ip']}:${serverUrls[_selectedServerIndex]['port']}';
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
 

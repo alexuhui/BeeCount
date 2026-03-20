@@ -13,6 +13,7 @@ import '../../data/repositories/base_repository.dart';
 import '../../data/db.dart';
 import '../../widgets/ui/ui.dart';
 import '../../utils/category_utils.dart';
+import '../../widgets/ui/wheel_date_picker.dart';
 
 class ExportPage extends ConsumerStatefulWidget {
   const ExportPage({super.key});
@@ -24,27 +25,99 @@ class _ExportPageState extends ConsumerState<ExportPage> {
   bool exporting = false;
   double progress = 0;
   String? savedPath;
+  DateTime? startDate;
+  DateTime? endDate;
 
   @override
   Widget build(BuildContext context) {
     final repo = ref.watch(repositoryProvider);
     final ledgerId = ref.watch(currentLedgerIdProvider);
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: Column(
         children: [
-          PrimaryHeader(title: AppLocalizations.of(context).exportTitle, showBack: true),
+          PrimaryHeader(title: l10n.exportTitle, showBack: true),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(AppLocalizations.of(context).exportDescription),
-                  const SizedBox(height: 12),
+                  Text(l10n.exportDescription),
+                  const SizedBox(height: 16),
+                  // 日期范围选择
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('日期范围'),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('开始日期'),
+                                    const SizedBox(height: 8),
+                                    FilledButton(
+                                      onPressed: () async {
+                                        final date = await showWheelDatePicker(
+                                          context,
+                                          initial: startDate ?? DateTime(DateTime.now().year, 1, 1),
+                                          minDate: DateTime(2000, 1, 1),
+                                          maxDate: DateTime.now(),
+                                        );
+                                        if (date != null) {
+                                          setState(() => startDate = date);
+                                        }
+                                      },
+                                      child: Text(startDate != null 
+                                        ? DateFormat('yyyy-MM-dd').format(startDate!)
+                                        : '选择开始日期'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('结束日期'),
+                                    const SizedBox(height: 8),
+                                    FilledButton(
+                                      onPressed: () async {
+                                        final date = await showWheelDatePicker(
+                                          context,
+                                          initial: endDate ?? DateTime.now(),
+                                          minDate: startDate ?? DateTime(2000, 1, 1),
+                                          maxDate: DateTime.now(),
+                                        );
+                                        if (date != null) {
+                                          setState(() => endDate = date);
+                                        }
+                                      },
+                                      child: Text(endDate != null 
+                                        ? DateFormat('yyyy-MM-dd').format(endDate!)
+                                        : '选择结束日期'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   FilledButton.icon(
                     onPressed: exporting ? null : () => _export(repo, ledgerId),
                     icon: const Icon(Icons.save_alt_outlined),
-                    label: Text(Platform.isIOS ? AppLocalizations.of(context).exportButtonIOS : AppLocalizations.of(context).exportButtonAndroid),
+                    label: Text(Platform.isIOS ? l10n.exportButtonIOS : l10n.exportButtonAndroid),
                   ),
                   const SizedBox(height: 16),
                   if (exporting)
@@ -64,7 +137,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                     ),
                   if (savedPath != null) ...[
                     const SizedBox(height: 12),
-                    Text(AppLocalizations.of(context).exportSavedTo(savedPath!)),
+                    Text(l10n.exportSavedTo(savedPath!)),
                   ],
                 ],
               ),
@@ -111,35 +184,27 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         return;
       }
 
+      // 设置默认日期范围（如果未选择）
+      final start = startDate ?? DateTime(DateTime.now().year, 1, 1);
+      final end = endDate ?? DateTime.now();
+      final l10n = AppLocalizations.of(context);
+
+      // 生成日期范围字符串
+      final dateRangeStr = '${start.year}.${start.month.toString().padLeft(2, '0')}.${start.day.toString().padLeft(2, '0')}-${end.year}.${end.month.toString().padLeft(2, '0')}.${end.day.toString().padLeft(2, '0')}';
+
       // 获取交易和分类数据
       final transactionsWithCategory = await repo.transactionsWithCategoryAll(ledgerId: ledgerId).first;
-      final total = transactionsWithCategory.length;
-      final rows = <List<dynamic>>[];
-      final l10n = AppLocalizations.of(context);
-      rows.add([
-        l10n.exportCsvHeaderType,
-        l10n.exportCsvHeaderCategory,
-        l10n.exportCsvHeaderSubCategory, // 二级分类名称
-        l10n.exportCsvHeaderAmount,
-        l10n.exportCsvHeaderAccount,
-        l10n.exportCsvHeaderFromAccount, // 转出账户
-        l10n.exportCsvHeaderToAccount,   // 转入账户
-        l10n.exportCsvHeaderNote,
-        l10n.exportCsvHeaderTime,
-        l10n.exportCsvHeaderTags,
-        l10n.exportCsvHeaderAttachments, // 附件文件名（逗号分隔）
-      ]);
+      
+      // 过滤日期范围内的交易
+      final filteredTransactions = transactionsWithCategory.where((tx) {
+        final txDate = tx.t.happenedAt.toLocal();
+        return txDate.isAfter(start.subtract(const Duration(days: 1))) && 
+               txDate.isBefore(end.add(const Duration(days: 1)));
+      }).toList();
 
-      // 批量获取所有交易的标签
-      final transactionIds = transactionsWithCategory.map((tx) => tx.t.id).toList();
-      final tagsMap = await repo.getTagsForTransactions(transactionIds);
-
-      // 批量获取所有交易的附件
-      final attachmentsMap = await repo.getAttachmentsForTransactions(transactionIds);
-
-      // 缓存所有账户信息，避免重复查询
-      final allAccounts = await repo.getAllAccounts();
-      final accountMap = {for (var acc in allAccounts) acc.id: acc};
+      // 按一级分类分组统计收入和支出
+      final incomeByCategory = <String, double>{};
+      final expenseByCategory = <String, double>{};
 
       // 缓存所有分类信息（包括父分类）
       final incomeCategories = await repo.getTopLevelCategories('income');
@@ -154,92 +219,97 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         }
       }
 
-      for (int i = 0; i < transactionsWithCategory.length; i++) {
-        final txWithCat = transactionsWithCategory[i];
+      // 统计收入和支出
+      for (final txWithCat in filteredTransactions) {
         final t = txWithCat.t;
         final c = txWithCat.category;
-        final a = t.accountId != null ? accountMap[t.accountId] : null;
-        // 使用完整的时间格式，包含年份和秒，添加前导空格增加列宽
-        final timeStr = () {
-          try {
-            final localTime = t.happenedAt.toLocal();
-            // 完整时间格式: YYYY-MM-DD HH:mm:ss，前面添加空格增加列宽
-            return '  ${localTime.year}-${localTime.month.toString().padLeft(2, '0')}-${localTime.day.toString().padLeft(2, '0')} ${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}:${localTime.second.toString().padLeft(2, '0')}  ';
-          } catch (e) {
-            return '';
-          }
-        }();
-        final typeStr = _getTypeDisplayName(t.type);
-
-        // 对于转账类型，需要特殊处理账户信息
-        String accountName;
-        String fromAccountName;
-        String toAccountName;
-        String categoryName;
-        String subCategoryName;
-
-        if (t.type == 'transfer') {
-          // 转账记录：账户列留空，填充转出账户和转入账户
-          accountName = '';
-          final fromAccount = accountMap[t.accountId];
-          final toAccount = accountMap[t.toAccountId];
-          fromAccountName = fromAccount?.name ?? '';
-          toAccountName = toAccount?.name ?? '';
-          categoryName = ''; // 转账没有分类
-          subCategoryName = '';
-        } else {
-          // 收入或支出：正常填充账户列，转出转入账户留空
-          accountName = a?.name ?? '';
-          fromAccountName = '';
-          toAccountName = '';
-
-          // 处理分类信息
+        
+        if (t.type == 'income' || t.type == 'expense') {
+          String categoryName = '';
           if (c != null) {
             if (c.level == 2 && c.parentId != null) {
-              // 二级分类：分类列填一级分类名称，二级分类列填当前分类名称
+              // 二级分类：使用一级分类名称
               final parentCategory = allCategories[c.parentId];
               categoryName = CategoryUtils.getDisplayName(parentCategory?.name, context);
-              subCategoryName = CategoryUtils.getDisplayName(c.name, context);
             } else {
-              // 一级分类：分类列填当前分类，二级分类列留空
+              // 一级分类：使用当前分类名称
               categoryName = CategoryUtils.getDisplayName(c.name, context);
-              subCategoryName = '';
             }
-          } else {
-            categoryName = '';
-            subCategoryName = '';
           }
-        }
-
-        // 获取该交易的标签，用逗号分隔
-        final transactionTags = tagsMap[t.id] ?? [];
-        final tagsStr = transactionTags.map((tag) => tag.name).join(',');
-
-        // 获取该交易的附件，用逗号分隔文件名
-        final transactionAttachments = attachmentsMap[t.id] ?? [];
-        final attachmentsStr = transactionAttachments.map((a) => a.fileName).join(',');
-
-        rows.add([
-          typeStr,
-          categoryName,
-          subCategoryName,
-          t.amount.toStringAsFixed(2),
-          accountName,
-          fromAccountName,
-          toAccountName,
-          t.note ?? '',
-          timeStr,
-          tagsStr,
-          attachmentsStr,
-        ]);
-        if (i % 50 == 0) {
-          setState(() => progress = (i + 1) / (total == 0 ? 1 : total));
+          
+          if (categoryName.isNotEmpty) {
+            if (t.type == 'income') {
+              incomeByCategory[categoryName] = (incomeByCategory[categoryName] ?? 0) + t.amount;
+            } else {
+              expenseByCategory[categoryName] = (expenseByCategory[categoryName] ?? 0) + t.amount;
+            }
+          }
         }
       }
 
+      // 获取预算数据
+      final categoryBudgets = <String, double>{};
+      
+      // 获取日期范围内每个月的预算
+      for (int year = start.year; year <= end.year; year++) {
+        int startMonth = year == start.year ? start.month : 1;
+        int endMonth = year == end.year ? end.month : 12;
+        
+        for (int month = startMonth; month <= endMonth; month++) {
+          final monthBudgets = await repo.getCategoryBudgetsByMonth(ledgerId, year, month);
+          for (final budget in monthBudgets) {
+            if (budget.categoryId != null) {
+              final category = allCategories[budget.categoryId!];
+              if (category != null) {
+                String categoryName = CategoryUtils.getDisplayName(category.name, context);
+                categoryBudgets[categoryName] = (categoryBudgets[categoryName] ?? 0) + budget.amount;
+              }
+            }
+          }
+        }
+      }
+
+      // 生成 CSV 数据
+      final rows = <List<dynamic>>[];
+      
+      // 添加周期标题
+      rows.add(['周期 $dateRangeStr']);
+      rows.add([]);
+      
+      // 收入部分
+      rows.add(['收入', '预算金额', '实际金额', '差额']);
+      for (final entry in incomeByCategory.entries) {
+        final category = entry.key;
+        final actual = entry.value;
+        final budget = categoryBudgets[category] ?? 0.0;
+        final difference = actual - budget;
+        rows.add([category, budget.toStringAsFixed(2), actual.toStringAsFixed(2), difference.toStringAsFixed(2)]);
+      }
+      // 添加收入合计
+      final totalIncome = incomeByCategory.values.fold(0.0, (sum, amount) => sum + amount);
+      final totalIncomeBudget = incomeByCategory.keys.fold(0.0, (sum, category) => sum + (categoryBudgets[category] ?? 0.0));
+      final totalIncomeDiff = totalIncome - totalIncomeBudget;
+      rows.add(['合计', totalIncomeBudget.toStringAsFixed(2), totalIncome.toStringAsFixed(2), totalIncomeDiff.toStringAsFixed(2)]);
+      rows.add([]);
+      
+      // 支出部分
+      rows.add(['支出', '预算金额', '实际金额', '差额']);
+      for (final entry in expenseByCategory.entries) {
+        final category = entry.key;
+        final actual = entry.value;
+        final budget = categoryBudgets[category] ?? 0.0;
+        final difference = budget - actual;
+        rows.add([category, budget.toStringAsFixed(2), actual.toStringAsFixed(2), difference.toStringAsFixed(2)]);
+      }
+      // 添加支出合计
+      final totalExpense = expenseByCategory.values.fold(0.0, (sum, amount) => sum + amount);
+      final totalExpenseBudget = expenseByCategory.keys.fold(0.0, (sum, category) => sum + (categoryBudgets[category] ?? 0.0));
+      final totalExpenseDiff = totalExpenseBudget -totalExpense;
+      rows.add(['合计', totalExpenseBudget.toStringAsFixed(2), totalExpense.toStringAsFixed(2), totalExpenseDiff.toStringAsFixed(2)]);
+
       final csvStr = const ListToCsvConverter(eol: '\n').convert(rows);
       final ts = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final path = p.join(directory, 'beecount_$ts.csv');
+      final path = p.join(directory, 'beecount_budget_$ts.csv');
       
       // 添加UTF-8 BOM标记，确保Excel正确识别中文编码
       const utf8Bom = '\uFEFF';

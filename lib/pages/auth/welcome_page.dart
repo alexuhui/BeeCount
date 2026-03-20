@@ -1,6 +1,8 @@
 import 'package:beecount/data/db.dart';
+import 'package:beecount/providers/sync_providers.dart';
 import 'package:beecount/services/sync/beecount_sync_engine.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -432,6 +434,9 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
       }
 
       if (!mounted) return;
+      /// 保存账号密码
+      await _saveCredentials(username, password);
+
       setState(() {
         _offlineSelected = false;
         _loggedIn = true;
@@ -642,6 +647,33 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
       await AppDialog.error(context, title: l10n.commonError, message: e.toString());
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _saveCredentials(String email, String password) async {
+    // Only save credentials when in Supabase or BeeCount mode
+    try {
+      final cloudConfig = await ref.read(activeCloudConfigProvider.future);
+      final store = ref.read(cloudServiceStoreProvider);
+
+      // Create updated config with or without credentials based on checkbox
+      CloudServiceConfig updatedConfig;
+      updatedConfig = CloudServiceConfig(
+        type: CloudBackendType.beecount,
+        name: cloudConfig.name,
+        beecountServerUrl: cloudConfig.beecountServerUrl,
+        beecountUsername: email,
+        beecountPassword: password,
+      );
+
+      await store.saveOnly(updatedConfig);
+      ref.invalidate(supabaseConfigProvider);
+      ref.invalidate(beecountConfigProvider);
+      ref.invalidate(activeCloudConfigProvider);
+
+      logger.info('auth', '账号密码保存状态：已保存');
+    } catch (e, st) {
+      logger.error('auth', '保存账号密码失败', e, st);
     }
   }
 }

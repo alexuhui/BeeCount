@@ -5,8 +5,6 @@ import 'theme_providers.dart';
 import 'statistics_providers.dart';
 import 'font_scale_provider.dart';
 import 'update_providers.dart';
-import 'cloud_mode_providers.dart';
-import 'supabase_providers.dart';
 import 'smart_billing_providers.dart';
 import 'sync_providers.dart';
 import '../data/db.dart';
@@ -312,7 +310,9 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
 /// 尝试自动登录
 Future<void> _tryAutoLogin(Ref ref) async {
   try {
+
     final cloudConfig = await ref.read(activeCloudConfigProvider.future);
+    logger.info('AutoLogin', '开始尝试自动登录 type : ${cloudConfig.type}');
     if (cloudConfig.type == CloudBackendType.local) {
       // 本地模式不需要登录
       return;
@@ -328,6 +328,8 @@ Future<void> _tryAutoLogin(Ref ref) async {
       email = cloudConfig.beecountUsername;
       password = cloudConfig.beecountPassword;
     }
+
+    logger.info('AutoLogin', '当前云后端类型: ${cloudConfig.type}  邮箱: $email  密码: ${password}');
 
     if (email != null && email.isNotEmpty && password != null && password.isNotEmpty) {
       logger.info('AutoLogin', '尝试自动登录: $email');

@@ -135,6 +135,8 @@ class BeeCountInitialSyncService {
         parse(row['happenedAt']) ??
         parse(row['start_date']) ??
         parse(row['startDate']);
+
+    logger.info('InitialSync', '解析时间 $dt');
     if (dt == null) return 0;
     return dt.toUtc().millisecondsSinceEpoch ~/ 1000;
   }
@@ -165,6 +167,7 @@ class BeeCountInitialSyncService {
           final remoteId = idRaw is int ? idRaw : int.tryParse(idRaw.toString());
           if (remoteId == null) continue;
 
+          logger.info('InitialSync', '合并 $entity  $remoteId');
           final did = await _mergeOne(entity, remoteId, r);
           if (did) progressed = true;
         }

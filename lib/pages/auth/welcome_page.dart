@@ -43,7 +43,8 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
   /// 服务器列表
   final serverUrls = [
     {'name': '线上服务器', 'ip': '43.139.239.34', 'port': 6060, 'scheme':'http://'},
-    {'name': '测试服务器', 'ip': '172.25.26.17', 'port': 6060, 'scheme':'http://'},
+    {'name': '测试服务器1', 'ip': '172.25.26.17', 'port': 6060, 'scheme':'http://'},
+    {'name': '测试服务器2', 'ip': '192.168.31.152', 'port': 6060, 'scheme':'http://'},
   ];
 
   int _selectedServerIndex = 0;

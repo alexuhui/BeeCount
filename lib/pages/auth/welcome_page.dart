@@ -1,4 +1,3 @@
-import 'package:beecount/data/db.dart';
 import 'package:beecount/providers/sync_providers.dart';
 import 'package:beecount/services/sync/beecount_sync_engine.dart';
 import 'package:flutter/material.dart';
@@ -18,14 +17,18 @@ import '../../services/sync/beecount_initial_sync_service.dart';
 import '../../widgets/ui/ui.dart';
 
 class WelcomePage extends ConsumerStatefulWidget {
-  const WelcomePage({super.key});
+  final int? index;
+  const WelcomePage({
+    this.index,
+    super.key
+  });
 
   @override
   ConsumerState<WelcomePage> createState() => _WelcomePageState();
 }
 
 class _WelcomePageState extends ConsumerState<WelcomePage> {
-  final PageController _pageController = PageController();
+  late PageController _pageController;
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
@@ -39,12 +42,18 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
 
   /// 服务器列表
   final serverUrls = [
-    {'name': '测试服务器', 'ip': '172.25.26.17', 'port': 6060, 'scheme':'http://'},
     {'name': '线上服务器', 'ip': '43.139.239.34', 'port': 6060, 'scheme':'http://'},
+    {'name': '测试服务器', 'ip': '172.25.26.17', 'port': 6060, 'scheme':'http://'},
   ];
 
   int _selectedServerIndex = 0;
-
+  
+  @override
+  void initState() {
+    super.initState();
+    _currentPage = widget.index ?? 0;
+    _pageController = PageController(initialPage: _currentPage);
+  }
 
   @override
   void dispose() {

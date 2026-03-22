@@ -1,3 +1,4 @@
+import '../../../services/system/logger_service.dart';
 import '../../db.dart';
 import '../base_repository.dart';
 import '../budget_repository.dart';
@@ -1212,4 +1213,54 @@ class LocalRepository extends BaseRepository {
   @override
   Stream<int> watchAttachmentCountByTransaction(int transactionId) =>
       _attachmentRepo.watchAttachmentCountByTransaction(transactionId);
+
+  @override
+  Future<void> clearAllData() async {
+    await db.transaction(() async {
+      // 按照依赖关系顺序删除数据
+      // 1. 删除交易附件
+      await (db.delete(db.transactionAttachments)).go();
+      logger.info('LocalRepository', '已删除所有交易附件');
+      // 2. 删除交易标签关联
+      await (db.delete(db.transactionTags)).go();
+      logger.info('LocalRepository', '已删除所有交易标签关联');
+      // 3. 删除交易
+      await (db.delete(db.transactions)).go();
+      logger.info('LocalRepository', '已删除所有交易');
+      // 4. 删除预算
+      await (db.delete(db.budgets)).go();
+      logger.info('LocalRepository', '已删除所有预算');
+      // 5. 删除账户
+      await (db.delete(db.accounts)).go();
+      logger.info('LocalRepository', '已删除所有账户');
+      // 6. 删除标签
+      await (db.delete(db.tags)).go();
+      logger.info('LocalRepository', '已删除所有标签');
+      // 7. 删除分类
+      await (db.delete(db.categories)).go();
+      logger.info('LocalRepository', '已删除所有分类'); 
+      // 8. 删除消息
+      await (db.delete(db.messages)).go();
+      logger.info('LocalRepository', '已删除所有消息');
+      // 9. 删除会话
+      await (db.delete(db.conversations)).go();
+      logger.info('LocalRepository', '已删除所有会话');
+      // 10. 删除循环交易
+      await (db.delete(db.recurringTransactions)).go();
+      logger.info('LocalRepository', '已删除所有循环交易');
+      // 11. 删除账本
+      await (db.delete(db.ledgers)).go();
+      logger.info('LocalRepository', '已删除所有账本');
+
+      // 12. 清空同步ID映射
+      await db.customStatement('DELETE FROM sync_id_maps');
+      logger.info('LocalRepository', '已清空同步ID映射');
+      // 13. 清空本地变更日志
+      await db.customStatement('DELETE FROM local_change_log');
+      logger.info('LocalRepository', '已清空本地变更日志');
+      // 14. 清空同步队列
+      await db.customStatement('DELETE FROM sync_queue_items');
+      logger.info('LocalRepository', '已清空同步队列');
+    });
+  }
 }

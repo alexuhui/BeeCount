@@ -28,4 +28,8 @@ abstract class BaseRepository
         AIRepository,
         TagRepository,
         BudgetRepository,
-        AttachmentRepository {}
+        AttachmentRepository {
+  /// 清空所有本地数据
+  /// 注意：此操作会删除所有账本、交易、分类、账户等数据，不可恢复
+  Future<void> clearAllData();
+}

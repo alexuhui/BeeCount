@@ -372,12 +372,12 @@ class MainApp extends ConsumerWidget {
     if (shouldShowWelcome) {
       return const WelcomePage();
     }
-
+    logger.info('App', '应用初始化状态: $initState');
     // 欢迎页面完成后，根据初始化状态显示对应页面
     if (initState != AppInitState.ready) {
       return const SplashPage();
     }
-
+    logger.info('App', '应用初始化状态 22222222222: $initState');
     return const BeeApp();
   }
 
@@ -388,8 +388,9 @@ class MainApp extends ConsumerWidget {
 
     // 检查应用初始化状态
     final initState = ref.watch(appInitStateProvider);
+    logger.info('App', '检查应用初始化状态: $initState');
     final selectedLanguage = ref.watch(languageProvider);
-
+    logger.info('App', '检查应用初始化状态 selectedLanguage: $selectedLanguage');
     // 如果是启屏状态，启动初始化
     if (initState == AppInitState.splash) {
       ref.watch(appSplashInitProvider);

@@ -1,6 +1,8 @@
 import 'package:beecount/pages/auth/welcome_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/all_providers.dart';
@@ -129,15 +131,10 @@ void _handleSignOut(BuildContext context, WidgetRef ref) async {
 
       // 显示成功消息
       logger.info('BeeCountServerPage', '所有数据已清空');
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => WelcomePage(
-            index: 1,
-          ),
-        ),
-      );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('welcome_shown', false);
+      ref.refresh(shouldShowWelcomeProvider.notifier).state = true;
+      ref.refresh(appInitStateProvider.notifier).state = AppInitState.splash;
 
     // 可以在这里添加导航逻辑，例如返回登录页或欢迎页
   } catch (e) {

@@ -19,6 +19,7 @@ import '../../services/export/share_poster_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../category/category_manage_page.dart';
 import '../category/category_migration_page.dart';
+import '../tag/tag_manage_page.dart';
 import '../transaction/recurring_transaction_page.dart';
 import '../settings/reminder_settings_page.dart';
 import '../settings/language_settings_page.dart';
@@ -66,12 +67,16 @@ class MinePage extends ConsumerWidget {
                 BeeTokens.cardDivider(context),
                 SizedBox(height: 8.0.scaled(context, ref)),
                 SectionCard(
-                  margin: EdgeInsets.fromLTRB(12.0.scaled(context, ref), 0, 12.0.scaled(context, ref), 0),
+                  margin: EdgeInsets.fromLTRB(12.0.scaled(context, ref), 0,
+                      12.0.scaled(context, ref), 0),
                   child: Consumer(
                     builder: (sectionContext, sectionRef, _) {
-                      final offlineAsync = sectionRef.watch(beecountOfflineModeProvider);
-                      final sessionAsync = sectionRef.watch(beecountSessionProvider);
-                      final pendingAsync = sectionRef.watch(beecountPendingSyncCountProvider);
+                      final offlineAsync =
+                          sectionRef.watch(beecountOfflineModeProvider);
+                      final sessionAsync =
+                          sectionRef.watch(beecountSessionProvider);
+                      final pendingAsync =
+                          sectionRef.watch(beecountPendingSyncCountProvider);
 
                       final offline = offlineAsync.asData?.value ?? false;
                       final session = sessionAsync.asData?.value;
@@ -80,31 +85,112 @@ class MinePage extends ConsumerWidget {
                         children: [
                           AppListTile(
                             leading: Icons.cloud_queue_outlined,
-                            title: AppLocalizations.of(sectionContext).cloudCustomBeeCountTitle,
+                            title: AppLocalizations.of(sectionContext)
+                                .cloudCustomBeeCountTitle,
                             subtitle: offline
-                                ? AppLocalizations.of(sectionContext).mineCloudServiceOffline
+                                ? AppLocalizations.of(sectionContext)
+                                    .mineCloudServiceOffline
                                 : (session == null
-                                    ? AppLocalizations.of(sectionContext).mineSyncNotLoggedIn
+                                    ? AppLocalizations.of(sectionContext)
+                                        .mineSyncNotLoggedIn
                                     : '${AppLocalizations.of(sectionContext).mineLoggedInEmail}: ${session.username}'),
-                            trailing: Icon(Icons.chevron_right, color: BeeTokens.iconTertiary(context), size: 20),
+                            trailing: Icon(Icons.chevron_right,
+                                color: BeeTokens.iconTertiary(context),
+                                size: 20),
                             onTap: () async {
                               await Navigator.of(sectionContext).push(
-                                MaterialPageRoute(builder: (_) => const BeeCountServerPage()),
+                                MaterialPageRoute(
+                                    builder: (_) => const BeeCountServerPage()),
                               );
                             },
                           ),
                           BeeTokens.cardDivider(sectionContext),
                           pendingAsync.when(
-                            data: (n) => AppListTile(
-                              leading: Icons.cloud_sync_outlined,
-                              title: AppLocalizations.of(sectionContext).mineSyncTitle,
-                              subtitle: '待同步: $n',
-                              trailing: Icon(Icons.chevron_right, color: BeeTokens.iconTertiary(context), size: 20),
-                              onTap: () async {
-                                await Navigator.of(sectionContext).push(
-                                  MaterialPageRoute(builder: (_) => const BeeCountServerPage()),
-                                );
-                              },
+                            data: (n) => Column(
+                              children: [
+                                AppListTile(
+                                  leading: Icons.cloud_sync_outlined,
+                                  title: AppLocalizations.of(sectionContext)
+                                      .mineSyncTitle,
+                                  subtitle: '待同步: $n',
+                                  trailing: Icon(Icons.chevron_right,
+                                      color: BeeTokens.iconTertiary(context),
+                                      size: 20),
+                                  onTap: () async {
+                                    await Navigator.of(sectionContext).push(
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const BeeCountServerPage()),
+                                    );
+                                  },
+                                ),
+                                BeeTokens.cardDivider(sectionContext),
+                                // 导入功能
+                                AppListTile(
+                                  leading: Icons.file_download_outlined,
+                                  title: AppLocalizations.of(sectionContext)
+                                      .discoverImport,
+                                  trailing: Icon(Icons.chevron_right,
+                                      color: BeeTokens.iconTertiary(context),
+                                      size: 20),
+                                  onTap: () async {
+                                    await Navigator.of(sectionContext).push(
+                                      MaterialPageRoute(
+                                          builder: (_) => const ImportPage()),
+                                    );
+                                  },
+                                ),
+                                BeeTokens.cardDivider(sectionContext),
+                                // 导出功能
+                                AppListTile(
+                                  leading: Icons.file_upload_outlined,
+                                  title: AppLocalizations.of(sectionContext)
+                                      .discoverExport,
+                                  trailing: Icon(Icons.chevron_right,
+                                      color: BeeTokens.iconTertiary(context),
+                                      size: 20),
+                                  onTap: () async {
+                                    await Navigator.of(sectionContext).push(
+                                      MaterialPageRoute(
+                                          builder: (_) => const ExportPage()),
+                                    );
+                                  },
+                                ),
+                                BeeTokens.cardDivider(sectionContext),
+                                // 分类管理
+                                AppListTile(
+                                  leading: Icons.category_outlined,
+                                  title: AppLocalizations.of(sectionContext)
+                                      .discoverCategory,
+                                  trailing: Icon(Icons.chevron_right,
+                                      color: BeeTokens.iconTertiary(context),
+                                      size: 20),
+                                  onTap: () async {
+                                    await Navigator.of(sectionContext).push(
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const CategoryManagePage()),
+                                    );
+                                  },
+                                ),
+                                BeeTokens.cardDivider(sectionContext),
+                                // 标签管理
+                                AppListTile(
+                                  leading: Icons.label_outlined,
+                                  title: AppLocalizations.of(sectionContext)
+                                      .discoverTags,
+                                  trailing: Icon(Icons.chevron_right,
+                                      color: BeeTokens.iconTertiary(context),
+                                      size: 20),
+                                  onTap: () async {
+                                    await Navigator.of(sectionContext).push(
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const TagManagePage()),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                             loading: () => const Padding(
                               padding: EdgeInsets.all(16.0),

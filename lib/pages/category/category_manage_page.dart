@@ -92,10 +92,12 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
                     _CategoryGridView(
                       categoriesWithCount: categoriesWithCount,
                       kind: 'expense',
+                      onAddCategory: _addCategory,
                     ),
                     _CategoryGridView(
                       categoriesWithCount: categoriesWithCount,
                       kind: 'income',
+                      onAddCategory: _addCategory,
                     ),
                   ],
                 );
@@ -135,6 +137,11 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
           icon: Icons.download_outlined,
           label: l10n.categoryImport,
         ),
+        BeeMenuItem.action(
+          value: 'export',
+          icon: Icons.upload_outlined,
+          label: "导出分类",
+        ),
         const BeeMenuItem.divider(),
         BeeMenuItem.action(
           value: 'clear_unused',
@@ -150,6 +157,9 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
             break;
           case 'import':
             _importCategories();
+            break;
+          case 'export':
+            _shareCategories();
             break;
           case 'clear_unused':
             _clearUnusedCategories();
@@ -532,10 +542,12 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
 class _CategoryGridView extends ConsumerStatefulWidget {
   final List<({db.Category category, int transactionCount})> categoriesWithCount;
   final String kind;
+  final VoidCallback onAddCategory;
 
   const _CategoryGridView({
     required this.categoriesWithCount,
     required this.kind,
+    required this.onAddCategory,
   });
 
   @override
@@ -648,11 +660,23 @@ class _CategoryGridViewState extends ConsumerState<_CategoryGridView> {
             mainAxisSpacing: 12,
             childAspectRatio: 1,
           ),
-          itemCount: topLevelCategories.length,
+          itemCount: topLevelCategories.length + 1, // +1 for add button
           onReorder: (oldIndex, newIndex) {
+            // 不允许拖拽"添加分类"按钮
+            if (oldIndex == topLevelCategories.length || newIndex == topLevelCategories.length) {
+              return;
+            }
             _onReorderTopLevel(oldIndex, newIndex, topLevelCategories);
           },
           itemBuilder: (context, index) {
+            // 最后一个位置显示"添加分类"按钮
+            if (index == topLevelCategories.length) {
+              return _AddCategoryButton(
+                key: const ValueKey('add_category'),
+                onTap: widget.onAddCategory,
+              );
+            }
+            // 显示分类卡片
             final item = topLevelCategories[index];
             return _CategoryCard(
               key: ValueKey(item.category.id),
@@ -696,13 +720,8 @@ class _CategoryGridViewState extends ConsumerState<_CategoryGridView> {
     if (item.isSubCategory) {
       await _onEditCategory(item.category);
     } else {
-      if (item.hasSubCategories) {
-        // 有子分类：弹出对话框
-        await _showSubcategoryDialog(item.category);
-      } else {
-        // 无子分类：直接编辑
-        await _onEditCategory(item.category);
-      }
+      // 所有一级分类都显示子分类对话框，无论是否已有子分类
+      await _showSubcategoryDialog(item.category);
     }
   }
 
@@ -1153,6 +1172,53 @@ class _DialogSubCategoryCard extends StatelessWidget {
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Theme.of(context).colorScheme.outline,
                 fontSize: 9,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 一级分类列表中的"添加分类"按钮
+class _AddCategoryButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _AddCategoryButton({
+    super.key,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final isDark = BeeTokens.isDark(context);
+    final l10n = AppLocalizations.of(context);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: BeeTokens.surface(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? BeeTokens.border(context) : Colors.grey[300]!,
+            width: 1,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add, color: primaryColor, size: 24),
+            const SizedBox(height: 4),
+            Text(
+              l10n.commonAdd,
+              style: TextStyle(
+                fontSize: 10,
+                color: primaryColor,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

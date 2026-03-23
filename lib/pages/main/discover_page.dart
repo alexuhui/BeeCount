@@ -18,12 +18,8 @@ import '../../widgets/ui/ui.dart';
 import '../account/accounts_page.dart';
 import '../ai/ai_settings_page.dart';
 import '../budget/budget_page.dart';
-import '../category/category_manage_page.dart';
-import '../data/export_page.dart';
-import '../data/import_page.dart';
 import '../settings/config_import_export_page.dart';
 import '../automation/auto_billing_settings_page.dart';
-import '../tag/tag_manage_page.dart';
 
 /// 发现页
 ///
@@ -110,7 +106,7 @@ class DiscoverPage extends ConsumerWidget {
                 SizedBox(height: 10.0.scaled(context, ref)),
 
                 // 快捷记账入口
-                _QuickActionsCard(primaryColor: primaryColor),
+                // _QuickActionsCard(primaryColor: primaryColor),
               ],
             ),
           ),
@@ -239,8 +235,11 @@ class _BudgetCard extends ConsumerWidget {
     AppLocalizations l10n,
   ) {
     final budget = overview.totalBudget!;
-    final rate =
-        budget.budget > 0 ? (budget.used / budget.budget).clamp(0.0, 1.0) : budget.used > 0 ? 1.0 : 0.0;
+    final rate = budget.budget > 0
+        ? (budget.used / budget.budget).clamp(0.0, 1.0)
+        : budget.used > 0
+            ? 1.0
+            : 0.0;
     final progressColor = _getProgressColor(context, rate);
     final hideAmounts = ref.watch(hideAmountsProvider);
 
@@ -387,7 +386,9 @@ class _BudgetCard extends ConsumerWidget {
   ) {
     final rate = usage.usage.budget > 0
         ? (usage.usage.used / usage.usage.budget).clamp(0.0, 1.0)
-        : usage.usage.used > 0 ? 1.0 : 0.0;
+        : usage.usage.used > 0
+            ? 1.0
+            : 0.0;
     final color = _getProgressColor(context, rate);
     final hideAmounts = ref.watch(hideAmountsProvider);
     final l10n = AppLocalizations.of(context);
@@ -423,7 +424,7 @@ class _BudgetCard extends ConsumerWidget {
                     ),
                   ),
                   // 没有设置预算，但有支出
-                  if(usage.usage.budget <= 0 && usage.usage.used > 0)
+                  if (usage.usage.budget <= 0 && usage.usage.used > 0)
                     Text(
                       l10n.budgetEmptyHint,
                       style: TextStyle(
@@ -711,22 +712,20 @@ class _AccountsCard extends ConsumerWidget {
           ),
         ),
         SizedBox(height: 8.0.scaled(context, ref)),
-        // 账户卡片横向滑动
-        SizedBox(
-          height: 72.0.scaled(context, ref),
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 8.0.scaled(context, ref)),
-            itemCount: accounts.length,
-            itemBuilder: (context, index) {
-              final account = accounts[index];
+        // 账户卡片纵向布局
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 8.0.scaled(context, ref)),
+          child: Column(
+            children: accounts.asMap().entries.map((entry) {
+              final index = entry.key;
+              final account = entry.value;
               final stats = accountStats[account.id];
               final balance = stats?.balance ?? account.initialBalance ?? 0.0;
               return Padding(
-                padding: EdgeInsets.only(right: 10.0.scaled(context, ref)),
+                padding: EdgeInsets.only(bottom: 10.0.scaled(context, ref)),
                 child: _buildAccountCard(context, ref, account, balance),
               );
-            },
+            }).toList(),
           ),
         ),
       ],
@@ -743,7 +742,7 @@ class _AccountsCard extends ConsumerWidget {
     final typeColor = _getColorForType(account.type);
 
     return Container(
-      width: 140.0.scaled(context, ref),
+      width: double.infinity,
       padding: EdgeInsets.all(12.0.scaled(context, ref)),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -763,8 +762,7 @@ class _AccountsCard extends ConsumerWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // 账户名和图标
@@ -775,18 +773,16 @@ class _AccountsCard extends ConsumerWidget {
                 size: 16.0.scaled(context, ref),
                 color: Colors.white.withValues(alpha: 0.9),
               ),
-              SizedBox(width: 6.0.scaled(context, ref)),
-              Expanded(
-                child: Text(
-                  account.name,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              SizedBox(width: 10.0.scaled(context, ref)),
+              Text(
+                account.name,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white.withValues(alpha: 0.9),
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -797,7 +793,7 @@ class _AccountsCard extends ConsumerWidget {
             showCurrency: true,
             useCompactFormat: useCompact,
             style: const TextStyle(
-              fontSize: 15,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
@@ -833,62 +829,7 @@ class _QuickActionsCard extends ConsumerWidget {
             ),
           ),
           SizedBox(height: 12.0.scaled(context, ref)),
-          // 第一行：导入、导出、分类管理、标签管理
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  ref,
-                  icon: Icons.file_download_outlined,
-                  label: l10n.discoverImport,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ImportPage()),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  ref,
-                  icon: Icons.file_upload_outlined,
-                  label: l10n.discoverExport,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ExportPage()),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  ref,
-                  icon: Icons.category_outlined,
-                  label: l10n.discoverCategory,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const CategoryManagePage()),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  ref,
-                  icon: Icons.label_outlined,
-                  label: l10n.discoverTags,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const TagManagePage()),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12.0.scaled(context, ref)),
-          // 第二行：AI设置、使用帮助、配置管理、自动记账
+          // 常用功能：AI设置、使用帮助、配置管理、自动记账
           Row(
             children: [
               Expanded(

@@ -634,13 +634,13 @@ class LocalCategoryRepository implements CategoryRepository {
 
   @override
   Future<Category> getTransferCategory() async {
-    // 查找现有的转账分类
+    // 查找现有的转账分类（取第一条）
     final existing = await (db.select(db.categories)
           ..where((c) => c.kind.equals('transfer')))
-        .getSingleOrNull();
+        .get();
 
-    if (existing != null) {
-      return existing;
+    if (existing.isNotEmpty) {
+      return existing.first;
     }
 
     // 不存在则创建（理论上seed时已创建，这里是兜底逻辑）

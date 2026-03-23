@@ -27,6 +27,8 @@ class BeeCountOfflineModeSetter {
     _ref.invalidate(beecountOfflineModeProvider);
     _ref.invalidate(beecountSessionProvider);
     _ref.invalidate(beecountProviderProvider);
+    _ref.invalidate(beecountSyncEngineProvider);
+    _ref.invalidate(beecountPendingSyncCountProvider);
     _ref.read(_beecountBootstrappedProvider.notifier).state = false;
   }
 }
@@ -180,6 +182,8 @@ class BeeCountAuthController {
     _ref.invalidate(beecountSessionProvider);
     _ref.invalidate(beecountProviderProvider);
     _ref.invalidate(beecountOfflineModeProvider);
+    _ref.invalidate(beecountSyncEngineProvider);
+    _ref.invalidate(beecountPendingSyncCountProvider);
     _ref.read(_beecountBootstrappedProvider.notifier).state = false;
   }
 
@@ -190,6 +194,8 @@ class BeeCountAuthController {
     _ref.invalidate(beecountOfflineModeProvider);
     _ref.invalidate(beecountSessionProvider);
     _ref.invalidate(beecountProviderProvider);
+    _ref.invalidate(beecountSyncEngineProvider);
+    _ref.invalidate(beecountPendingSyncCountProvider);
     _ref.read(_beecountBootstrappedProvider.notifier).state = false;
   }
 }

@@ -619,6 +619,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         );
       }
 
+      // 设置当前账本为第一个有效账本
+      final ledgers = await db.select(db.ledgers).get();
+      if (ledgers.isNotEmpty) {
+        final firstLedgerId = ledgers.first.id;
+        ref.read(currentLedgerIdProvider.notifier).state = firstLedgerId;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('current_ledger_id', firstLedgerId);
+        logger.info('Login', '设置当前账本 ID: $firstLedgerId');
+      }
+
       // 强制刷新所有相关状态
       ref.invalidate(beecountOfflineModeProvider);
       ref.invalidate(beecountSessionProvider);

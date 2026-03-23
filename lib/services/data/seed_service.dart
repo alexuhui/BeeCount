@@ -766,9 +766,9 @@ class SeedService {
     // 检查是否已存在
     final existing = await (db.select(db.categories)
       ..where((t) => t.kind.equals('transfer')))
-        .getSingleOrNull();
+        .get();
 
-    if (existing != null) {
+    if (existing.isNotEmpty) {
       logger.info('seed_service', '虚拟转账分类已存在，跳过创建');
       return;
     }
@@ -790,15 +790,17 @@ class SeedService {
   /// 将所有 type='transfer' 且 category_id 为 NULL 的记录设置为虚拟转账分类 ID
   /// 此方法设计为幂等，可以多次调用
   static Future<void> migrateTransferTransactions(BeeDatabase db) async {
-    // 获取虚拟转账分类
-    final transferCategory = await (db.select(db.categories)
+    // 获取虚拟转账分类（取第一条）
+    final transferCategories = await (db.select(db.categories)
       ..where((t) => t.kind.equals('transfer')))
-        .getSingleOrNull();
+        .get();
 
-    if (transferCategory == null) {
+    if (transferCategories.isEmpty) {
       logger.warning('seed_service', '虚拟转账分类不存在，跳过迁移');
       return;
     }
+
+    final transferCategory = transferCategories.first;
 
     // 只更新 category_id 为 NULL 或不等于转账分类ID 的转账记录
     // 使用原始 SQL 以支持复杂的 WHERE 条件

@@ -199,27 +199,27 @@ Future<void> _restoreUserReminder() async {
 /// 解决方案：
 /// - 在应用启动时检查用户是否开启了截图监听
 /// - 如果开启了，重新启动监听服务
-Future<void> _restoreScreenshotMonitor(ProviderContainer container) async {
-  if (!Platform.isAndroid) return;
+// Future<void> _restoreScreenshotMonitor(ProviderContainer container) async {
+//   if (!Platform.isAndroid) return;
 
-  try {
-    print('📸 检查并恢复截图自动识别...');
-    final screenshotMonitor = ScreenshotMonitorService(container);
-    final isEnabled = await screenshotMonitor.isEnabled();
+//   try {
+//     print('📸 检查并恢复截图自动识别...');
+//     final screenshotMonitor = ScreenshotMonitorService(container);
+//     final isEnabled = await screenshotMonitor.isEnabled();
 
-    if (isEnabled) {
-      print('✅ 发现用户已启用截图自动识别');
-      print('🔄 正在重新启动监听服务...');
-      await screenshotMonitor.enable();
-      print('✅ 截图监听服务已成功恢复');
-    } else {
-      print('ℹ️  用户未启用截图自动识别，跳过恢复');
-    }
-  } catch (e) {
-    print('❌ 恢复截图监听失败: $e');
-    // 不抛出异常，避免影响应用启动
-  }
-}
+//     if (isEnabled) {
+//       print('✅ 发现用户已启用截图自动识别');
+//       print('🔄 正在重新启动监听服务...');
+//       await screenshotMonitor.enable();
+//       print('✅ 截图监听服务已成功恢复');
+//     } else {
+//       print('ℹ️  用户未启用截图自动识别，跳过恢复');
+//     }
+//   } catch (e) {
+//     print('❌ 恢复截图监听失败: $e');
+//     // 不抛出异常，避免影响应用启动
+//   }
+// }
 
 /// 初始化应用模式
 ///
@@ -326,36 +326,36 @@ Future<void> _restoreScreenshotMonitor(ProviderContainer container) async {
 /// - beecount://add?amount=100&type=expense - 自动记账
 /// - beecount://auto-billing?text=... - 文本自动记账（兼容旧版）
 /// - beecount://quick-billing - 快速记账（兼容旧版）
-void _setupUrlListener(ProviderContainer container) {
-  try {
-    logger.info('AppLink', '初始化URL监听...');
+// void _setupUrlListener(ProviderContainer container) {
+//   try {
+//     logger.info('AppLink', '初始化URL监听...');
 
-    final appLinks = AppLinks();
-    final appLinkService = AppLinkService(container);
+//     final appLinks = AppLinks();
+//     final appLinkService = AppLinkService(container);
 
-    // 设置导航回调
-    appLinkService.onNavigate = (action, {params}) {
-      logger.info('AppLink', '触发导航: $action');
-      container.read(pendingAppLinkActionProvider.notifier).state = action;
-    };
+//     // 设置导航回调
+//     appLinkService.onNavigate = (action, {params}) {
+//       logger.info('AppLink', '触发导航: $action');
+//       container.read(pendingAppLinkActionProvider.notifier).state = action;
+//     };
 
-    // 监听URL（应用在后台时）
-    appLinks.uriLinkStream.listen((uri) {
-      logger.info('AppLink', '收到URL: $uri');
-      appLinkService.handleUrl(uri);
-    }, onError: (err) {
-      logger.error('AppLink', 'URL监听错误', err);
-    });
+//     // 监听URL（应用在后台时）
+//     appLinks.uriLinkStream.listen((uri) {
+//       logger.info('AppLink', '收到URL: $uri');
+//       appLinkService.handleUrl(uri);
+//     }, onError: (err) {
+//       logger.error('AppLink', 'URL监听错误', err);
+//     });
 
-    // 注意：不使用 getInitialLink/getLatestLink，因为它们会缓存旧链接
-    // 只依赖 uriLinkStream，它会在应用通过 URL 启动时立即触发
+//     // 注意：不使用 getInitialLink/getLatestLink，因为它们会缓存旧链接
+//     // 只依赖 uriLinkStream，它会在应用通过 URL 启动时立即触发
 
-    logger.info('AppLink', 'URL监听已启动');
-  } catch (e) {
-    logger.error('AppLink', 'URL监听初始化失败', e);
-    // 不抛出异常，避免影响应用启动
-  }
-}
+//     logger.info('AppLink', 'URL监听已启动');
+//   } catch (e) {
+//     logger.error('AppLink', 'URL监听初始化失败', e);
+//     // 不抛出异常，避免影响应用启动
+//   }
+// }
 
 class NoGlowScrollBehavior extends MaterialScrollBehavior {
   const NoGlowScrollBehavior();
@@ -373,6 +373,7 @@ class MainApp extends ConsumerWidget {
   Widget _getLoginPage(AppInitState initState, WidgetRef ref) {
     // 首先检查是否需要显示登录页面
     final shouldShowLogin = ref.watch(shouldShowLoginProvider);
+    logger.info('App', ' _getLoginPage shouldShowLogin: $shouldShowLogin');
     if (shouldShowLogin) {
       return const LoginPage();
     }
@@ -387,23 +388,6 @@ class MainApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    logger.info('App', '应用启动 ??????????????');
-    // 首先检查是否需要显示登录页面
-    ref.watch(loginCheckProvider);
-    logger.info('App', '应用启动 ?????????????? 22222222222');
-
-    // 检查应用初始化状态
-    final initState = ref.watch(appInitStateProvider);
-    logger.info('App', '检查应用初始化状态: $initState');
-    final selectedLanguage = ref.watch(languageProvider);
-    logger.info('App', '检查应用初始化状态 selectedLanguage: $selectedLanguage');
-    // 如果是启屏状态，启动初始化
-    if (initState == AppInitState.splash) {
-      ref.watch(appSplashInitProvider);
-    }
-
-    // 周期交易生成已统一在 appSplashInitProvider 中处理
-
     final primary = ref.watch(primaryColorProvider);
     final platform = Theme.of(context).platform; // 当前平台
     final base = BeeTheme.lightTheme(platform: platform);
@@ -469,6 +453,22 @@ class MainApp extends ConsumerWidget {
     );
     final combinedScale = clamped.scale(customScale); // returns double
     final newScaler = TextScaler.linear(combinedScale);
+
+    logger.info('App', '应用启动 ??????????????');
+    // 首先检查是否需要显示登录页面
+    ref.watch(loginCheckProvider);
+    logger.info('App', '应用启动 ?????????????? 22222222222');
+
+    // 检查应用初始化状态
+    final initState = ref.watch(appInitStateProvider);
+    logger.info('App', '检查应用初始化状态: $initState');
+    final selectedLanguage = ref.watch(languageProvider);
+    logger.info('App', '检查应用初始化状态 selectedLanguage: $selectedLanguage');
+    // 如果是启屏状态，启动初始化
+    if (initState == AppInitState.splash) {
+      ref.watch(appSplashInitProvider);
+    }
+
     return MediaQuery(
       data: media.copyWith(textScaler: newScaler),
       child: MaterialApp(

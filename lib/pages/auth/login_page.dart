@@ -15,6 +15,7 @@ import '../../providers/ui_state_providers.dart';
 import '../../services/data/seed_service.dart';
 import '../../services/system/logger_service.dart';
 import '../../services/sync/beecount_initial_sync_service.dart';
+import '../../utils/local_storage_utils.dart';
 import '../../widgets/ui/ui.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -109,7 +110,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     const SizedBox(height: 24),
                     // 标题
                     Text(
-                      l10n.cloudCustomBeeCountTitle,
+                      l10n.appName,
                       style: theme.textTheme.headlineSmall?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -508,11 +509,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       await prefs.setBool('welcome_shown', true);
       await prefs.setString('selected_currency', 'CNY');
       await prefs.setString('category_mode', 'hierarchical'); // 固定为二级分类模式
-      await prefs.setString('app_mode', 'local');
+      // await prefs.setString('app_mode', 'local');
 
       final db = ref.read(databaseProvider);
 
       final offline = await ref.read(beecountOfflineModeProvider.future);
+      LocalStorageUtils.setAppStatus(offline
+          ? LocalStorageUtils.appStatusOffline
+          : LocalStorageUtils.appStatusOnline);
+
       if (!offline) {
         CloudProvider? provider;
         try {

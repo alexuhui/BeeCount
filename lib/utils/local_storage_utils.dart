@@ -8,10 +8,13 @@ class LocalStorageUtils {
 
   /// 应用状态键
   static const String appStatus = 'app_status';
+
   /// 没有状态
   static const String appStatusNone = 'app_status_none';
+
   /// 已登录状态
-  static const String appStatusLogedin = 'app_status_logedin';
+  static const String appStatusOnline = 'app_status_online';
+
   /// 离线状态
   static const String appStatusOffline = 'app_status_offline';
 
@@ -26,7 +29,4 @@ class LocalStorageUtils {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(appStatus, status);
   }
-
-
 }
- 

@@ -17,12 +17,12 @@ import '../services/platform/app_link_service.dart';
 import '../cloud/sync_service.dart';
 import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 
-
 // 底部导航索引（0: 明细, 1: 图表, 2: 账本, 3: 我的）
 final bottomTabIndexProvider = StateProvider<int>((ref) => 0);
 
 // AppLink 待处理动作（用于通知 UI 层执行导航）
-final pendingAppLinkActionProvider = StateProvider<AppLinkAction?>((ref) => null);
+final pendingAppLinkActionProvider =
+    StateProvider<AppLinkAction?>((ref) => null);
 
 // 首页滚动到顶部触发器（每次改变值时触发滚动）
 final homeScrollToTopProvider = StateProvider<int>((ref) => 0);
@@ -191,12 +191,14 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
       ref.watch(smartBillingAutoAttachmentInitProvider.future),
       ref.watch(incomeExpenseColorSchemeInitProvider.future),
     ]);
-    logger.info(tag, '基础配置初始化完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
+    logger.info(tag,
+        '基础配置初始化完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
     stepTime = DateTime.now();
 
     // 尝试自动登录
     await _tryAutoLogin(ref);
-    logger.info(tag, '自动登录检查完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
+    logger.info(tag,
+        '自动登录检查完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
     stepTime = DateTime.now();
 
     // 获取 repository
@@ -214,7 +216,8 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
     Future<T> timed<T>(String name, Future<T> future) async {
       final start = DateTime.now();
       final result = await future;
-      logger.info(tag, '$name: ${DateTime.now().difference(start).inMilliseconds}ms');
+      logger.info(
+          tag, '$name: ${DateTime.now().difference(start).inMilliseconds}ms');
       return result;
     }
 
@@ -224,15 +227,21 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
     final results = await Future.wait([
       timed('月度统计', ref.read(monthlyTotalsProvider(monthlyParams).future)),
       // 只查询前 N 条，而非全部
-      timed('交易列表(前$preloadLimit条)', repo.getRecentTransactionsWithCategory(ledgerId: ledgerId, limit: preloadLimit)),
+      timed(
+          '交易列表(前$preloadLimit条)',
+          repo.getRecentTransactionsWithCategory(
+              ledgerId: ledgerId, limit: preloadLimit)),
     ]);
 
     final monthlyResult = results[0] as (double, double);
-    final transactionsWithCategory = results[1] as List<({Transaction t, Category? category})>;
+    final transactionsWithCategory =
+        results[1] as List<({Transaction t, Category? category})>;
 
-    ref.read(lastMonthlyTotalsProvider(monthlyParams).notifier).state = monthlyResult;
+    ref.read(lastMonthlyTotalsProvider(monthlyParams).notifier).state =
+        monthlyResult;
     // 不再预加载完整列表，让 Stream 自己加载
-    logger.info(tag, '并行预加载完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms, 首屏${transactionsWithCategory.length}条');
+    logger.info(tag,
+        '并行预加载完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms, 首屏${transactionsWithCategory.length}条');
     stepTime = DateTime.now();
 
     // 只为首屏数据加载标签、附件数量和账户信息
@@ -260,7 +269,8 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
     for (final account in accountsList) {
       accountNameMap[account.id] = account.name;
     }
-    logger.info(tag, '详情数据加载完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
+    logger.info(tag,
+        '详情数据加载完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
     stepTime = DateTime.now();
 
     // 组装完整的交易展示数据
@@ -270,8 +280,11 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
         category: item.category,
         tags: tagsMap[item.t.id] ?? <Tag>[],
         attachmentCount: attachmentCounts[item.t.id] ?? 0,
-        accountName: item.t.accountId != null ? accountNameMap[item.t.accountId!] : null,
-        toAccountName: item.t.toAccountId != null ? accountNameMap[item.t.toAccountId!] : null,
+        accountName:
+            item.t.accountId != null ? accountNameMap[item.t.accountId!] : null,
+        toAccountName: item.t.toAccountId != null
+            ? accountNameMap[item.t.toAccountId!]
+            : null,
       );
     }).toList();
 
@@ -281,16 +294,19 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
     Future.microtask(() async {
       final start = DateTime.now();
       await ref.read(countsForLedgerProvider(ledgerId).future);
-      logger.info(tag, '账本统计(异步): ${DateTime.now().difference(start).inMilliseconds}ms');
+      logger.info(tag,
+          '账本统计(异步): ${DateTime.now().difference(start).inMilliseconds}ms');
     });
 
     // 生成待处理的周期交易
     try {
-      final generatedLedgerIds = await RecurringTransactionService.generatePendingTransactionsStatic(
+      final generatedLedgerIds =
+          await RecurringTransactionService.generatePendingTransactionsStatic(
         repository: repo,
         verbose: false,
       );
-      logger.info(tag, '周期交易生成完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
+      logger.info(tag,
+          '周期交易生成完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
 
       // 统一后处理：刷新UI + 触发云同步（如果有生成交易）
       for (final genLedgerId in generatedLedgerIds) {
@@ -313,7 +329,7 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
 Future<void> _tryAutoLogin(Ref ref) async {
   try {
     final appStatus = await LocalStorageUtils.getAppStatus();
-    if (appStatus != LocalStorageUtils.appStatusLogedin) {
+    if (appStatus != LocalStorageUtils.appStatusOnline) {
       // 非在线模式不需要登录
       return;
     }
@@ -331,9 +347,13 @@ Future<void> _tryAutoLogin(Ref ref) async {
       password = cloudConfig.beecountPassword;
     }
 
-    logger.info('AutoLogin', '当前云后端类型: ${cloudConfig.type}  邮箱: $email  密码: ${password}');
+    logger.info('AutoLogin',
+        '当前云后端类型: ${cloudConfig.type}  邮箱: $email  密码: ${password}');
 
-    if (email != null && email.isNotEmpty && password != null && password.isNotEmpty) {
+    if (email != null &&
+        email.isNotEmpty &&
+        password != null &&
+        password.isNotEmpty) {
       logger.info('AutoLogin', '尝试自动登录: $email');
       final auth = await ref.read(authServiceProvider.future);
       await auth.signInWithEmail(email: email, password: password);
@@ -499,4 +519,3 @@ class AIAssistantSetter {
 final aiAssistantSetterProvider = Provider<AIAssistantSetter>((ref) {
   return AIAssistantSetter();
 });
-

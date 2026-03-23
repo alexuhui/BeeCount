@@ -5,6 +5,7 @@ import 'package:reorderable_grid_view/reorderable_grid_view.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../providers.dart';
 import '../../widgets/ui/ui.dart';
 import '../../data/db.dart' as db;
@@ -140,7 +141,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
         BeeMenuItem.action(
           value: 'export',
           icon: Icons.upload_outlined,
-          label: "导出分类",
+          label: "分享分类",
         ),
         const BeeMenuItem.divider(),
         BeeMenuItem.action(
@@ -221,6 +222,14 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
 
       String outputPath;
       if (Platform.isAndroid) {
+        // 请求存储权限
+        final permissionStatus = await Permission.storage.request();
+        if (!permissionStatus.isGranted) {
+          if (!mounted) return;
+          showToast(context, l10n.categoryShareFailed); 
+          return;
+        }
+
         final downloadPath = '/storage/emulated/0/Download/BeeCount';
         final dir = Directory(downloadPath);
         if (!await dir.exists()) {

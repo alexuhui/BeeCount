@@ -23,6 +23,8 @@ import 'pages/ai/ai_chat_page.dart';
 import 'services/platform/app_link_service.dart';
 import 'services/platform/quick_actions_service.dart';
 import 'services/system/logger_service.dart';
+import 'services/sync/sync_version_service.dart';
+import 'cloud/sync_service.dart';
 
 class BeeApp extends ConsumerStatefulWidget {
   const BeeApp({super.key});
@@ -138,6 +140,24 @@ class _BeeAppState extends ConsumerState<BeeApp>
         // 静默失败，不影响App启动
       }
     });
+    
+    _startSyncVersionService();
+  }
+
+  void _startSyncVersionService() {
+    Future.microtask(() async {
+      try {
+        final syncService = ref.read(syncServiceProvider);
+        if (syncService is! LocalOnlySyncService) {
+          final syncVersionService = ref.read(syncVersionServiceProvider);
+          await syncVersionService.start();
+          ref.read(syncVersionServiceRunningProvider.notifier).state = true;
+          logger.info('BeeApp', '版本号同步服务已启动');
+        }
+      } catch (e) {
+        logger.warning('BeeApp', '启动版本号同步服务失败: $e');
+      }
+    });
   }
 
   /// 处理 AppLink 动作
@@ -203,6 +223,10 @@ class _BeeAppState extends ConsumerState<BeeApp>
     _removeOverlay();
     _expandController.dispose();
     WidgetsBinding.instance.removeObserver(this);
+    
+    final syncVersionService = ref.read(syncVersionServiceProvider);
+    syncVersionService.stop();
+    
     super.dispose();
   }
 

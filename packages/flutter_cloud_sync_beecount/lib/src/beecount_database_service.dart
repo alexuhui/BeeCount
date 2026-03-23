@@ -17,6 +17,22 @@ class BeeCountDatabaseService implements CloudDatabaseService {
     };
   }
 
+  Future<int> getSyncVersion() async {
+    final url = '$serverUrl/api/v1/sync_version';
+    
+    final response = await http.get(
+      Uri.parse(url),
+      headers: _headers,
+    );
+    
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['version'] as int? ?? 0;
+    } else {
+      throw CloudDatabaseException('Failed to get sync version: ${response.body}');
+    }
+  }
+
   @override
   Future<Map<String, dynamic>> insert({
     required String table,

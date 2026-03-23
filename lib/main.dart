@@ -42,13 +42,13 @@ Future<void> main() async {
   }
 
   // 配置iOS App Group（widget和主app共享数据必需）
-  try {
-    if (Platform.isIOS) {
-      await HomeWidget.setAppGroupId('group.com.tntlikely.beecount');
-    }
-  } catch (e) {
-    print('⚠️  HomeWidget 插件初始化失败（可能在不支持的平台上运行）: $e');
-  }
+  // try {
+  //   if (Platform.isIOS) {
+  //     await HomeWidget.setAppGroupId('group.com.tntlikely.beecount');
+  //   }
+  // } catch (e) {
+  //   print('⚠️  HomeWidget 插件初始化失败（可能在不支持的平台上运行）: $e');
+  // }
 
   // 初始化通知服务
   try {
@@ -89,22 +89,22 @@ Future<void> main() async {
   // await _initializeAppStatus(container);
 
   // 注册小组件交互回调
-  try {
-    await WidgetManager.registerCallback();
-  } catch (e) {
-    print('⚠️  小组件回调注册失败（可能在不支持的平台上运行）: $e');
-  }
+  // try {
+  //   await WidgetManager.registerCallback();
+  // } catch (e) {
+  //   print('⚠️  小组件回调注册失败（可能在不支持的平台上运行）: $e');
+  // }
 
   // 恢复截图自动识别设置（Android专属），传入container
-  await _restoreScreenshotMonitor(container);
+  // await _restoreScreenshotMonitor(container);
 
   // 初始化图片分享处理服务（Android专属）
-  if (Platform.isAndroid) {
-    _setupImageShareHandler(container);
-  }
+  // if (Platform.isAndroid) {
+  //   _setupImageShareHandler(container);
+  // }
 
   // 启动 URL 监听（用于快捷指令/AppLink 自动记账）
-  _setupUrlListener(container);
+  // _setupUrlListener(container);
 
   runApp(ProviderScope(
     parent: container,
@@ -301,19 +301,19 @@ Future<void> _restoreScreenshotMonitor(ProviderContainer container) async {
 ///
 /// 初始化 ImageShareHandlerService 以接收从相册或其他应用分享的图片
 /// 分享的图片会自动触发记账流程
-void _setupImageShareHandler(ProviderContainer container) {
-  try {
-    logger.info('App', '🖼️  [Android] 初始化图片分享处理服务...');
+// void _setupImageShareHandler(ProviderContainer container) {
+//   try {
+//     logger.info('App', '🖼️  [Android] 初始化图片分享处理服务...');
 
-    // 初始化服务（会自动设置MethodChannel监听器）
-    ImageShareHandlerService(container);
+//     // 初始化服务（会自动设置MethodChannel监听器）
+//     ImageShareHandlerService(container);
 
-    logger.info('App', '✅ [Android] 图片分享处理服务已启动');
-  } catch (e) {
-    logger.error('App', '❌ [Android] 图片分享处理服务初始化失败', e);
-    // 不抛出异常，避免影响应用启动
-  }
-}
+//     logger.info('App', '✅ [Android] 图片分享处理服务已启动');
+//   } catch (e) {
+//     logger.error('App', '❌ [Android] 图片分享处理服务初始化失败', e);
+//     // 不抛出异常，避免影响应用启动
+//   }
+// }
 
 /// 设置 URL 监听（用于 AppLink）
 ///

@@ -839,7 +839,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mineUpdate => '检查更新';
 
   @override
-  String get mineLanguageSettings => '语言设置';
+  String get mineLanguageSettings => '语言设置：';
 
   @override
   String get languageTitle => '语言设置';
@@ -6341,7 +6341,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get mineUpdate => '檢查更新';
 
   @override
-  String get mineLanguageSettings => '語言設定';
+  String get mineLanguageSettings => '語言設定：';
 
   @override
   String get languageTitle => '語言設定';

@@ -135,8 +135,11 @@ class _BeeCountServerPageState extends ConsumerState<BeeCountServerPage> {
       ref.invalidate(beecountSessionProvider);
       ref.invalidate(beecountProviderProvider);
       ref.invalidate(loginCheckProvider);
-      ref.read(shouldShowLoginProvider.notifier).state = true;
-      ref.read(appInitStateProvider.notifier).state = AppInitState.splash;
+      ref.invalidate(shouldShowLoginProvider);
+      ref.invalidate(appInitStateProvider);
+
+      // 退出当前页面
+      Navigator.of(context).pop();
     } catch (e) {
       logger.error('BeeCountServerPage', '清空数据失败: $e');
     }

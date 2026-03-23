@@ -176,8 +176,10 @@ class BeeCountAuthController {
   Future<void> signOut() async {
     final store = _ref.read(beeCountSessionStoreProvider);
     await store.clearSession();
+    await store.setOfflineMode(false);
     _ref.invalidate(beecountSessionProvider);
     _ref.invalidate(beecountProviderProvider);
+    _ref.invalidate(beecountOfflineModeProvider);
     _ref.read(_beecountBootstrappedProvider.notifier).state = false;
   }
 

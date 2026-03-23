@@ -1,4 +1,4 @@
-import 'package:beecount/pages/auth/welcome_page.dart';
+import 'package:beecount/pages/auth/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/all_providers.dart';
 import '../../providers/beecount_server_providers.dart';
 import '../../services/system/logger_service.dart';
-import '../../widgets/ui/ui.dart';
+import '../../utils/local_storage_utils.dart';
 
 class BeeCountServerPage extends ConsumerStatefulWidget {
   const BeeCountServerPage({super.key});
@@ -59,9 +59,7 @@ class _BeeCountServerPageState extends ConsumerState<BeeCountServerPage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => WelcomePage(
-                      index: 1,
-                    ),
+                    builder: (_) => LoginPage(),
                   ),
                 )
               },
@@ -97,49 +95,50 @@ class _BeeCountServerPageState extends ConsumerState<BeeCountServerPage> {
     );
   }
 
-  // 在需要调用的地方
-void _handleSignOut(BuildContext context, WidgetRef ref) async {
-  // 显示确认对话框
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('本地数据清除'),
-      content: const Text('你当前是在线模式，退出操作将删除设备本地的所有账本、交易、分类等数据（不影响已上传服务器的数据）。确定要继续吗？'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('取消'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('确定'),
-        ),
-      ],
-    ),
-  );
+  void _handleSignOut(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('本地数据清除'),
+        content: const Text(
+            '你当前是在线模式，退出操作将删除设备本地的所有账本、交易、分类等数据（不影响已上传服务器的数据）。确定要继续吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
 
-  if (confirmed != true) return;
+    if (confirmed != true) return;
 
-  try {
-      // 退出登录
+    try {
       await ref.read(beecountAuthControllerProvider).signOut();
       logger.info('BeeCountServerPage', '已退出登录');
 
-      // 获取 Repository 实例并调用方法
       final repository = ref.read(repositoryProvider);
       await repository.clearAllData();
-
-      // 显示成功消息
       logger.info('BeeCountServerPage', '所有数据已清空');
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('welcome_shown', false);
-      ref.refresh(shouldShowWelcomeProvider.notifier).state = true;
-      ref.refresh(appInitStateProvider.notifier).state = AppInitState.splash;
 
-    // 可以在这里添加导航逻辑，例如返回登录页或欢迎页
-  } catch (e) {
-    // 处理错误
-    logger.error('BeeCountServerPage', '清空数据失败: $e');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      logger.info('BeeCountServerPage', '已清除所有 SharedPreferences 数据');
+
+      LocalStorageUtils.setAppStatus(LocalStorageUtils.appStatusNone);
+
+      ref.invalidate(beecountOfflineModeProvider);
+      ref.invalidate(beecountSessionProvider);
+      ref.invalidate(beecountProviderProvider);
+      ref.invalidate(loginCheckProvider);
+      ref.read(shouldShowLoginProvider.notifier).state = true;
+      ref.read(appInitStateProvider.notifier).state = AppInitState.splash;
+    } catch (e) {
+      logger.error('BeeCountServerPage', '清空数据失败: $e');
+    }
   }
-}
 }

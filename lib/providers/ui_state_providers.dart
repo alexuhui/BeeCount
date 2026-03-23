@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/local_storage_utils.dart';
 import 'database_providers.dart';
 import 'theme_providers.dart';
 import 'statistics_providers.dart';
@@ -15,6 +16,7 @@ import '../services/ai/ai_constants.dart';
 import '../services/platform/app_link_service.dart';
 import '../cloud/sync_service.dart';
 import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
+
 
 // 底部导航索引（0: 明细, 1: 图表, 2: 账本, 3: 我的）
 final bottomTabIndexProvider = StateProvider<int>((ref) => 0);
@@ -310,13 +312,13 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
 /// 尝试自动登录
 Future<void> _tryAutoLogin(Ref ref) async {
   try {
-
-    final cloudConfig = await ref.read(activeCloudConfigProvider.future);
-    logger.info('AutoLogin', '开始尝试自动登录 type : ${cloudConfig.type}');
-    if (cloudConfig.type == CloudBackendType.local) {
-      // 本地模式不需要登录
+    final appStatus = await LocalStorageUtils.getAppStatus();
+    if (appStatus != LocalStorageUtils.appStatusLogedin) {
+      // 非在线模式不需要登录
       return;
     }
+
+    final cloudConfig = await ref.read(activeCloudConfigProvider.future);
 
     // 检查是否有保存的账号密码
     String? email;
@@ -420,16 +422,17 @@ Future<void> _resolveConflict(SyncService syncService, int ledgerId) async {
   }
 }
 
-// 是否应该显示欢迎页面的Provider
-final shouldShowWelcomeProvider = StateProvider<bool>((ref) => false);
+// 是否应该显示登录页面的Provider
+final shouldShowLoginProvider = StateProvider<bool>((ref) => false);
 
-// 初始化检查是否需要显示欢迎页面
-final welcomeCheckProvider = FutureProvider<bool>((ref) async {
-  final prefs = await SharedPreferences.getInstance();
-  final welcomeShown = prefs.getBool('welcome_shown') ?? false;
-  if (!welcomeShown) {
-    print('👋 首次启动，需要展示欢迎页面');
-    ref.read(shouldShowWelcomeProvider.notifier).state = true;
+// 初始化检查是否需要显示登录页面
+final loginCheckProvider = FutureProvider<bool>((ref) async {
+  logger.info('LoginCheck', '开始检查应用状态');
+  final appStatus = await LocalStorageUtils.getAppStatus();
+  logger.info('LoginCheck', '当前应用状态: $appStatus');
+  if (appStatus == LocalStorageUtils.appStatusNone) {
+    logger.info('LoginCheck', '👋 app 应用状态为空，需要展示登录页面，用户可以选择登录或离线方式使用app');
+    ref.read(shouldShowLoginProvider.notifier).state = true;
     return true;
   }
   return false;

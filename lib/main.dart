@@ -9,9 +9,10 @@ import 'providers.dart';
 import 'providers/font_scale_provider.dart';
 import 'providers/cloud_mode_providers.dart';
 import 'providers/ui_state_providers.dart';
+import 'utils/local_storage_utils.dart';
 import 'utils/notification_factory.dart';
 import 'pages/auth/splash_page.dart';
-import 'pages/auth/welcome_page.dart';
+import 'pages/auth/login_page.dart';
 import 'services/system/reminder_monitor_service.dart';
 import 'services/platform/screenshot_monitor_service.dart';
 import 'services/platform/image_share_handler_service.dart';
@@ -25,7 +26,6 @@ import 'widget/widget_manager.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'dart:io';
-
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -73,17 +73,20 @@ Future<void> main() async {
 
   // 初始化应用模式（需要在生成重复交易之前，确保模式正确）
   // 直接从 SharedPreferences 读取并设置到 appModeProvider
-  await _initializeAppMode(container);
+  // await _initializeAppMode(container);
 
   // 注意：不再在启动时生成重复交易
   // 周期交易生成已移至 appSplashInitProvider 中（等待数据库完全初始化后执行）
   // await _generatePendingRecurringTransactions(container);
 
   // v1.15.0: 自动执行账户独立迁移
-  await _autoMigrateToV2();
+  // await _autoMigrateToV2();
 
   // v2.7.1: 自动迁移转账记录到虚拟转账分类
-  await _autoMigrateTransferTransactions();
+  // await _autoMigrateTransferTransactions();
+
+  // 初始化应用状态
+  // await _initializeAppStatus(container);
 
   // 注册小组件交互回调
   try {
@@ -161,7 +164,8 @@ Future<void> _restoreUserReminder() async {
     if (isEnabled) {
       final hour = prefs.getInt('reminder_hour') ?? 21;
       final minute = prefs.getInt('reminder_minute') ?? 0;
-      print('✅ 发现用户已启用记账提醒: ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
+      print(
+          '✅ 发现用户已启用记账提醒: ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
       print('🔔 正在重新设置提醒任务...');
 
       try {
@@ -222,76 +226,76 @@ Future<void> _restoreScreenshotMonitor(ProviderContainer container) async {
 /// 在应用启动时从 SharedPreferences 读取模式并设置到 appModeProvider
 /// 这样可以确保后续使用 repositoryProvider 时能获取到正确的模式
 /// [container] Provider容器
-Future<void> _initializeAppMode(ProviderContainer container) async {
-  try {
-    print('⏳ 初始化应用模式...');
+// Future<void> _initializeAppMode(ProviderContainer container) async {
+//   try {
+//     print('⏳ 初始化应用模式...');
 
-    // 从 SharedPreferences 直接读取模式
-    final prefs = await SharedPreferences.getInstance();
-    final modeStr = prefs.getString('app_mode');
-    final mode = modeStr != null ? AppMode.fromString(modeStr) : AppMode.local;
+//     // 从 SharedPreferences 直接读取模式
+//     final prefs = await SharedPreferences.getInstance();
+//     final modeStr = prefs.getString('app_mode');
+//     final mode = modeStr != null ? AppMode.fromString(modeStr) : AppMode.local;
 
-    // 使用 switchMode 方法设置模式，确保 repositoryProvider 能立即获取到正确的模式
-    // switchMode 不会重复写入 SharedPreferences，因为值已经存在
-    await container.read(appModeProvider.notifier).switchMode(mode);
+//     // 使用 switchMode 方法设置模式，确保 repositoryProvider 能立即获取到正确的模式
+//     // switchMode 不会重复写入 SharedPreferences，因为值已经存在
+//     await container.read(appModeProvider.notifier).switchMode(mode);
 
-    print('✅ 应用模式已初始化: ${mode.label}');
-  } catch (e, stackTrace) {
-    print('⚠️  应用模式初始化失败: $e');
-    logger.error('Main', '应用模式初始化失败', e, stackTrace);
-  }
-}
+//     print('✅ 应用模式已初始化: ${mode.label}');
+//   } catch (e, stackTrace) {
+//     print('⚠️  应用模式初始化失败: $e');
+//     logger.error('Main', '应用模式初始化失败', e, stackTrace);
+//   }
+// }
 
 /// v1.15.0: 自动执行账户独立迁移
 ///
 /// 在应用启动时检测是否需要迁移，如果需要则自动执行
-Future<void> _autoMigrateToV2() async {
-  try {
-    logger.info('App', '🔍 [v1.15.0] 检查数据库迁移状态...');
-    final db = BeeDatabase();
-    final migrationService = AccountMigrationService(db);
+// Future<void> _autoMigrateToV2() async {
+//   try {
+//     logger.info('App', '🔍 [v1.15.0] 检查数据库迁移状态...');
+//     final db = BeeDatabase();
+//     final migrationService = AccountMigrationService(db);
 
-    final needsMigration = await migrationService.needsMigration();
+//     final needsMigration = await migrationService.needsMigration();
 
-    if (needsMigration) {
-      logger.info('App', '🔄 [v1.15.0] 检测到需要迁移，开始执行账户独立改造...');
-      final result = await migrationService.migrateToV2();
+//     if (needsMigration) {
+//       logger.info('App', '🔄 [v1.15.0] 检测到需要迁移，开始执行账户独立改造...');
+//       final result = await migrationService.migrateToV2();
 
-      if (result.success) {
-        logger.info('App', '✅ [v1.15.0] 迁移成功完成');
-      } else {
-        logger.error('App', '❌ [v1.15.0] 迁移失败: ${result.message}');
-      }
-    } else {
-      logger.info('App', '✅ [v1.15.0] 数据库已是最新版本，无需迁移');
-    }
+//       if (result.success) {
+//         logger.info('App', '✅ [v1.15.0] 迁移成功完成');
+//       } else {
+//         logger.error('App', '❌ [v1.15.0] 迁移失败: ${result.message}');
+//       }
+//     } else {
+//       logger.info('App', '✅ [v1.15.0] 数据库已是最新版本，无需迁移');
+//     }
 
-    await db.close();
-  } catch (e) {
-    logger.error('App', '❌ [v1.15.0] 迁移检测失败', e);
-    // 不抛出异常，避免影响应用启动
-  }
-}
+//     await db.close();
+//   } catch (e) {
+//     logger.error('App', '❌ [v1.15.0] 迁移检测失败', e);
+//     // 不抛出异常，避免影响应用启动
+//   }
+// }
 
 /// v2.7.1: 自动迁移转账记录到虚拟转账分类
 ///
 /// 在应用启动时检查是否有未迁移的转账记录，如果有则自动执行迁移
 /// 这对云同步下载的旧数据特别重要
-Future<void> _autoMigrateTransferTransactions() async {
-  try {
-    logger.info('App', '🔍 [v2.7.1] 检查转账记录迁移状态...');
-    final db = BeeDatabase();
+// Future<void> _autoMigrateTransferTransactions() async {
+//   try {
+//     logger.info('App', '🔍 [v2.7.1] 检查转账记录迁移状态...');
+//     final db = BeeDatabase();
 
-    // 使用 SeedService 的幂等迁移方法
-    await SeedService.migrateTransferTransactions(db);
+//     // 使用 SeedService 的幂等迁移方法
+//     await SeedService.migrateTransferTransactions(db);
 
-    await db.close();
-    logger.info('App', '✅ [v2.7.1] 转账记录迁移检查完成');
-  } catch (e, stackTrace) {
-    logger.error('App', '❌ [v2.7.1] 转账记录迁移失败', e, stackTrace);
-    // 不抛出异常，避免影响应用启动
-  }
-}
+//     await db.close();
+//     logger.info('App', '✅ [v2.7.1] 转账记录迁移检查完成');
+//   } catch (e, stackTrace) {
+//     logger.error('App', '❌ [v2.7.1] 转账记录迁移失败', e, stackTrace);
+//     // 不抛出异常，避免影响应用启动
+//   }
+// }
 
 /// 设置图片分享处理（Android专属）
 ///
@@ -365,15 +369,15 @@ class NoGlowScrollBehavior extends MaterialScrollBehavior {
 class MainApp extends ConsumerWidget {
   const MainApp({super.key});
 
-  // 根据初始化状态和欢迎页面状态决定显示哪个页面
-  Widget _getHomePage(AppInitState initState, WidgetRef ref) {
-    // 首先检查是否需要显示欢迎页面
-    final shouldShowWelcome = ref.watch(shouldShowWelcomeProvider);
-    if (shouldShowWelcome) {
-      return const WelcomePage();
+  // 根据初始化状态和登录页面状态决定显示哪个页面
+  Widget _getLoginPage(AppInitState initState, WidgetRef ref) {
+    // 首先检查是否需要显示登录页面
+    final shouldShowLogin = ref.watch(shouldShowLoginProvider);
+    if (shouldShowLogin) {
+      return const LoginPage();
     }
     logger.info('App', '应用初始化状态: $initState');
-    // 欢迎页面完成后，根据初始化状态显示对应页面
+    // 登录页面完成后，根据初始化状态显示对应页面
     if (initState != AppInitState.ready) {
       return const SplashPage();
     }
@@ -383,8 +387,10 @@ class MainApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 首先检查是否需要显示欢迎页面
-    ref.watch(welcomeCheckProvider);
+    logger.info('App', '应用启动 ??????????????');
+    // 首先检查是否需要显示登录页面
+    ref.watch(loginCheckProvider);
+    logger.info('App', '应用启动 ?????????????? 22222222222');
 
     // 检查应用初始化状态
     final initState = ref.watch(appInitStateProvider);
@@ -471,10 +477,12 @@ class MainApp extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         theme: theme,
         darkTheme: BeeTheme.darkTheme(platform: platform).copyWith(
-          colorScheme: BeeTheme.darkTheme(platform: platform).colorScheme.copyWith(primary: primary),
+          colorScheme: BeeTheme.darkTheme(platform: platform)
+              .colorScheme
+              .copyWith(primary: primary),
           primaryColor: primary,
-        ),                                                // ⭐ 暗黑主题（使用动态主题色）
-        themeMode: ref.watch(themeModeProvider),         // ⭐ 使用 provider 支持手动切换
+        ), // ⭐ 暗黑主题（使用动态主题色）
+        themeMode: ref.watch(themeModeProvider), // ⭐ 使用 provider 支持手动切换
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
@@ -488,12 +496,12 @@ class MainApp extends ConsumerWidget {
         ],
         locale: selectedLanguage,
         // 显式命名根路由，便于路由日志与 popUntil 精确识别
-        home: _getHomePage(initState, ref),
+        home: _getLoginPage(initState, ref),
         onGenerateRoute: (settings) {
           if (settings.name == Navigator.defaultRouteName ||
               settings.name == '/') {
             return MaterialPageRoute(
-                builder: (_) => _getHomePage(initState, ref),
+                builder: (_) => _getLoginPage(initState, ref),
                 settings: const RouteSettings(name: '/'));
           }
           return null;

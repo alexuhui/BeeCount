@@ -1342,7 +1342,7 @@
   "mineImportCompleteTitle": "匯入完成",
   "mineImportProgressSubtitle": "進度：{done}/{total}，成功 {ok}，失敗 {fail}",
   "mineImportProgressTitle": "後台匯入中…",
-  "mineLanguageSettings": "語言設定",
+  "mineLanguageSettings": "語言設定：",
   "mineLoggedInEmail": "已登入",
   "mineLoginSubtitle": "僅在同步時需要",
   "mineLoginTitle": "登入 / 註冊",

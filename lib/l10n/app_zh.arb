@@ -333,7 +333,7 @@
   "mineExport": "导出数据",
   "mineCloud": "云服务",
   "mineUpdate": "检查更新",
-  "mineLanguageSettings": "语言设置",
+  "mineLanguageSettings": "语言设置：",
   "languageTitle": "语言设置",
   "languageChinese": "中文",
   "languageEnglish": "English",

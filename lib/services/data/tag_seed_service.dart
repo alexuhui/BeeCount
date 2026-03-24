@@ -1,6 +1,5 @@
-import 'package:drift/drift.dart';
 import '../../l10n/app_localizations.dart';
-import '../../data/db.dart';
+import '../../data/repositories/base_repository.dart';
 import '../system/logger_service.dart';
 
 /// 预设标签服务
@@ -71,8 +70,9 @@ class TagSeedService {
   /// 生成默认标签
   /// 如果标签已存在（同名），则跳过
   /// 返回新创建的标签数量
+  /// [repository] 仓库实例，如果传入同步仓库则会自动同步到服务器
   static Future<int> seedDefaultTags(
-    BeeDatabase db,
+    BaseRepository repository,
     AppLocalizations l10n,
   ) async {
     logger.info('TagSeedService', '开始生成默认标签');
@@ -84,21 +84,18 @@ class TagSeedService {
       final tagDef = defaultTags[i];
 
       // 检查是否已存在同名标签
-      final existing = await (db.select(db.tags)
-        ..where((t) => t.name.equals(tagDef.name))).getSingleOrNull();
+      final existing = await repository.getTagByName(tagDef.name);
 
       if (existing != null) {
         logger.debug('TagSeedService', '标签已存在，跳过: ${tagDef.name}');
         continue;
       }
 
-      // 创建标签
-      await db.into(db.tags).insert(
-        TagsCompanion.insert(
-          name: tagDef.name,
-          color: tagDef.color != null ? Value(tagDef.color) : const Value.absent(),
-          sortOrder: Value(i),
-        ),
+      // 创建标签（通过仓库，支持同步）
+      await repository.createTag(
+        name: tagDef.name,
+        color: tagDef.color,
+        sortOrder: i,
       );
 
       createdCount++;

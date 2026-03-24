@@ -175,8 +175,8 @@ class _TagManagePageState extends ConsumerState<TagManagePage> {
     );
 
     if (confirmed == true && mounted) {
-      final db = ref.read(databaseProvider);
-      await TagSeedService.seedDefaultTags(db, l10n);
+      final repo = ref.read(repositoryProvider);
+      await TagSeedService.seedDefaultTags(repo, l10n);
       ref.read(tagListRefreshProvider.notifier).state++;
 
       if (mounted) {

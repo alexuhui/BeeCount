@@ -1,3 +1,4 @@
+import 'package:beecount/app.dart';
 import 'package:beecount/providers/sync_providers.dart';
 import 'package:beecount/services/sync/beecount_sync_engine.dart';
 import 'package:flutter/material.dart';
@@ -17,7 +18,6 @@ import '../../services/system/logger_service.dart';
 import '../../services/sync/beecount_initial_sync_service.dart';
 import '../../utils/local_storage_utils.dart';
 import '../../widgets/ui/ui.dart';
-import '../../app.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -510,19 +510,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       await prefs.setBool('welcome_shown', true);
       await prefs.setString('selected_currency', 'CNY');
       await prefs.setString('category_mode', 'hierarchical'); // 固定为二级分类模式
+      // await prefs.setString('app_mode', 'local');
+
+      final db = ref.read(databaseProvider);
 
       final offline = await ref.read(beecountOfflineModeProvider.future);
       LocalStorageUtils.setAppStatus(offline
           ? LocalStorageUtils.appStatusOffline
           : LocalStorageUtils.appStatusOnline);
-
-      // 清除相关状态，确保重新初始化
-      ref.invalidate(repositoryProvider);
-      ref.invalidate(databaseProvider);
-      ref.invalidate(beecountSyncEngineProvider);
-      ref.invalidate(beecountPendingSyncCountProvider);
-
-      final db = ref.read(databaseProvider);
 
       if (!offline) {
         CloudProvider? provider;
@@ -628,15 +623,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         await prefs.setInt('current_ledger_id', firstLedgerId);
         logger.info('Login', '设置当前账本 ID: $firstLedgerId');
       }
-
-      // 强制刷新所有相关状态
-      ref.invalidate(beecountOfflineModeProvider);
-      ref.invalidate(beecountSessionProvider);
-      ref.invalidate(beecountProviderProvider);
-      ref.invalidate(beecountSyncEngineProvider);
-      ref.invalidate(beecountPendingSyncCountProvider);
-      
-      // 更新UI状态
       ref.read(shouldShowLoginProvider.notifier).state = false;
       ref.read(appInitStateProvider.notifier).state = AppInitState.ready;
       

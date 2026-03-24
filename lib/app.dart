@@ -148,6 +148,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
     Future.microtask(() async {
       try {
         final syncService = ref.read(syncServiceProvider);
+        logger.info('BeeApp', '当前同步服务: $syncService');
         if (syncService is! LocalOnlySyncService) {
           final syncVersionService = ref.read(syncVersionServiceProvider);
           await syncVersionService.start();
@@ -236,6 +237,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
   }
 
   void _onLongPressStart(LongPressStartDetails details) {
+    if (!mounted) return;
     setState(() {
       _isOpen = true;
       _expandController.forward();
@@ -244,10 +246,12 @@ class _BeeAppState extends ConsumerState<BeeApp>
   }
 
   void _onLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
+    if (!mounted) return;
     _updateHoveredIndex(details.globalPosition);
   }
 
   void _onLongPressEnd(LongPressEndDetails details) {
+    if (!mounted) return;
     final centerActions = [
       SpeedDialAction(
         icon: Icons.camera_alt_rounded,
@@ -282,6 +286,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
   }
 
   void _showOverlay() {
+    if (!mounted) return;
     final RenderBox? renderBox =
         _centerButtonKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
@@ -320,6 +325,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
   }
 
   void _updateHoveredIndex(Offset globalPosition) {
+    if (!mounted) return;
     final RenderBox? renderBox =
         _centerButtonKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
@@ -435,6 +441,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
           key: _centerButtonKey,
           behavior: HitTestBehavior.opaque, // 防止点击穿透
           onTap: () {
+            if (!mounted) return;
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -515,6 +522,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
               bottomPadding: bottomPadding,
               l10n: l10n,
               onTabTap: (index) {
+                if (!mounted) return;
                 final now = DateTime.now();
                 if (_lastTappedIndex == index &&
                     _lastTapTime != null &&
@@ -546,6 +554,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
                     ? Colors.white
                     : Colors.black,
                 onPressed: () {
+                  if (!mounted) return;
                   final current = ref.read(themeModeProvider);
                   final next = current == ThemeMode.dark
                       ? ThemeMode.light

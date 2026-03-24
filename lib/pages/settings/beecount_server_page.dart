@@ -131,27 +131,15 @@ class _BeeCountServerPageState extends ConsumerState<BeeCountServerPage> {
 
       LocalStorageUtils.setAppStatus(LocalStorageUtils.appStatusNone);
 
-      // 清除所有相关状态
       ref.invalidate(beecountOfflineModeProvider);
       ref.invalidate(beecountSessionProvider);
       ref.invalidate(beecountProviderProvider);
-      ref.invalidate(beecountSyncEngineProvider);
-      ref.invalidate(beecountPendingSyncCountProvider);
       ref.invalidate(loginCheckProvider);
       ref.invalidate(shouldShowLoginProvider);
       ref.invalidate(appInitStateProvider);
-      ref.invalidate(repositoryProvider);
-      ref.invalidate(databaseProvider);
-      
-      // 重置UI状态
-      ref.read(shouldShowLoginProvider.notifier).state = true;
-      ref.read(appInitStateProvider.notifier).state = AppInitState.splash;
 
-      // 退出当前页面并返回登录页
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-        (route) => false,
-      );
+      // 退出当前页面
+      Navigator.of(context).pop();
     } catch (e) {
       logger.error('BeeCountServerPage', '清空数据失败: $e');
     }

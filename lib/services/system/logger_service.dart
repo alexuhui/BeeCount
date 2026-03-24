@@ -157,6 +157,9 @@ class LoggerService {
 
   bool _isLoaded = false;
 
+  /// 最低日志级别：Debug 模式显示所有日志，Release 模式只显示 warning 及以上
+  LogLevel get minLevel => kDebugMode ? LogLevel.debug : LogLevel.warning;
+
   /// 获取所有日志（自动加载持久化的日志）
   List<LogEntry> get logs {
     if (!_isLoaded) {
@@ -184,6 +187,9 @@ class LoggerService {
 
   /// 添加日志
   void _addLog(LogEntry entry) {
+    // 日志级别过滤：低于最低级别的日志不记录
+    if (entry.level.index < minLevel.index) return;
+
     // 确保已加载
     if (!_isLoaded) {
       _loadLogs();

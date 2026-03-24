@@ -224,18 +224,30 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
     // 首屏预加载条数限制（只加载前 N 条，加快启动速度）
     const preloadLimit = 20;
 
-    final results = await Future.wait([
-      timed('月度统计', ref.read(monthlyTotalsProvider(monthlyParams).future)),
-      // 只查询前 N 条，而非全部
-      timed(
-          '交易列表(前$preloadLimit条)',
-          repo.getRecentTransactionsWithCategory(
-              ledgerId: ledgerId, limit: preloadLimit)),
-    ]);
+    (double, double)? monthlyResult;
+    List<({Transaction t, Category? category})> transactionsWithCategory;
 
-    final monthlyResult = results[0] as (double, double);
-    final transactionsWithCategory =
-        results[1] as List<({Transaction t, Category? category})>;
+    try {
+      final results = await Future.wait([
+        timed('月度统计', ref.read(monthlyTotalsProvider(monthlyParams).future)),
+        timed(
+            '交易列表(前$preloadLimit条)',
+            repo.getRecentTransactionsWithCategory(
+                ledgerId: ledgerId, limit: preloadLimit)),
+      ]);
+      monthlyResult = results[0] as (double, double);
+      transactionsWithCategory =
+          results[1] as List<({Transaction t, Category? category})>;
+    } catch (e) {
+      logger.warning(tag, '月度统计加载被中断（可能账本已切换），使用默认值: $e');
+      monthlyResult = (0.0, 0.0);
+      transactionsWithCategory = await repo.getRecentTransactionsWithCategory(
+          ledgerId: ledgerId, limit: preloadLimit);
+    }
+
+    if (monthlyResult == null) {
+      monthlyResult = (0.0, 0.0);
+    }
 
     ref.read(lastMonthlyTotalsProvider(monthlyParams).notifier).state =
         monthlyResult;

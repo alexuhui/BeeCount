@@ -135,7 +135,7 @@ class _BeeCountServerPageState extends ConsumerState<BeeCountServerPage> {
       ref.invalidate(beecountSessionProvider);
       ref.invalidate(beecountProviderProvider);
       ref.invalidate(loginCheckProvider);
-      ref.invalidate(shouldShowLoginProvider);
+      ref.read(shouldShowLoginProvider.notifier).state = true;
       ref.invalidate(appInitStateProvider);
 
       // 退出当前页面

@@ -67,6 +67,9 @@ class _BeeAppState extends ConsumerState<BeeApp>
   OverlayEntry? _overlayEntry;
   final GlobalKey _centerButtonKey = GlobalKey();
 
+  // 同步版本服务引用（用于 dispose 时停止）
+  SyncVersionService? _syncVersionService;
+
   @override
   void initState() {
     super.initState();
@@ -150,8 +153,8 @@ class _BeeAppState extends ConsumerState<BeeApp>
         final syncService = ref.read(syncServiceProvider);
         logger.info('BeeApp', '当前同步服务: $syncService');
         if (syncService is! LocalOnlySyncService) {
-          final syncVersionService = ref.read(syncVersionServiceProvider);
-          await syncVersionService.start();
+          _syncVersionService = ref.read(syncVersionServiceProvider);
+          await _syncVersionService!.start();
           ref.read(syncVersionServiceRunningProvider.notifier).state = true;
           logger.info('BeeApp', '版本号同步服务已启动');
         }
@@ -225,8 +228,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
     _expandController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     
-    final syncVersionService = ref.read(syncVersionServiceProvider);
-    syncVersionService.stop();
+    _syncVersionService?.stop();
     
     super.dispose();
   }
@@ -529,14 +531,20 @@ class _BeeAppState extends ConsumerState<BeeApp>
                     now.difference(_lastTapTime!) <
                         const Duration(milliseconds: 300)) {
                   if (index == 0) {
-                    ref.read(homeScrollToTopProvider.notifier).state++;
+                    Future.microtask(() {
+                      if (!mounted) return;
+                      ref.read(homeScrollToTopProvider.notifier).state++;
+                    });
                   }
                   _lastTapTime = null;
                   _lastTappedIndex = null;
                 } else {
                   _lastTapTime = now;
                   _lastTappedIndex = index;
-                  ref.read(bottomTabIndexProvider.notifier).state = index;
+                  Future.microtask(() {
+                    if (!mounted) return;
+                    ref.read(bottomTabIndexProvider.notifier).state = index;
+                  });
                 }
               },
             ),
@@ -559,7 +567,10 @@ class _BeeAppState extends ConsumerState<BeeApp>
                   final next = current == ThemeMode.dark
                       ? ThemeMode.light
                       : ThemeMode.dark;
-                  ref.read(themeModeProvider.notifier).state = next;
+                  Future.microtask(() {
+                    if (!mounted) return;
+                    ref.read(themeModeProvider.notifier).state = next;
+                  });
                 },
                 child: Icon(
                   Theme.of(context).brightness == Brightness.dark

@@ -69,8 +69,11 @@ class SyncVersionService {
         
         logger.info('SyncVersion', '服务器版本: $serverVersion, 本地版本: $_localVersion');
 
-        // 只有当服务器版本号大于本地版本号时才触发同步
-        // （表示服务器有新数据需要拉取）
+        if (serverVersion == null) {
+          logger.warning('SyncVersion', '获取服务器版本号为空，跳过同步');
+          return;
+        }
+
         if (serverVersion > _localVersion) {
           logger.info('SyncVersion', '服务器有新数据，触发同步');
           await _doSync(syncEngine, provider);
@@ -142,11 +145,13 @@ class SyncVersionService {
       if (provider.databaseService is BeeCountDatabaseService) {
         final beecountDb = provider.databaseService as BeeCountDatabaseService;
         final serverVersion = await beecountDb.getSyncVersion();
-        _localVersion = serverVersion;
-        
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('sync_version', serverVersion);
-        logger.info('SyncVersion', '从服务器同步版本号: $_localVersion');
+        if (serverVersion != null) {
+          _localVersion = serverVersion;
+          
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('sync_version', serverVersion);
+          logger.info('SyncVersion', '从服务器同步版本号: $_localVersion');
+        }
       }
     } catch (e) {
       logger.warning('SyncVersion', '同步版本号失败: $e');

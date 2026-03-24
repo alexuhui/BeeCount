@@ -6,6 +6,7 @@ import 'database_providers.dart';
 import '../services/sync/beecount_session_store.dart';
 import '../services/sync/beecount_initial_sync_service.dart';
 import '../services/sync/beecount_sync_engine.dart';
+import '../services/sync/sync_version_service.dart';
 import '../services/system/logger_service.dart';
 
 final beeCountSessionStoreProvider = Provider<BeeCountSessionStore>((ref) {
@@ -69,7 +70,15 @@ final beecountSyncEngineProvider = Provider<BeeCountSyncEngine?>((ref) {
   if (!providerAsync.hasValue || providerAsync.value == null) return null;
   final db = ref.watch(databaseProvider);
 
-  final engine = BeeCountSyncEngine(db: db, provider: providerAsync.value!);
+  final syncVersionService = ref.read(syncVersionServiceProvider);
+
+  final engine = BeeCountSyncEngine(
+    db: db,
+    provider: providerAsync.value!,
+    onFlushComplete: () async {
+      await syncVersionService.syncVersionFromServer();
+    },
+  );
   engine.start();
   ref.onDispose(engine.dispose);
   return engine;

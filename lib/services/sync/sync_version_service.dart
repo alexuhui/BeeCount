@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
+import 'package:flutter_cloud_sync_beecount/flutter_cloud_sync_beecount.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../system/logger_service.dart';
-import '../../cloud/sync_service.dart';
-import '../../providers/sync_providers.dart';
+import '../../providers/beecount_server_providers.dart';
 import '../../providers/database_providers.dart';
+import 'beecount_initial_sync_service.dart';
+import 'beecount_sync_engine.dart';
 
 class SyncVersionService {
   final Ref _ref;
@@ -38,82 +41,75 @@ class SyncVersionService {
     }
 
     try {
-      final syncService = _ref.read(syncServiceProvider);
-      
-      if (syncService is LocalOnlySyncService) {
+      final syncEngine = _ref.read(beecountSyncEngineProvider);
+      logger.debug('SyncVersion', 'syncEngine: $syncEngine');
+      if (syncEngine == null) {
+        logger.debug('SyncVersion', 'syncEngine 为 null，跳过检测');
         return;
       }
 
-      final cloudProvider = await _ref.read(cloudProviderInstanceProvider.future);
-      if (cloudProvider == null) {
+      final provider = syncEngine.provider;
+      logger.debug('SyncVersion', 'provider: $provider, databaseService: ${provider.databaseService}');
+      if (provider.databaseService == null) {
+        logger.debug('SyncVersion', 'databaseService 为 null，跳过检测');
         return;
       }
 
-      final dbService = cloudProvider.databaseService;
-      if (dbService == null) {
-        return;
-      }
-
-      if (dbService.toString().contains('BeeCountDatabaseService')) {
-        final beecountDb = dbService as dynamic;
-        final serverVersion = await beecountDb.getSyncVersion() as int;
+      if (provider.databaseService is BeeCountDatabaseService) {
+        final beecountDb = provider.databaseService as BeeCountDatabaseService;
+        final serverVersion = await beecountDb.getSyncVersion();
         
         logger.info('SyncVersion', '服务器版本: $serverVersion, 本地版本: $_localVersion');
 
-        if (serverVersion != _localVersion) {
-          logger.info('SyncVersion', '版本不一致，触发同步');
-          await _doSync(syncService);
+        // 只有当服务器版本号大于本地版本号时才触发同步
+        // （表示服务器有新数据需要拉取）
+        if (serverVersion > _localVersion) {
+          logger.info('SyncVersion', '服务器有新数据，触发同步');
+          await _doSync(syncEngine, provider);
+          
           _localVersion = serverVersion;
           
           final prefs = await SharedPreferences.getInstance();
           await prefs.setInt('sync_version', serverVersion);
           logger.info('SyncVersion', '本地版本已更新: $_localVersion');
         }
+      } else {
+        logger.debug('SyncVersion', 'databaseService 不是 BeeCountDatabaseService: ${provider.databaseService.runtimeType}');
       }
-    } catch (e) {
-      logger.warning('SyncVersion', '检测版本号失败: $e');
+    } catch (e, st) {
+      logger.warning('SyncVersion', '检测版本号失败: $e\n$st');
     }
   }
 
-  Future<void> _doSync(SyncService syncService) async {
+  Future<void> _doSync(BeeCountSyncEngine syncEngine, CloudProvider provider) async {
     if (_isSyncing) return;
     _isSyncing = true;
 
     try {
-      final ledgerId = _ref.read(currentLedgerIdProvider);
-      final status = await syncService.getStatus(ledgerId: ledgerId);
+      final db = _ref.read(databaseProvider);
       
-      logger.info('SyncVersion', '同步状态: ${status.diff}');
+      logger.info('SyncVersion', '开始从服务器拉取数据');
+      
+      final syncService = BeeCountInitialSyncService(
+        db: db,
+        provider: provider,
+        sync: syncEngine,
+      );
+      await syncService.run();
+      
+      logger.info('SyncVersion', '同步完成，更新当前账本');
 
-      switch (status.diff) {
-        case SyncDiff.cloudNewer:
-          logger.info('SyncVersion', '服务器数据较新，下载到本地');
-          await syncService.downloadAndRestoreToCurrentLedger(ledgerId: ledgerId);
-          _ref.read(syncStatusRefreshProvider.notifier).state++;
-          break;
-        case SyncDiff.localNewer:
-          logger.info('SyncVersion', '本地数据较新，上传到服务器');
-          await syncService.uploadCurrentLedger(ledgerId: ledgerId);
-          _ref.read(syncStatusRefreshProvider.notifier).state++;
-          break;
-        case SyncDiff.different:
-          logger.info('SyncVersion', '数据不同，下载服务器数据');
-          await syncService.downloadAndRestoreToCurrentLedger(ledgerId: ledgerId);
-          _ref.read(syncStatusRefreshProvider.notifier).state++;
-          break;
-        case SyncDiff.noRemote:
-          logger.info('SyncVersion', '服务器没有数据，上传本地数据');
-          await syncService.uploadCurrentLedger(ledgerId: ledgerId);
-          _ref.read(syncStatusRefreshProvider.notifier).state++;
-          break;
-        case SyncDiff.inSync:
-          logger.info('SyncVersion', '数据已同步');
-          break;
-        default:
-          break;
+      final ledgers = await db.select(db.ledgers).get();
+      if (ledgers.isNotEmpty) {
+        final firstLedgerId = ledgers.first.id;
+        final currentId = _ref.read(currentLedgerIdProvider);
+        if (currentId != firstLedgerId) {
+          _ref.read(currentLedgerIdProvider.notifier).state = firstLedgerId;
+          logger.info('SyncVersion', '已设置当前账本 ID: $firstLedgerId');
+        }
       }
-    } catch (e) {
-      logger.error('SyncVersion', '同步失败', e);
+    } catch (e, st) {
+      logger.error('SyncVersion', '同步失败', e, st);
     } finally {
       _isSyncing = false;
     }
@@ -124,6 +120,29 @@ class SyncVersionService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('sync_version', version);
     logger.info('SyncVersion', '本地版本已更新: $_localVersion');
+  }
+
+  /// 从服务器同步版本号（在本地推送数据后调用）
+  Future<void> syncVersionFromServer() async {
+    try {
+      final syncEngine = _ref.read(beecountSyncEngineProvider);
+      if (syncEngine == null) return;
+
+      final provider = syncEngine.provider;
+      if (provider.databaseService == null) return;
+
+      if (provider.databaseService is BeeCountDatabaseService) {
+        final beecountDb = provider.databaseService as BeeCountDatabaseService;
+        final serverVersion = await beecountDb.getSyncVersion();
+        _localVersion = serverVersion;
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('sync_version', serverVersion);
+        logger.info('SyncVersion', '从服务器同步版本号: $_localVersion');
+      }
+    } catch (e) {
+      logger.warning('SyncVersion', '同步版本号失败: $e');
+    }
   }
 }
 

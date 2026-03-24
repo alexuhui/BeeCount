@@ -150,13 +150,16 @@ class _BeeAppState extends ConsumerState<BeeApp>
   void _startSyncVersionService() {
     Future.microtask(() async {
       try {
-        final syncService = ref.read(syncServiceProvider);
-        logger.info('BeeApp', '当前同步服务: $syncService');
-        if (syncService is! LocalOnlySyncService) {
+        final sessionAsync = ref.read(beecountSessionProvider);
+        logger.info('BeeApp', 'BeeCount 会话状态: $sessionAsync');
+        
+        if (sessionAsync.hasValue && sessionAsync.value != null) {
           _syncVersionService = ref.read(syncVersionServiceProvider);
           await _syncVersionService!.start();
           ref.read(syncVersionServiceRunningProvider.notifier).state = true;
           logger.info('BeeApp', '版本号同步服务已启动');
+        } else {
+          logger.info('BeeApp', '未登录 BeeCount 服务器，跳过启动版本号同步服务');
         }
       } catch (e) {
         logger.warning('BeeApp', '启动版本号同步服务失败: $e');

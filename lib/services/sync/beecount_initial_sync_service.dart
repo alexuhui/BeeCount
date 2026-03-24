@@ -23,8 +23,7 @@ class BeeCountInitialSyncService {
     if (provider.databaseService == null) return;
     if (provider.currentUserId == null) return;
 
-    await sync.flush();
-
+    logger.info('InitialSync', '开始拉取远程数据...');
     final remote = <String, List<Map<String, dynamic>>>{
       'ledgers': await _fetch('ledgers'),
       'accounts': await _fetch('accounts'),
@@ -36,8 +35,10 @@ class BeeCountInitialSyncService {
       'transaction_tags': await _fetch('transaction_tags'),
     };
 
+    logger.info('InitialSync', '远程数据拉取完成: ledgers=${remote['ledgers']?.length}, accounts=${remote['accounts']?.length}, categories=${remote['categories']?.length}, tags=${remote['tags']?.length}');
+
     await _merge(remote);
-    await sync.flush();
+    logger.info('InitialSync', '数据合并完成');
   }
 
   Future<void> _ensureLocalTables() async {

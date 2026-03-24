@@ -11,10 +11,14 @@ class BeeCountSyncEngine {
   BeeCountSyncEngine({
     required this.db,
     required this.provider,
+    this.onFlushComplete,
   });
 
   final BeeDatabase db;
   final CloudProvider provider;
+  
+  /// flush 完成后的回调（用于更新版本号）
+  final Future<void> Function()? onFlushComplete;
 
   Timer? _debounce;
   Timer? _poll;
@@ -142,6 +146,11 @@ class BeeCountSyncEngine {
       while (madeProgress && rounds < 5) {
         rounds++;
         madeProgress = await _flushOnce();
+      }
+      
+      // flush 完成后调用回调
+      if (onFlushComplete != null) {
+        await onFlushComplete!();
       }
     } finally {
       _flushing = false;

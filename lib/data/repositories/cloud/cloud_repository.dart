@@ -1381,4 +1381,10 @@ class CloudRepository extends BaseRepository {
   Stream<int> watchAttachmentCountByTransaction(int transactionId) {
     throw UnimplementedError('附件功能在云端模式下暂不可用');
   }
+  
+  @override
+  Future<void> clearAllData() {
+    // TODO: implement clearAllData
+    throw UnimplementedError('附件功能在云端模式下暂不可用');
+  }
 }

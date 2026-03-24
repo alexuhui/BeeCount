@@ -22,9 +22,12 @@ class SyncVersionService {
     _localVersion = prefs.getInt('sync_version') ?? 0;
     logger.info('SyncVersion', '启动版本号同步服务，本地版本: $_localVersion');
 
+    // 启动时立即检查一次版本
+    await checkVersion();
+
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 10), (_) async {
-      await _checkVersion();
+      await checkVersion();
     });
   }
 
@@ -32,6 +35,11 @@ class SyncVersionService {
     _timer?.cancel();
     _timer = null;
     logger.info('SyncVersion', '停止版本号同步服务');
+  }
+
+  /// 公开的版本检查方法（可在启动或恢复前台时调用）
+  Future<void> checkVersion() async {
+    await _checkVersion();
   }
 
   Future<void> _checkVersion() async {

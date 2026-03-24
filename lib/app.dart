@@ -411,9 +411,10 @@ class _BeeAppState extends ConsumerState<BeeApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    // 当app从后台恢复到前台时，更新小组件数据
+    // 当app从后台恢复到前台时，更新小组件数据并检查版本
     if (state == AppLifecycleState.resumed) {
       _updateWidget();
+      _checkVersionOnResume();
     }
   }
 
@@ -428,6 +429,14 @@ class _BeeAppState extends ConsumerState<BeeApp>
       print('✅ App恢复前台，小组件数据已更新');
     } catch (e) {
       print('❌ 更新小组件失败: $e');
+    }
+  }
+
+  /// App 恢复前台时检查版本
+  void _checkVersionOnResume() {
+    if (_syncVersionService != null) {
+      logger.info('SyncVersion', 'App 恢复前台，检查版本');
+      _syncVersionService!.checkVersion();
     }
   }
 

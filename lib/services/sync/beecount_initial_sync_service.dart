@@ -162,7 +162,18 @@ class BeeCountInitialSyncService {
 
       for (final entity in order) {
         final rows = remote[entity] ?? const [];
-        for (final r in rows) {
+        
+        // 对分类进行特殊处理：先处理一级分类，再处理子分类
+        List<Map<String, dynamic>> sortedRows;
+        if (entity == 'categories') {
+          final parentCategories = rows.where((r) => r['parent_id'] == null).toList();
+          final childCategories = rows.where((r) => r['parent_id'] != null).toList();
+          sortedRows = [...parentCategories, ...childCategories];
+        } else {
+          sortedRows = rows;
+        }
+        
+        for (final r in sortedRows) {
           final idRaw = r['id'];
           if (idRaw == null) continue;
           final remoteId = idRaw is int ? idRaw : int.tryParse(idRaw.toString());

@@ -36,18 +36,20 @@ class BeeCountSyncEngine {
     _poll?.cancel();
   }
 
-  Future<void> enqueueUpsert(String entity, int localId) async {
+  Future<void> enqueueUpsert(String entity, int localId, {int? createdAt}) async {
     await _ensureLocalTables();
+    final createdAtValue = createdAt ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000);
     await db.customStatement(
       '''
       INSERT INTO sync_queue_items(entity, local_id, action, payload, retry_count, last_error, created_at, updated_at)
-      VALUES(?, ?, 'upsert', NULL, 0, NULL, strftime('%s','now'), strftime('%s','now'))
+      VALUES(?, ?, 'upsert', NULL, 0, NULL, ?, strftime('%s','now'))
       ON CONFLICT(entity, local_id) DO UPDATE SET
         action='upsert',
         payload=NULL,
+        created_at=MIN(created_at, ?),
         updated_at=strftime('%s','now');
       ''',
-      [entity, localId],
+      [entity, localId, createdAtValue, createdAtValue],
     );
     await _touchLocalChange(entity, localId);
     _scheduleFlush();
@@ -333,7 +335,10 @@ class BeeCountSyncEngine {
   Future<int> _requireRemoteId(String entity, int localId) async {
     final id = await _remoteIdOf(entity, localId);
     if (id == null) {
-      await enqueueUpsert(entity, localId);
+      // 使用当前时间戳的负数（毫秒），确保依赖项排在前面
+      // 后加入的依赖项会有更小的值，会排在更前面（处理多层依赖时，父分类会排在子分类之前）
+      final createdAt = -DateTime.now().millisecondsSinceEpoch;
+      await enqueueUpsert(entity, localId, createdAt: createdAt);
       throw _MissingDependencyException(entity, localId);
     }
     return id;

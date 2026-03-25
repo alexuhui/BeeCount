@@ -5,7 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../system/logger_service.dart';
 import '../../providers/beecount_server_providers.dart';
+import '../../providers/budget_providers.dart';
+import '../../providers/calendar_providers.dart';
 import '../../providers/database_providers.dart';
+import '../../providers/statistics_providers.dart';
+import '../../providers/sync_providers.dart';
+import '../../providers/tag_providers.dart';
 import 'beecount_initial_sync_service.dart';
 import 'beecount_sync_engine.dart';
 
@@ -108,7 +113,7 @@ class SyncVersionService {
       );
       await syncService.run();
       
-      logger.info('SyncVersion', '同步完成，更新当前账本');
+      logger.info('SyncVersion', '同步完成，刷新 UI');
 
       final ledgers = await db.select(db.ledgers).get();
       if (ledgers.isNotEmpty) {
@@ -119,6 +124,30 @@ class SyncVersionService {
           logger.info('SyncVersion', '已设置当前账本 ID: $firstLedgerId');
         }
       }
+
+      // 刷新预算相关 Provider
+      _ref.read(budgetRefreshProvider.notifier).state++;
+      
+      // 刷新账户相关 Provider
+      _ref.invalidate(accountsStreamProvider);
+      _ref.invalidate(allAccountsStreamProvider);
+      
+      // 刷新统计相关 Provider
+      _ref.read(statsRefreshProvider.notifier).state++;
+      
+      // 刷新标签相关 Provider
+      _ref.read(tagListRefreshProvider.notifier).state++;
+      
+      // 刷新日历相关 Provider
+      _ref.read(calendarRefreshProvider.notifier).state++;
+      
+      // 刷新账本列表相关 Provider
+      _ref.read(ledgerListRefreshProvider.notifier).state++;
+      
+      // 刷新同步状态相关 Provider
+      _ref.read(syncStatusRefreshProvider.notifier).state++;
+      
+      logger.info('SyncVersion', 'UI 刷新完成');
     } catch (e, st) {
       logger.error('SyncVersion', '同步失败', e, st);
     } finally {

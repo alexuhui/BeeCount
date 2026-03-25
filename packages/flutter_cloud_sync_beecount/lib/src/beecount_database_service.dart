@@ -236,7 +236,7 @@ class BeeCountDatabaseService implements CloudDatabaseService {
   }
 
   Future<int?> getSyncVersion() async {
-    final url = '$serverUrl/api/v1/sync/version';
+    final url = '$serverUrl/api/v1/sync_version';
     
     print('📡 GET $url (sync version)');
     

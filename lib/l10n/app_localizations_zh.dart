@@ -5504,6 +5504,94 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cloudBeeCountHelpNote => '配置完成后需要注册/登录账号才能使用同步功能';
+
+  @override
+  String get categoryShareTitle => '分享分类';
+
+  @override
+  String get categoryShareDescription => '分享分类说明';
+
+  @override
+  String get categoryShareDescriptionContent =>
+      '生成随机码后，其他用户可以通过输入随机码导入您的分类。分享码可以随时删除使其失效。';
+
+  @override
+  String get categoryShareCreateTitle => '创建分享码';
+
+  @override
+  String get categoryShareTypeExpense => '仅支出分类';
+
+  @override
+  String get categoryShareTypeAll => '全部分类';
+
+  @override
+  String get categoryShareMyCodes => '我的分享码';
+
+  @override
+  String get categoryShareCodeTitle => '分享码';
+
+  @override
+  String get categoryShareCodeMessage => '请将以下分享码发送给需要导入分类的用户：';
+
+  @override
+  String get categoryShareCodeCopy => '复制';
+
+  @override
+  String get categoryShareCodeCopied => '分享码已复制到剪贴板';
+
+  @override
+  String get categoryShareDeleteTitle => '删除分享码';
+
+  @override
+  String get categoryShareDeleteMessage => '删除后该分享码将失效，其他用户将无法使用它导入分类。确定删除吗？';
+
+  @override
+  String get categoryImportTitle => '导入分类';
+
+  @override
+  String get categoryImportDescription => '导入分类说明';
+
+  @override
+  String get categoryImportDescriptionContent =>
+      '输入其他用户分享的分类码，即可导入对方的分类。导入时会自动跳过已存在的分类。';
+
+  @override
+  String get categoryImportCodeLabel => '输入分享码';
+
+  @override
+  String get categoryImportCodeInvalid => '请输入6位有效分享码';
+
+  @override
+  String get categoryImportButton => '导入分类';
+
+  @override
+  String get categoryImportConfirmTitle => '确认导入';
+
+  @override
+  String get categoryImportConfirmMessage =>
+      '导入后将合并对方的分类到您的账户中，已存在的分类会被跳过。确定导入吗？';
+
+  @override
+  String get categoryImportCompleteTitle => '导入完成';
+
+  @override
+  String categoryImportCompleteMessage(int imported, int skipped) {
+    return '成功导入 $imported 个分类，跳过 $skipped 个已存在的分类。';
+  }
+
+  @override
+  String get categoryImporting => '正在导入分类...';
+
+  @override
+  String get categoryImportingHint => '请勿关闭页面，导入完成后会自动刷新';
+
+  @override
+  String get categoryImportResultTitle => '导入结果';
+
+  @override
+  String categoryImportResultContent(int imported, int skipped) {
+    return '成功导入 $imported 个分类，跳过 $skipped 个已存在的分类。';
+  }
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).

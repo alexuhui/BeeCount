@@ -10419,6 +10419,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'After configuration, you need to register/login to use sync'**
   String get cloudBeeCountHelpNote;
+
+  /// No description provided for @categoryShareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Categories'**
+  String get categoryShareTitle;
+
+  /// No description provided for @categoryShareDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Categories'**
+  String get categoryShareDescription;
+
+  /// No description provided for @categoryShareDescriptionContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate a code, other users can import your categories by entering the code. You can delete the code anytime to make it invalid.'**
+  String get categoryShareDescriptionContent;
+
+  /// No description provided for @categoryShareCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Share Code'**
+  String get categoryShareCreateTitle;
+
+  /// No description provided for @categoryShareTypeExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense Only'**
+  String get categoryShareTypeExpense;
+
+  /// No description provided for @categoryShareTypeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All Categories'**
+  String get categoryShareTypeAll;
+
+  /// No description provided for @categoryShareMyCodes.
+  ///
+  /// In en, this message translates to:
+  /// **'My Share Codes'**
+  String get categoryShareMyCodes;
+
+  /// No description provided for @categoryShareCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Code'**
+  String get categoryShareCodeTitle;
+
+  /// No description provided for @categoryShareCodeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the following code to users who need to import categories:'**
+  String get categoryShareCodeMessage;
+
+  /// No description provided for @categoryShareCodeCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get categoryShareCodeCopy;
+
+  /// No description provided for @categoryShareCodeCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Share code copied to clipboard'**
+  String get categoryShareCodeCopied;
+
+  /// No description provided for @categoryShareDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Share Code'**
+  String get categoryShareDeleteTitle;
+
+  /// No description provided for @categoryShareDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'After deletion, the code will become invalid. Other users will not be able to use it. Delete anyway?'**
+  String get categoryShareDeleteMessage;
+
+  /// No description provided for @categoryImportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Categories'**
+  String get categoryImportTitle;
+
+  /// No description provided for @categoryImportDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Categories'**
+  String get categoryImportDescription;
+
+  /// No description provided for @categoryImportDescriptionContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the share code from another user to import their categories. Existing categories will be skipped.'**
+  String get categoryImportDescriptionContent;
+
+  /// No description provided for @categoryImportCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter Share Code'**
+  String get categoryImportCodeLabel;
+
+  /// No description provided for @categoryImportCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid 6-character code'**
+  String get categoryImportCodeInvalid;
+
+  /// No description provided for @categoryImportButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Categories'**
+  String get categoryImportButton;
+
+  /// No description provided for @categoryImportConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Import'**
+  String get categoryImportConfirmTitle;
+
+  /// No description provided for @categoryImportConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This will merge categories from the other user. Existing categories will be skipped. Continue?'**
+  String get categoryImportConfirmMessage;
+
+  /// No description provided for @categoryImportCompleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Complete'**
+  String get categoryImportCompleteTitle;
+
+  /// No description provided for @categoryImportCompleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Successfully imported {imported} categories, skipped {skipped} existing ones.'**
+  String categoryImportCompleteMessage(int imported, int skipped);
+
+  /// No description provided for @categoryImporting.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing categories...'**
+  String get categoryImporting;
+
+  /// No description provided for @categoryImportingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Please do not close the page, it will refresh automatically when complete'**
+  String get categoryImportingHint;
+
+  /// No description provided for @categoryImportResultTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Result'**
+  String get categoryImportResultTitle;
+
+  /// No description provided for @categoryImportResultContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Successfully imported {imported} categories, skipped {skipped} existing ones.'**
+  String categoryImportResultContent(int imported, int skipped);
 }
 
 class _AppLocalizationsDelegate

@@ -2542,5 +2542,52 @@
   "cloudBeeCountHelpStep1": "1. Deploy BeeCount Server",
   "cloudBeeCountHelpStep2": "2. Get the server access URL",
   "cloudBeeCountHelpStep3": "3. Paste it into the app configuration",
-  "cloudBeeCountHelpNote": "After configuration, you need to register/login to use sync"
+  "cloudBeeCountHelpNote": "After configuration, you need to register/login to use sync",
+  "categoryShareTitle": "Share Categories",
+  "categoryShareDescription": "Share Categories",
+  "categoryShareDescriptionContent": "Generate a code, other users can import your categories by entering the code. You can delete the code anytime to make it invalid.",
+  "categoryShareCreateTitle": "Create Share Code",
+  "categoryShareTypeExpense": "Expense Only",
+  "categoryShareTypeAll": "All Categories",
+  "categoryShareMyCodes": "My Share Codes",
+  "categoryShareCodeTitle": "Share Code",
+  "categoryShareCodeMessage": "Send the following code to users who need to import categories:",
+  "categoryShareCodeCopy": "Copy",
+  "categoryShareCodeCopied": "Share code copied to clipboard",
+  "categoryShareDeleteTitle": "Delete Share Code",
+  "categoryShareDeleteMessage": "After deletion, the code will become invalid. Other users will not be able to use it. Delete anyway?",
+  "categoryImportTitle": "Import Categories",
+  "categoryImportDescription": "Import Categories",
+  "categoryImportDescriptionContent": "Enter the share code from another user to import their categories. Existing categories will be skipped.",
+  "categoryImportCodeLabel": "Enter Share Code",
+  "categoryImportCodeInvalid": "Please enter a valid 6-character code",
+  "categoryImportButton": "Import Categories",
+  "categoryImportConfirmTitle": "Confirm Import",
+  "categoryImportConfirmMessage": "This will merge categories from the other user. Existing categories will be skipped. Continue?",
+  "categoryImportCompleteTitle": "Import Complete",
+  "categoryImportCompleteMessage": "Successfully imported {imported} categories, skipped {skipped} existing ones.",
+  "@categoryImportCompleteMessage": {
+    "placeholders": {
+      "imported": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "categoryImporting": "Importing categories...",
+  "categoryImportingHint": "Please do not close the page, it will refresh automatically when complete",
+  "categoryImportResultTitle": "Import Result",
+  "categoryImportResultContent": "Successfully imported {imported} categories, skipped {skipped} existing ones.",
+  "@categoryImportResultContent": {
+    "placeholders": {
+      "imported": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  }
 }

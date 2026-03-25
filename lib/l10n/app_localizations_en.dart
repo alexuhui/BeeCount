@@ -5736,4 +5736,96 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cloudBeeCountHelpNote =>
       'After configuration, you need to register/login to use sync';
+
+  @override
+  String get categoryShareTitle => 'Share Categories';
+
+  @override
+  String get categoryShareDescription => 'Share Categories';
+
+  @override
+  String get categoryShareDescriptionContent =>
+      'Generate a code, other users can import your categories by entering the code. You can delete the code anytime to make it invalid.';
+
+  @override
+  String get categoryShareCreateTitle => 'Create Share Code';
+
+  @override
+  String get categoryShareTypeExpense => 'Expense Only';
+
+  @override
+  String get categoryShareTypeAll => 'All Categories';
+
+  @override
+  String get categoryShareMyCodes => 'My Share Codes';
+
+  @override
+  String get categoryShareCodeTitle => 'Share Code';
+
+  @override
+  String get categoryShareCodeMessage =>
+      'Send the following code to users who need to import categories:';
+
+  @override
+  String get categoryShareCodeCopy => 'Copy';
+
+  @override
+  String get categoryShareCodeCopied => 'Share code copied to clipboard';
+
+  @override
+  String get categoryShareDeleteTitle => 'Delete Share Code';
+
+  @override
+  String get categoryShareDeleteMessage =>
+      'After deletion, the code will become invalid. Other users will not be able to use it. Delete anyway?';
+
+  @override
+  String get categoryImportTitle => 'Import Categories';
+
+  @override
+  String get categoryImportDescription => 'Import Categories';
+
+  @override
+  String get categoryImportDescriptionContent =>
+      'Enter the share code from another user to import their categories. Existing categories will be skipped.';
+
+  @override
+  String get categoryImportCodeLabel => 'Enter Share Code';
+
+  @override
+  String get categoryImportCodeInvalid =>
+      'Please enter a valid 6-character code';
+
+  @override
+  String get categoryImportButton => 'Import Categories';
+
+  @override
+  String get categoryImportConfirmTitle => 'Confirm Import';
+
+  @override
+  String get categoryImportConfirmMessage =>
+      'This will merge categories from the other user. Existing categories will be skipped. Continue?';
+
+  @override
+  String get categoryImportCompleteTitle => 'Import Complete';
+
+  @override
+  String categoryImportCompleteMessage(int imported, int skipped) {
+    return 'Successfully imported $imported categories, skipped $skipped existing ones.';
+  }
+
+  @override
+  String get categoryImporting => 'Importing categories...';
+
+  @override
+  String get categoryImportingHint =>
+      'Please do not close the page, it will refresh automatically when complete';
+
+  @override
+  String get categoryImportResultTitle => 'Import Result';
+
+  @override
+  String categoryImportResultContent(int imported, int skipped) {
+    return 'Successfully imported $imported categories, skipped $skipped existing ones.';
+  }
 }

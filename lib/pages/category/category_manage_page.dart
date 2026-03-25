@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../providers.dart';
+import '../../providers/beecount_server_providers.dart';
 import '../../widgets/ui/ui.dart';
 import '../../data/db.dart' as db;
 import '../../services/category_package_service.dart';
@@ -16,6 +17,8 @@ import '../../utils/category_utils.dart';
 import '../../styles/tokens.dart';
 import '../../widgets/category_icon.dart';
 import 'category_edit_page.dart';
+import 'category_share_page.dart';
+import 'category_import_page.dart';
 
 class CategoryManagePage extends ConsumerStatefulWidget {
   final int initialTabIndex; // 0: 支出, 1: 收入
@@ -65,9 +68,9 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
             showBack: true,
             actions: [
               IconButton(
-                onPressed: _shareCategories,
+                onPressed: _handleShare,
                 icon: const Icon(Icons.share_outlined),
-                tooltip: l10n.categoryShare,
+                tooltip: l10n.categoryShareTitle,
               ),
               _buildMoreMenu(context, l10n, primaryColor),
             ],
@@ -139,9 +142,9 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
           label: l10n.categoryImport,
         ),
         BeeMenuItem.action(
-          value: 'export',
-          icon: Icons.upload_outlined,
-          label: "分享分类",
+          value: 'share',
+          icon: Icons.share_outlined,
+          label: l10n.categoryShareTitle,
         ),
         const BeeMenuItem.divider(),
         BeeMenuItem.action(
@@ -157,10 +160,10 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
             _addCategory();
             break;
           case 'import':
-            _importCategories();
+            _handleImport();
             break;
-          case 'export':
-            _shareCategories();
+          case 'share':
+            _handleShare();
             break;
           case 'clear_unused':
             _clearUnusedCategories();
@@ -170,8 +173,35 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
     );
   }
 
-  /// 分享分类
-  Future<void> _shareCategories() async {
+  Future<void> _handleImport() async {
+    final session = await ref.read(beecountSessionProvider.future);
+    if (session != null) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const CategoryImportPage(),
+        ),
+      );
+      ref.invalidate(categoriesWithCountProvider);
+    } else {
+      await _importCategories();
+    }
+  }
+
+  Future<void> _handleShare() async {
+    final session = await ref.read(beecountSessionProvider.future);
+    if (session != null) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const CategorySharePage(),
+        ),
+      );
+    } else {
+      await _shareCategoriesFile();
+    }
+  }
+
+  /// 分享分类（文件方式）
+  Future<void> _shareCategoriesFile() async {
     final l10n = AppLocalizations.of(context);
 
     // 选择分享范围

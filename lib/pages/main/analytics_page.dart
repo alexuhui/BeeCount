@@ -6,6 +6,7 @@ import '../../styles/tokens.dart';
 import '../../providers.dart';
 import '../../widgets/ui/ui.dart';
 import '../../widgets/charts/line_chart.dart';
+import '../../widgets/charts/pie_chart.dart';
 import '../../widgets/analytics/analytics_summary.dart';
 import '../../widgets/analytics/category_rank_row.dart';
 import '../../widgets/ui/capsule_switcher.dart';
@@ -23,6 +24,7 @@ class AnalyticsPage extends ConsumerStatefulWidget {
 class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
   String _scope = 'month'; // month | year | all
   String _type = 'expense'; // expense | income | balance
+  String _displayMode = 'list'; // list | pie
   bool _chartSwiped = false; // 吸收图表区域横滑，避免父级切换收入/支出
   bool _localHeaderDismissed = false; // 本地快速隐藏，实际持久化在 provider 中
   bool _localChartDismissed = false;
@@ -610,22 +612,6 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                               .analyticsNoDataSubtext,
                         ),
                         const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.center,
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.swap_horiz),
-                            label: Text(AppLocalizations.of(context)
-                                .analyticsSwitchTo(_type == "expense"
-                                    ? AppLocalizations.of(context).homeIncome
-                                    : _type == "income"
-                                        ? AppLocalizations.of(context)
-                                            .homeBalance
-                                        : AppLocalizations.of(context)
-                                            .homeExpense)),
-                            onPressed: _cycleTypeForward,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
                         if (!headerDismissed)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -749,11 +735,11 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                       setState(() => _chartSwiped = false);
                       return;
                     }
-                    // 左右滑动切换类型
+                    // 左右滑动统一切换周期（月份/年份）
                     if (details.primaryVelocity! > 0) {
-                      _cycleTypeBackward();
+                      _onChartSwipeRight();
                     } else {
-                      _cycleTypeForward();
+                      _onChartSwipeLeft();
                     }
                   },
                   child: ListView(
@@ -812,7 +798,7 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      // 结余视角不显示分类排行榜标题和内容
+                      // 结余视角不显示分类相关内容
                       if (_type != 'balance')
                         Row(
                           children: [
@@ -822,44 +808,25 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                               style: BeeTextTokens.title(context),
                             ),
                             const Spacer(),
-                            if (!headerDismissed)
-                              InkWell(
-                                onTap: () async {
-                                  final setter =
-                                      ref.read(analyticsHintsSetterProvider);
-                                  await setter.dismissHeader();
-                                  if (mounted) {
-                                    setState(
-                                        () => _localHeaderDismissed = true);
-                                  }
-                                },
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.swipe,
-                                        size: 14,
-                                        color:
-                                            BeeTokens.textSecondary(context)),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                        AppLocalizations.of(context)
-                                            .analyticsSwipeToSwitch,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelSmall
-                                            ?.copyWith(
-                                                color: BeeTokens.textSecondary(
-                                                    context))),
-                                    const SizedBox(width: 4),
-                                    Icon(Icons.close,
-                                        size: 14,
-                                        color: BeeTokens.textTertiary(context)),
-                                  ],
+                            // 显示模式切换开关
+                            CapsuleSwitcher<String>(
+                              selectedValue: _displayMode,
+                              options: [
+                                CapsuleOption(
+                                  value: 'list',
+                                  label: '列表',
                                 ),
-                              ),
+                                CapsuleOption(
+                                  value: 'pie',
+                                  label: '饼图',
+                                ),
+                              ],
+                              onChanged: (value) => setState(() => _displayMode = value),
+                            ),
                           ],
                         ),
                       if (_type != 'balance') const SizedBox(height: 8),
-                      if (_type != 'balance')
+                      if (_type != 'balance' && _displayMode == 'list')
                         for (final item in catData)
                           CategoryRankRow(
                             categoryId: item.id,
@@ -873,6 +840,34 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                             scope: _scope,
                             selMonth: selMonth,
                           ),
+                      if (_type != 'balance' && _displayMode == 'pie')
+                        SizedBox(
+                          height: 300,
+                          child: PieChartWidget(
+                            data: catData.map((item) {
+                              final double percent = sum == 0 ? 0.0 : item.total / sum;
+                              return (
+                                color: null as Color?,
+                                name: item.name,
+                                percent: percent,
+                                value: item.total,
+                              );
+                            }).toList(),
+                            onSwipeLeft: () {
+                              _onChartSwipeLeft();
+                              setState(() => _chartSwiped = true);
+                            },
+                            onSwipeRight: () {
+                              _onChartSwipeRight();
+                              setState(() => _chartSwiped = true);
+                            },
+                            showHint: false,
+                            hideAmounts: hide,
+                            themeColor: Theme.of(context).colorScheme.primary,
+                            whiteBg: !BeeTokens.isDark(context),
+                            isDark: BeeTokens.isDark(context),
+                          ),
+                        ),
                     ],
                   ),
                 );

@@ -101,13 +101,13 @@ class _AccountEditPageState extends ConsumerState<AccountEditPage> {
   IconData _getIconForType(String type) {
     switch (type) {
       case 'cash':
-        return Icons.payments_outlined;
+        return Icons.money;
       case 'bank_card':
         return Icons.credit_card;
       case 'credit_card':
         return Icons.credit_score;
       case 'alipay':
-        return Icons.currency_yuan; // 使用￥符号代表支付宝
+        return Icons.local_atm; // 使用ATM图标代表支付宝
       case 'wechat':
         return Icons.chat; // 使用聊天图标代表微信
       case 'other':

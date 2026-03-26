@@ -21,13 +21,13 @@ class AccountsPage extends ConsumerWidget {
   IconData _getIconForType(String type) {
     switch (type) {
       case 'cash':
-        return Icons.payments_outlined;
+        return Icons.money;
       case 'bank_card':
         return Icons.credit_card;
       case 'credit_card':
         return Icons.credit_score;
       case 'alipay':
-        return Icons.currency_yuan;
+        return Icons.local_atm;
       case 'wechat':
         return Icons.chat;
       case 'other':

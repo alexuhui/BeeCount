@@ -52,42 +52,40 @@ class CapsuleSwitcher<T> extends StatelessWidget {
 
     Widget buildSegment(CapsuleOption<T> option) {
       final selected = selectedValue == option.value;
-      return Expanded(
-        child: GestureDetector(
-          onTap: () => onChanged(option.value),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            height: height - 6, // 减去padding
-            decoration: BoxDecoration(
-              color: selected ? selectedBg : Colors.transparent,
-              borderRadius: BorderRadius.circular((height - 6) / 2),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                Text(
-                  option.label,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: selected ? selectedFg : unselectedFg,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-                if (option.showArrow && option.onTap != null) ...[
-                  const SizedBox(width: 4),
-                  InkWell(
-                    onTap: option.onTap,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Icon(
-                      Icons.arrow_drop_down,
-                      size: 18,
+      return GestureDetector(
+        onTap: () => onChanged(option.value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          height: height - 6, // 减去padding
+          decoration: BoxDecoration(
+            color: selected ? selectedBg : Colors.transparent,
+            borderRadius: BorderRadius.circular((height - 6) / 2),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                option.label,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: selected ? selectedFg : unselectedFg,
+                      fontWeight: FontWeight.w600,
                     ),
+              ),
+              if (option.showArrow && option.onTap != null) ...[
+                const SizedBox(width: 4),
+                InkWell(
+                  onTap: option.onTap,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Icon(
+                    Icons.arrow_drop_down,
+                    size: 18,
+                    color: selected ? selectedFg : unselectedFg,
                   ),
-                ]
-              ],
-            ),
+                ),
+              ]
+            ],
           ),
         ),
       );
@@ -101,6 +99,7 @@ class CapsuleSwitcher<T> extends StatelessWidget {
         borderRadius: radius,
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: options
             .map((option) => buildSegment(option))
             .expand((widget) => [widget, const SizedBox(width: 4)])

@@ -19,12 +19,14 @@ class BudgetEditPage extends ConsumerStatefulWidget {
   final CategoryBudgetUsage? usage;
   final int year;
   final int month;
+  final bool isYearlyMode;
 
   const BudgetEditPage({
     this.budget,
     this.usage,
     required this.year,
     required this.month,
+    this.isYearlyMode = false,
     super.key,
   });
 
@@ -44,14 +46,21 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
   /// 0 表示整年，默认选中当前月份
   final List<bool> _selectedMonth = List.generate(13, (i) => false);
 
-  bool get _isEditing => widget.budget != null;
+  bool get _isEditing => widget.budget != null || (widget.isYearlyMode && widget.usage != null);
 
   @override
   void initState() {
     super.initState();
     _selectedYear = widget.year;
-    _selectedMonth[widget.month] = true;
-    if (_isEditing) {
+    // 如果是年度模式，默认选中整年及所有月份
+    if (widget.isYearlyMode) {
+      for (int i = 0; i <= 12; i++) {
+        _selectedMonth[i] = true;
+      }
+    } else {
+      _selectedMonth[widget.month] = true;
+    }
+    if (widget.budget != null) {
       _amountController.text = widget.budget!.amount.toStringAsFixed(0);
       _selectedCategoryId = widget.budget!.categoryId;
     }
@@ -85,7 +94,7 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
             showBack: true,
             compact: true,
             actions: [
-              if (_isEditing)
+              if (widget.budget != null)
                 IconButton(
                   onPressed: _deleteBudget,
                   icon: const Icon(Icons.delete_outline),
@@ -262,8 +271,9 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
   // }
 
   Widget _buildCategorySelector(BuildContext context, AppLocalizations l10n) {
+    final isDisabled = _isEditing;
     return InkWell(
-      onTap: _selectCategory,
+      onTap: isDisabled ? null : _selectCategory,
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: EdgeInsets.all(12.0.scaled(context, ref)),
@@ -315,10 +325,11 @@ class _BudgetEditPageState extends ConsumerState<BudgetEditPage> {
                 ),
               ),
             ],
-            Icon(
-              Icons.chevron_right,
-              color: BeeTokens.iconTertiary(context),
-            ),
+            if (!isDisabled)
+              Icon(
+                Icons.chevron_right,
+                color: BeeTokens.iconTertiary(context),
+              ),
           ],
         ),
       ),

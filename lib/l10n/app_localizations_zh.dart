@@ -5038,6 +5038,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get budgetMonthlyBudget => '本月预算';
 
   @override
+  String get budgetMonthly => '月';
+
+  @override
+  String get budgetYearly => '年';
+
+  @override
   String get budgetUsed => '已用';
 
   @override

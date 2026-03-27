@@ -7,6 +7,9 @@ import '../providers.dart';
 /// 预算刷新触发器
 final budgetRefreshProvider = StateProvider<int>((ref) => 0);
 
+/// 预算视图模式：月度/年度
+final budgetViewModeProvider = StateProvider<bool>((ref) => false); // false=月度, true=年度
+
 /// 当前账本的总预算
 final totalBudgetProvider = FutureProvider<Budget?>((ref) async {
   ref.watch(budgetRefreshProvider);
@@ -44,12 +47,17 @@ final selectedBudgetYearMonthProvider = StateProvider<DateTime>((ref) => DateTim
 /// 当前账本的指定年月的预算概览
 final budgetOverviewForYearMonthProvider = FutureProvider<BudgetOverview?>((ref) async {
   final dateTime = ref.watch(selectedBudgetYearMonthProvider);
+  final isYearly = ref.watch(budgetViewModeProvider);
   ref.watch(budgetRefreshProvider);
 
   final ledgerId = ref.watch(currentLedgerIdProvider);
   final repo = ref.watch(repositoryProvider);
 
-  return repo.getBudgetOverview(ledgerId, dateTime);
+  if (isYearly) {
+    return repo.getYearlyBudgetOverview(ledgerId, dateTime.year);
+  } else {
+    return repo.getBudgetOverview(ledgerId, dateTime);
+  }
 });
 
 /// 分类预算列表

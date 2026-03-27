@@ -9530,6 +9530,18 @@ abstract class AppLocalizations {
   /// **'Monthly Budget'**
   String get budgetMonthlyBudget;
 
+  /// No description provided for @budgetMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get budgetMonthly;
+
+  /// No description provided for @budgetYearly.
+  ///
+  /// In en, this message translates to:
+  /// **'Year'**
+  String get budgetYearly;
+
   /// No description provided for @budgetUsed.
   ///
   /// In en, this message translates to:

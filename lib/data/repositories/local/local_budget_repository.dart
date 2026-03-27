@@ -239,6 +239,42 @@ class LocalBudgetRepository implements BudgetRepository {
   }
 
   @override
+  Future<BudgetOverview> getYearlyBudgetOverview(int ledgerId, int year) async {
+    BudgetUsage? totalUsage;
+
+    // 获取年度分类预算使用情况
+    final categoryUsages = await getYearlyCategoryBudgetUsagesAll(ledgerId, year);
+    if (categoryUsages.isNotEmpty) {
+      double totalUsed = 0;
+      double totalBudget = 0;
+      for (final categoryUsage in categoryUsages) {
+        totalUsed += categoryUsage.usage.used;
+        totalBudget += categoryUsage.usage.budget;
+      }
+      totalUsage = BudgetUsage(used: totalUsed, budget: totalBudget);
+    } else {
+      totalUsage = BudgetUsage(used: 0, budget: 0);
+    }
+
+    DateTime now = DateTime.now();
+    DateTime startDate = now.year == year ? now : DateTime(year, 1, 1);
+    DateTime endDate = DateTime(year + 1);
+    final daysRemaining = endDate.difference(startDate).inDays;
+
+    final remaining = totalUsage?.remaining ?? 0;
+    final dailyAvailable = daysRemaining > 0 ? remaining / daysRemaining : 0.0;
+
+    return BudgetOverview(
+      totalBudget: totalUsage,
+      categoryBudgets: categoryUsages,
+      daysRemaining: daysRemaining > 0 ? daysRemaining : 0,
+      dailyAvailable: dailyAvailable > 0 ? dailyAvailable : 0,
+      year: year,
+      month: 0, // 0 表示年度
+    );
+  }
+
+  @override
   Future<List<CategoryBudgetUsage>> getCategoryBudgetUsages(
     int ledgerId,
     DateTime date,
@@ -398,6 +434,128 @@ class LocalBudgetRepository implements BudgetRepository {
     // 按使用率降序排列
     categoryUsages.sort((a, b) => b.usage.rate.compareTo(a.usage.rate));
 
+    return categoryUsages;
+  }
+
+  @override
+  Future<List<CategoryBudgetUsage>> getYearlyCategoryBudgetUsagesAll(
+    int ledgerId,
+    int year,
+  ) async {
+    DateTime startDate = DateTime(year, 1, 1);
+    DateTime endDate = DateTime(year + 1, 1, 1);
+
+    // 获取该年度所有分类预算
+    final budgets = await (db.select(db.budgets)
+          ..where((b) =>
+              b.ledgerId.equals(ledgerId) &
+              b.year.equals(year) &
+              b.categoryId.isNotNull()))
+        .get();
+
+    // 按分类ID汇总预算金额
+    final budgetMap = <int, double>{};
+    for (final b in budgets) {
+      if (b.categoryId == null) continue;
+      if (budgetMap.containsKey(b.categoryId)) {
+        budgetMap[b.categoryId!] = budgetMap[b.categoryId!]! + b.amount;
+      } else {
+        budgetMap[b.categoryId!] = b.amount;
+      }
+    }
+
+    // 查询该年度所有分类的支出
+    final results = await db.customSelect(
+      '''
+    SELECT 
+      t.category_id AS category_id,
+      COALESCE(SUM(t.amount), 0) AS total_expense
+    FROM transactions t
+    WHERE t.ledger_id = ?
+      AND t.type = 'expense'
+      AND t.happened_at >= ?
+      AND t.happened_at < ?
+      AND t.category_id IS NOT NULL
+    GROUP BY t.category_id
+    ''',
+      variables: [
+        d.Variable.withInt(ledgerId),
+        d.Variable.withDateTime(startDate),
+        d.Variable.withDateTime(endDate),
+      ],
+      readsFrom: {db.transactions},
+    ).get();
+
+    final categoryUsages = <CategoryBudgetUsage>[];
+    final categoryUsed = <int, double>{};
+    final categoryMap = <int, Category>{};
+
+    for (final row in results) {
+      final categoryId = row.data['category_id'] as int;
+      final totalExpense = _parseDouble(row.data['total_expense']);
+
+      final category = await (db.select(db.categories)
+            ..where((c) => c.id.equals(categoryId)))
+          .getSingleOrNull();
+      if (category == null) continue;
+      categoryMap[categoryId] = category;
+
+      final parentId = category.parentId;
+      final useId = parentId != null && parentId > 0 ? parentId : categoryId;
+      if (categoryUsed.containsKey(useId)) {
+        categoryUsed[useId] = categoryUsed[useId]! + totalExpense;
+      } else {
+        categoryUsed[useId] = totalExpense;
+      }
+    }
+
+    // 添加有支出的分类
+    for (final used in categoryUsed.entries) {
+      final categoryId = used.key;
+      final expense = used.value;
+      final budgetAmount = budgetMap[categoryId] ?? 0.0;
+      budgetMap.remove(categoryId);
+
+      Category? category;
+      if (categoryMap.containsKey(categoryId)) {
+        category = categoryMap[categoryId];
+      } else {
+        category = await (db.select(db.categories)
+              ..where((c) => c.id.equals(categoryId)))
+            .getSingleOrNull();
+      }
+
+      if (category == null) continue;
+
+      categoryUsages.add(CategoryBudgetUsage(
+        budgetId: 0,
+        categoryId: categoryId,
+        categoryName: category.name,
+        categoryIcon: category.icon,
+        usage: BudgetUsage(used: expense, budget: budgetAmount),
+      ));
+    }
+
+    // 添加只有预算没有支出的分类
+    for (final entry in budgetMap.entries) {
+      final categoryId = entry.key;
+      final budgetAmount = entry.value;
+
+      final category = await (db.select(db.categories)
+            ..where((c) => c.id.equals(categoryId)))
+          .getSingleOrNull();
+      if (category == null) continue;
+
+      categoryUsages.add(CategoryBudgetUsage(
+        budgetId: 0,
+        categoryId: categoryId,
+        categoryName: category.name,
+        categoryIcon: category.icon,
+        usage: BudgetUsage(used: 0.0, budget: budgetAmount),
+      ));
+    }
+
+    categoryUsages.sort((a, b) => b.usage.rate.compareTo(a.usage.rate));
     return categoryUsages;
   }
 

@@ -2291,6 +2291,8 @@
   "budgetEmptyHint": "No budget set yet",
   "budgetAddTotal": "Add Total Budget",
   "budgetMonthlyBudget": "Monthly Budget",
+  "budgetMonthly": "Month",
+  "budgetYearly": "Year",
   "budgetUsed": "Used",
   "budgetRemaining": "Remaining",
   "budgetDaysRemaining": "{days} days remaining",

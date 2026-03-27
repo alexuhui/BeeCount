@@ -90,63 +90,7 @@ class BudgetPage extends ConsumerWidget {
         ),
       ],
     );
-
-
-
-    // if (overview == null || overview.totalBudget == null) {
-    //   return _buildEmptyState(context, ref, l10n);
-    // }
-
-    // return ListView(
-    //   padding: EdgeInsets.symmetric(
-    //     horizontal: 12.0.scaled(context, ref),
-    //     vertical: 8.0.scaled(context, ref),
-    //   ),
-    //   children: [
-    //     // 总预算概览卡片
-    //     _buildTotalBudgetCard(context, ref, overview, l10n),
-    //     SizedBox(height: 12.0.scaled(context, ref)),
-    //     // 分类预算列表
-    //     if (overview.categoryBudgets.isNotEmpty)
-    //       _buildCategoryBudgetsCard(
-    //           context, ref, overview.categoryBudgets, l10n),
-    //   ],
-    // );
   }
-
-  // Widget _buildEmptyState(
-  //     BuildContext context, WidgetRef ref, AppLocalizations l10n) {
-  //   return Center(
-  //     child: Column(
-  //       mainAxisAlignment: MainAxisAlignment.center,
-  //       children: [
-  //         Icon(
-  //           Icons.account_balance_wallet_outlined,
-  //           size: 64,
-  //           color: BeeTokens.textTertiary(context),
-  //         ),
-  //         const SizedBox(height: 16),
-  //         Text(
-  //           l10n.budgetEmptyHint,
-  //           style: TextStyle(
-  //             fontSize: 16,
-  //             color: BeeTokens.textSecondary(context),
-  //           ),
-  //         ),
-  //         const SizedBox(height: 24),
-  //         ElevatedButton.icon(
-  //           onPressed: () => _addBudget(context),
-  //           icon: Icon(Icons.add, color: BeeTokens.buttonPrimaryText(context)),
-  //           label: Text(l10n.budgetAddTotal),
-  //           style: ElevatedButton.styleFrom(
-  //             backgroundColor: BeeTokens.buttonPrimary(context),
-  //             foregroundColor: BeeTokens.buttonPrimaryText(context),
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
 
   Widget _buildTotalBudgetCard(
     BuildContext context,
@@ -311,12 +255,14 @@ class BudgetPage extends ConsumerWidget {
   }
 
   void _addBudget(BuildContext context, BudgetOverview? overview) {
+    final isYearly = ProviderScope.containerOf(context).read(budgetViewModeProvider);
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => BudgetEditPage(
           year: overview?.year ?? DateTime.now().year,
           month: overview?.month ?? DateTime.now().month,
+          isYearlyMode: isYearly,
         ),
       ),
     );
@@ -330,6 +276,7 @@ class BudgetPage extends ConsumerWidget {
   ) async {
     final allBudgets = await ref.read(allBudgetsProvider.future);
     final budget = allBudgets.where((b) => b.id == usage.budgetId).firstOrNull;
+    final isYearly = ref.read(budgetViewModeProvider);
     if (context.mounted) {
       if(budget != null){
         Navigator.push(
@@ -340,6 +287,7 @@ class BudgetPage extends ConsumerWidget {
               month: budget.month,
               budget: budget,
               usage: usage,
+              isYearlyMode: isYearly,
             ),
           ),
         );
@@ -351,6 +299,7 @@ class BudgetPage extends ConsumerWidget {
               year: overview?.year ?? DateTime.now().year,
               month: overview?.month ?? DateTime.now().month,
               usage: usage,
+              isYearlyMode: isYearly,
             ),
           ),
        );
@@ -362,13 +311,41 @@ class BudgetPage extends ConsumerWidget {
   Widget _buildYearMonthSelector(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final yearMonthAsync = ref.watch(selectedBudgetYearMonthProvider);
+    final isYearly = ref.watch(budgetViewModeProvider);
     final now = DateTime.now();
     final maxYear = 5;
     final isMinYear = yearMonthAsync.year <= now.year;
     final isMaxYear = yearMonthAsync.year >= now.year + maxYear - 1;
     final isMinMonth = yearMonthAsync.month == 1;
     final isMaxMonth = yearMonthAsync.month == 12;
+    
     return Column(children: [
+      // 月/年切换开关
+      Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: 4.0.scaled(context, ref),
+            ),
+            decoration: BoxDecoration(
+              color: BeeTokens.isDark(context)
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.grey.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildModeChip(context, ref, l10n.budgetMonthly, false, isYearly),
+                _buildModeChip(context, ref, l10n.budgetYearly, true, isYearly),
+              ],
+            ),
+          ),
+        ],
+      ),
+      SizedBox(height: 12.0.scaled(context, ref)),
+      
       Row(children: [
         // 固定高度
         GestureDetector(
@@ -421,58 +398,96 @@ class BudgetPage extends ConsumerWidget {
         ),
       ]),
 
-      // 两个下拉框之间的间距
-      const SizedBox(height: 16.0),
-      Row(children: [
-        GestureDetector(
-          onTap: () {
-            if (!isMinMonth) {
-              ref.read(selectedBudgetYearMonthProvider.notifier).state =
-                  DateTime(yearMonthAsync.year, yearMonthAsync.month - 1);
-            }
-          },
-          child: Icon(
-            Icons.chevron_left,
-            color: isMinMonth
-                ? BeeTokens.iconTertiary(context)
-                : BeeTokens.iconPrimary(context),
-            size: 40,
+      // 月份选择器 - 仅月度模式显示
+      if (!isYearly) ...[
+        const SizedBox(height: 16.0),
+        Row(children: [
+          GestureDetector(
+            onTap: () {
+              if (!isMinMonth) {
+                ref.read(selectedBudgetYearMonthProvider.notifier).state =
+                    DateTime(yearMonthAsync.year, yearMonthAsync.month - 1);
+              }
+            },
+            child: Icon(
+              Icons.chevron_left,
+              color: isMinMonth
+                  ? BeeTokens.iconTertiary(context)
+                  : BeeTokens.iconPrimary(context),
+              size: 40,
+            ),
           ),
-        ),
-        Expanded(
-            child: DropdownButtonFormField<int>(
-          initialValue: yearMonthAsync.month,
-          decoration: InputDecoration(
-            labelText: l10n.selectMonth,
-            border: OutlineInputBorder(),
+          Expanded(
+              child: DropdownButtonFormField<int>(
+            initialValue: yearMonthAsync.month,
+            decoration: InputDecoration(
+              labelText: l10n.selectMonth,
+              border: OutlineInputBorder(),
+            ),
+            items: List.generate(12, (index) {
+              final month = index + 1;
+              return DropdownMenuItem(
+                value: month,
+                child: Text(l10n.homeMonth(month.toString())),
+              );
+            }),
+            onChanged: (value) => ref
+                .read(selectedBudgetYearMonthProvider.notifier)
+                .state = DateTime(yearMonthAsync.year, value!),
+          )),
+          GestureDetector(
+            onTap: () {
+              if (!isMaxMonth) {
+                ref.read(selectedBudgetYearMonthProvider.notifier).state =
+                    DateTime(yearMonthAsync.year, yearMonthAsync.month + 1);
+              }
+            },
+            child: Icon(
+              Icons.chevron_right,
+              color: isMaxMonth
+                  ? BeeTokens.iconTertiary(context)
+                  : BeeTokens.iconPrimary(context),
+              size: 40,
+            ),
           ),
-          items: List.generate(12, (index) {
-            final month = index + 1;
-            return DropdownMenuItem(
-              value: month,
-              child: Text(l10n.homeMonth(month.toString())),
-            );
-          }),
-          onChanged: (value) => ref
-              .read(selectedBudgetYearMonthProvider.notifier)
-              .state = DateTime(yearMonthAsync.year, value!),
-        )),
-        GestureDetector(
-          onTap: () {
-            if (!isMaxMonth) {
-              ref.read(selectedBudgetYearMonthProvider.notifier).state =
-                  DateTime(yearMonthAsync.year, yearMonthAsync.month + 1);
-            }
-          },
-          child: Icon(
-            Icons.chevron_right,
-            color: isMaxMonth
-                ? BeeTokens.iconTertiary(context)
-                : BeeTokens.iconPrimary(context),
-            size: 40,
-          ),
-        ),
-      ]),
+        ]),
+      ],
     ]);
+  }
+
+  Widget _buildModeChip(
+    BuildContext context,
+    WidgetRef ref,
+    String label,
+    bool isYearlyMode,
+    bool currentIsYearly,
+  ) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final isSelected = isYearlyMode == currentIsYearly;
+    return GestureDetector(
+      onTap: () {
+        ref.read(budgetViewModeProvider.notifier).state = isYearlyMode;
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: 10.0.scaled(context, ref),
+          vertical: 4.0.scaled(context, ref),
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            color: isSelected
+                ? Colors.white
+                : BeeTokens.textSecondary(context),
+          ),
+        ),
+      ),
+    );
   }
 }

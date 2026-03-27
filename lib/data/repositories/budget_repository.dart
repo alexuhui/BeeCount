@@ -110,6 +110,9 @@ abstract class BudgetRepository {
   /// 获取账本当月预算概览
   Future<BudgetOverview> getBudgetOverview(int ledgerId, DateTime date);
 
+  /// 获取账本年度预算概览
+  Future<BudgetOverview> getYearlyBudgetOverview(int ledgerId, int year);
+
   /// 批量获取分类预算使用情况
   Future<List<CategoryBudgetUsage>> getCategoryBudgetUsages(
     int ledgerId,
@@ -121,6 +124,12 @@ abstract class BudgetRepository {
   Future<List<CategoryBudgetUsage>> getCategoryBudgetUsagesAll(
     int ledgerId,
     DateTime date,
+  );
+
+  /// 按分类获取年度预算使用情况
+  Future<List<CategoryBudgetUsage>> getYearlyCategoryBudgetUsagesAll(
+    int ledgerId,
+    int year,
   );
 
   // ============ 监听 ============

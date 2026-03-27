@@ -5249,6 +5249,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get budgetMonthlyBudget => 'Monthly Budget';
 
   @override
+  String get budgetMonthly => 'Month';
+
+  @override
+  String get budgetYearly => 'Year';
+
+  @override
   String get budgetUsed => 'Used';
 
   @override

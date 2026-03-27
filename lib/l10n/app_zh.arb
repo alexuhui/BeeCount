@@ -2136,6 +2136,8 @@
   "budgetEmptyHint": "还没有设置预算",
   "budgetAddTotal": "添加总预算",
   "budgetMonthlyBudget": "本月预算",
+  "budgetMonthly": "月",
+  "budgetYearly": "年",
   "budgetUsed": "已用",
   "budgetRemaining": "剩余",
   "budgetDaysRemaining": "剩余 {days} 天",

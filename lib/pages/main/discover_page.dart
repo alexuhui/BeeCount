@@ -126,7 +126,12 @@ class _BudgetCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final overviewAsync = ref.watch(budgetOverviewProvider);
+    final isYearly = ref.watch(budgetViewModeProvider);
+    final now = DateTime.now();
+    
+    final overviewAsync = isYearly
+        ? ref.watch(budgetOverviewForYearMonthProvider)
+        : ref.watch(budgetOverviewProvider);
 
     return GestureDetector(
       onTap: () {
@@ -169,7 +174,9 @@ class _BudgetCard extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        l10n.discoverBudgetSubtitle,
+                        isYearly 
+                            ? l10n.homeYear(now.year)
+                            : l10n.discoverBudgetSubtitle,
                         style: TextStyle(
                           fontSize: 12,
                           color: BeeTokens.textTertiary(context),
@@ -178,10 +185,24 @@ class _BudgetCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.chevron_right,
-                  color: BeeTokens.iconTertiary(context),
-                  size: 20,
+                // 月/年切换开关
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 4.0.scaled(context, ref),
+                  ),
+                  decoration: BoxDecoration(
+                    color: BeeTokens.isDark(context)
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.grey.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildModeChip(context, ref, l10n.budgetMonthly, false, isYearly),
+                      _buildModeChip(context, ref, l10n.budgetYearly, true, isYearly),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -189,7 +210,6 @@ class _BudgetCard extends ConsumerWidget {
             // 预算内容区域
             overviewAsync.when(
               data: (overview) {
-                // logger.info('discover_page', 'overview: $overview  budget: ${overview?.totalBudget?.budget}  used: ${overview?.totalBudget?.used}');
                 if (overview == null || overview.totalBudget == null) {
                   return _buildEmptyState(context, ref, l10n);
                 }
@@ -199,6 +219,41 @@ class _BudgetCard extends ConsumerWidget {
               error: (_, __) => _buildEmptyState(context, ref, l10n),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModeChip(
+    BuildContext context,
+    WidgetRef ref,
+    String label,
+    bool isYearlyMode,
+    bool currentIsYearly,
+  ) {
+    final isSelected = isYearlyMode == currentIsYearly;
+    return GestureDetector(
+      onTap: () {
+        ref.read(budgetViewModeProvider.notifier).state = isYearlyMode;
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: 10.0.scaled(context, ref),
+          vertical: 4.0.scaled(context, ref),
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? primaryColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            color: isSelected
+                ? Colors.white
+                : BeeTokens.textSecondary(context),
+          ),
         ),
       ),
     );

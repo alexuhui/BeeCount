@@ -10,6 +10,11 @@ extension UIScaleDouble on double {
     final userScale = ref.watch(effectiveFontScaleProvider);
     return UIScaleService.scale(context, this, userScale);
   }
+
+  /// 简化版缩放，只使用BuildContext（使用默认缩放值1.0）
+  double scaledSimple(BuildContext context) {
+    return UIScaleService.scale(context, this, 1.0);
+  }
 }
 
 /// 为int类型添加UI缩放扩展
@@ -18,6 +23,11 @@ extension UIScaleInt on int {
   double scaled(BuildContext context, WidgetRef ref) {
     final userScale = ref.watch(effectiveFontScaleProvider);
     return UIScaleService.scale(context, toDouble(), userScale);
+  }
+
+  /// 简化版缩放，只使用BuildContext（使用默认缩放值1.0）
+  double scaledSimple(BuildContext context) {
+    return UIScaleService.scale(context, toDouble(), 1.0);
   }
 }
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// wheel_date_picker exported via ui barrel
 import '../../widgets/biz/biz.dart';
 import '../../styles/tokens.dart';
 import '../../providers.dart';
@@ -13,6 +12,7 @@ import '../../widgets/ui/capsule_switcher.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/export/share_poster_service.dart';
 import '../../data/db.dart' as db;
+import '../../data/repositories/budget_repository.dart';
 
 class AnalyticsPage extends ConsumerStatefulWidget {
   const AnalyticsPage({super.key});
@@ -543,23 +543,18 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                 double sum;
 
                 if (_type == 'balance') {
-                  // balance模式：list[3]是收入数据，list[4]是支出数据，list[5]是收入交易数量
                   final incomeData = list[3];
                   final expenseData = list[4];
 
-                  // 计算结余序列
                   seriesRaw = _calculateBalanceSeries(incomeData, expenseData);
 
-                  // 分类数据显示支出分类（但结余模式下不显示排行榜）
                   catData = list[0] as List<
                       ({int? id, String name, db.Category? category, double total})>;
 
-                  // 获取收入和支出的交易数量
                   final expenseCount = list[2] as int;
                   final incomeCount = list[5] as int;
                   txCount = expenseCount + incomeCount;
 
-                  // 计算总结余（收入总额 - 支出总额）
                   final incomeSum = _getSumFromSeries(incomeData);
                   final expenseSum = _getSumFromSeries(expenseData);
                   sum = incomeSum - expenseSum;
@@ -570,6 +565,10 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                   txCount = list[2] as int;
                   sum = catData.fold<double>(0, (a, b) => a + b.total);
                 }
+
+                final budgetMap = (_type != 'balance' && list.length > 3)
+                    ? list[3] as Map<int, double>?
+                    : null;
 
                 // 统一取数列的数值数组
                 List<double> valuesOnly() {
@@ -787,7 +786,6 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      // 列表模式
                       if (_type != 'balance' && _displayMode == 'list')
                         for (final item in catData)
                           CategoryRankRow(
@@ -795,6 +793,9 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                             category: item.category,
                             name: item.name,
                             value: item.total,
+                            budget: budgetMap != null && item.id != null
+                                ? budgetMap[item.id]
+                                : null,
                             percent: sum == 0 ? 0 : item.total / sum,
                             color: Theme.of(context).colorScheme.primary,
                             start: start,
@@ -970,7 +971,18 @@ Future<List<dynamic>> _loadCategoryData(
       })>;
   final aggregated = await _aggregateTopLevelCategories(hierarchyData, repo);
 
-  return [aggregated, results[1], results[2]];
+  Map<int, double>? budgetMap;
+  if (type == 'expense') {
+    List<CategoryBudgetUsage> budgetUsages;
+    if (start.year == end.year && start.month == end.month) {
+      budgetUsages = await repo.getCategoryBudgetUsagesAll(ledgerId, start);
+    } else {
+      budgetUsages = await repo.getYearlyCategoryBudgetUsagesAll(ledgerId, start.year);
+    }
+    budgetMap = {for (var b in budgetUsages) b.categoryId: b.usage.budget};
+  }
+
+  return [aggregated, results[1], results[2], budgetMap];
 }
 
 // 加载结余数据并聚合

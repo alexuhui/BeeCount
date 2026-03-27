@@ -14,6 +14,7 @@ class CategoryRankRow extends ConsumerStatefulWidget {
   final db.Category? category; // 分类对象（用于显示图标）
   final String name;
   final double value;
+  final double? budget; // 预算金额（可选）
   final double percent; // 0..1 (相对于总金额的真实占比)
   final Color color;
   final DateTime start; // 统计开始时间
@@ -27,6 +28,7 @@ class CategoryRankRow extends ConsumerStatefulWidget {
     this.category,
     required this.name,
     required this.value,
+    this.budget,
     required this.percent,
     required this.color,
     required this.start,
@@ -175,10 +177,10 @@ class _CategoryRankRowState extends ConsumerState<CategoryRankRow> {
     required db.Category? category,
     required String name,
     required double value,
+    double? budget,
     required double percent,
     required bool isTopLevel,
   }) {
-    // 使用统一的 CategoryIconWidget
     final iconWidget = CategoryIconWidget(
       category: category,
       categoryName: name,
@@ -186,15 +188,33 @@ class _CategoryRankRowState extends ConsumerState<CategoryRankRow> {
       color: widget.color,
     );
 
+    String formatAmount(double amount) {
+      if (amount == amount.truncate()) {
+        return amount.toInt().toString();
+      }
+      final str = amount.toStringAsFixed(2);
+      if (str.endsWith('0')) {
+        return str.substring(0, str.length - 1);
+      }
+      return str;
+    }
+
+    String displayText;
+    if (budget != null && budget > 0) {
+      displayText = '${formatAmount(value)}/${formatAmount(budget)}';
+    } else {
+      displayText = formatAmount(value);
+    }
+
     return InkWell(
       onTap: isTopLevel
           ? _handleTopLevelTap
           : () => _handleTap(categoryId, name),
-      splashColor: isTopLevel ? Colors.transparent : null, // 一级分类无水波纹
-      highlightColor: isTopLevel ? Colors.transparent : null, // 一级分类无高亮
+      splashColor: isTopLevel ? Colors.transparent : null,
+      highlightColor: isTopLevel ? Colors.transparent : null,
       child: Padding(
         padding: EdgeInsets.only(
-          left: isTopLevel ? 0 : 16.0, // 二级分类缩进
+          left: isTopLevel ? 0 : 16.0,
           top: isTopLevel ? 10.0 : 8.0,
           bottom: isTopLevel ? 10.0 : 8.0,
         ),
@@ -230,10 +250,8 @@ class _CategoryRankRowState extends ConsumerState<CategoryRankRow> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      AmountText(
-                        value: value,
-                        signed: false,
-                        decimals: 0,
+                      Text(
+                        displayText,
                         style: TextStyle(fontSize: isTopLevel ? 14 : 13),
                       ),
                     ],
@@ -283,16 +301,15 @@ class _CategoryRankRowState extends ConsumerState<CategoryRankRow> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 一级分类
         _buildCategoryRow(
           categoryId: widget.categoryId,
           category: widget.category,
           name: widget.name,
           value: widget.value,
+          budget: widget.budget,
           percent: widget.percent,
           isTopLevel: true,
         ),
-        // 二级分类展开区域
         if (_expanded && _subCategories != null && _subCategories!.isNotEmpty)
           ...(_subCategories!.map((subCat) {
             return _buildCategoryRow(
@@ -300,7 +317,7 @@ class _CategoryRankRowState extends ConsumerState<CategoryRankRow> {
               category: subCat.category,
               name: subCat.name,
               value: subCat.total,
-              percent: subCat.percent, // 使用真实占比
+              percent: subCat.percent,
               isTopLevel: false,
             );
           }).toList()),

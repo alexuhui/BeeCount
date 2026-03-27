@@ -46,6 +46,9 @@ abstract class ReceivablePayableRepository {
   /// 获取应收款账户的余额（未收款金额）
   Future<double> getReceivableBalance(int accountId);
 
+  /// 获取应收款账户的统计信息（待收金额、总额、已收金额）
+  Future<({double pending, double total, double received})> getReceivableStats(int accountId);
+
   // ========== 应付款相关 ==========
 
   /// 创建应付款记录
@@ -89,4 +92,7 @@ abstract class ReceivablePayableRepository {
 
   /// 获取应付款账户的余额（未还款金额）
   Future<double> getPayableBalance(int accountId);
+
+  /// 获取应付款账户的统计信息（待付金额、总额、已付金额）
+  Future<({double pending, double total, double paid})> getPayableStats(int accountId);
 }

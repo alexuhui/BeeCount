@@ -9,6 +9,7 @@ import '../../widgets/ui/ui.dart';
 import '../../widgets/biz/biz.dart';
 import '../../styles/tokens.dart';
 import '../../utils/ui_scale_extensions.dart';
+import '../account/account_detail_page.dart' show receivableStatsProvider, receivableBalanceProvider;
 
 /// 应收款记录编辑页面
 class ReceivableEditPage extends ConsumerStatefulWidget {
@@ -619,6 +620,9 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
         );
       }
 
+      ref.invalidate(receivableStatsProvider(widget.account.id));
+      ref.invalidate(receivableBalanceProvider(widget.account.id));
+
       if (mounted) {
         Navigator.of(context).pop(true);
       }
@@ -661,6 +665,9 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
     try {
       final repo = ref.read(repositoryProvider);
       await repo.deleteReceivable(widget.receivable!.id);
+
+      ref.invalidate(receivableStatsProvider(widget.account.id));
+      ref.invalidate(receivableBalanceProvider(widget.account.id));
 
       if (mounted) {
         Navigator.of(context).pop(true);

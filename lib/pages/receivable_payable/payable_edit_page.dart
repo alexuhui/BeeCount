@@ -8,6 +8,7 @@ import '../../widgets/ui/ui.dart';
 import '../../widgets/biz/biz.dart';
 import '../../styles/tokens.dart';
 import '../../utils/ui_scale_extensions.dart';
+import '../account/account_detail_page.dart' show payableStatsProvider, payableBalanceProvider;
 
 /// 应付款记录编辑页面
 class PayableEditPage extends ConsumerStatefulWidget {
@@ -618,6 +619,9 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
         );
       }
 
+      ref.invalidate(payableStatsProvider(widget.account.id));
+      ref.invalidate(payableBalanceProvider(widget.account.id));
+
       if (mounted) {
         Navigator.of(context).pop(true);
       }
@@ -660,6 +664,9 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
     try {
       final repo = ref.read(repositoryProvider);
       await repo.deletePayable(widget.payable!.id);
+
+      ref.invalidate(payableStatsProvider(widget.account.id));
+      ref.invalidate(payableBalanceProvider(widget.account.id));
 
       if (mounted) {
         Navigator.of(context).pop(true);

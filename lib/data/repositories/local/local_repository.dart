@@ -1342,6 +1342,10 @@ class LocalRepository extends BaseRepository {
       _receivablePayableRepo.getReceivableBalance(accountId);
 
   @override
+  Future<({double pending, double total, double received})> getReceivableStats(int accountId) =>
+      _receivablePayableRepo.getReceivableStats(accountId);
+
+  @override
   Future<int> createPayable({
     required int accountId,
     required String payeeName,
@@ -1410,4 +1414,8 @@ class LocalRepository extends BaseRepository {
   @override
   Future<double> getPayableBalance(int accountId) =>
       _receivablePayableRepo.getPayableBalance(accountId);
+
+  @override
+  Future<({double pending, double total, double paid})> getPayableStats(int accountId) =>
+      _receivablePayableRepo.getPayableStats(accountId);
 }

@@ -121,6 +121,28 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     return sum;
   }
 
+  @override
+  Future<({double pending, double total, double received})> getReceivableStats(int accountId) async {
+    final receivables = await (db.select(db.receivables)
+          ..where((t) => t.accountId.equals(accountId)))
+        .get();
+    
+    double pending = 0.0;
+    double total = 0.0;
+    double received = 0.0;
+    
+    for (final r in receivables) {
+      total += r.amount;
+      if (r.isReceived) {
+        received += r.amount;
+      } else {
+        pending += r.amount;
+      }
+    }
+    
+    return (pending: pending, total: total, received: received);
+  }
+
   // ========== 应付款相关 ==========
 
   @override
@@ -224,5 +246,27 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
       sum += p.amount;
     }
     return sum;
+  }
+
+  @override
+  Future<({double pending, double total, double paid})> getPayableStats(int accountId) async {
+    final payables = await (db.select(db.payables)
+          ..where((t) => t.accountId.equals(accountId)))
+        .get();
+    
+    double pending = 0.0;
+    double total = 0.0;
+    double paid = 0.0;
+    
+    for (final p in payables) {
+      total += p.amount;
+      if (p.isPaid) {
+        paid += p.amount;
+      } else {
+        pending += p.amount;
+      }
+    }
+    
+    return (pending: pending, total: total, paid: paid);
   }
 }

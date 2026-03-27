@@ -16,6 +16,7 @@ import '../../widgets/biz/ledger_picker_sheet.dart';
 import '../../widgets/biz/section_card.dart';
 import '../../widgets/ui/ui.dart';
 import '../account/accounts_page.dart';
+import '../account/account_detail_page.dart' show receivableStatsProvider, payableStatsProvider;
 import '../ai/ai_settings_page.dart';
 import '../budget/budget_page.dart';
 import '../settings/config_import_export_page.dart';
@@ -492,6 +493,10 @@ class _AccountsCard extends ConsumerWidget {
         return Icons.currency_yuan;
       case 'wechat':
         return Icons.chat;
+      case 'receivable':
+        return Icons.currency_exchange;
+      case 'payable':
+        return Icons.currency_exchange;
       case 'other':
         return Icons.account_balance_outlined;
       default:
@@ -511,6 +516,10 @@ class _AccountsCard extends ConsumerWidget {
         return const Color(0xFF1890FF);
       case 'credit_card':
         return Colors.purple;
+      case 'receivable':
+        return Colors.teal;
+      case 'payable':
+        return Colors.deepOrange;
       default:
         return Colors.blue;
     }
@@ -723,7 +732,11 @@ class _AccountsCard extends ConsumerWidget {
               final balance = stats?.balance ?? account.initialBalance ?? 0.0;
               return Padding(
                 padding: EdgeInsets.only(bottom: 10.0.scaled(context, ref)),
-                child: _buildAccountCard(context, ref, account, balance),
+                child: _AccountCardItem(
+                  account: account,
+                  balance: balance,
+                  primaryColor: primaryColor,
+                ),
               );
             }).toList(),
           ),
@@ -731,16 +744,110 @@ class _AccountsCard extends ConsumerWidget {
       ],
     );
   }
+}
 
-  Widget _buildAccountCard(
-    BuildContext context,
-    WidgetRef ref,
-    dynamic account,
-    double balance,
-  ) {
+/// 账户卡片项 - 支持普通账户和应收/应付账户
+class _AccountCardItem extends ConsumerWidget {
+  final dynamic account;
+  final double balance;
+  final Color primaryColor;
+
+  const _AccountCardItem({
+    required this.account,
+    required this.balance,
+    required this.primaryColor,
+  });
+
+  bool get isReceivableAccount => account.type == 'receivable';
+  bool get isPayableAccount => account.type == 'payable';
+  bool get isSpecialAccount => isReceivableAccount || isPayableAccount;
+
+  IconData _getIconForType(String type) {
+    switch (type) {
+      case 'cash':
+        return Icons.payments_outlined;
+      case 'bank_card':
+        return Icons.credit_card;
+      case 'credit_card':
+        return Icons.credit_score;
+      case 'alipay':
+        return Icons.currency_yuan;
+      case 'wechat':
+        return Icons.chat;
+      case 'receivable':
+        return Icons.currency_exchange;
+      case 'payable':
+        return Icons.currency_exchange;
+      case 'other':
+        return Icons.account_balance_outlined;
+      default:
+        return Icons.account_balance_wallet_outlined;
+    }
+  }
+
+  Color _getColorForType(String type) {
+    switch (type) {
+      case 'alipay':
+        return const Color(0xFF1677FF);
+      case 'wechat':
+        return const Color(0xFF07C160);
+      case 'cash':
+        return Colors.orange;
+      case 'bank_card':
+        return const Color(0xFF1890FF);
+      case 'credit_card':
+        return Colors.purple;
+      case 'receivable':
+        return Colors.teal;
+      case 'payable':
+        return Colors.deepOrange;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final useCompact = ref.watch(compactAmountProvider);
     final typeColor = _getColorForType(account.type);
 
+    if (isReceivableAccount) {
+      final statsAsync = ref.watch(receivableStatsProvider(account.id));
+      return statsAsync.when(
+        data: (stats) => _buildCard(context, ref, typeColor, useCompact, 
+          label: '待收', value: stats.pending),
+        loading: () => _buildCard(context, ref, typeColor, useCompact, 
+          label: '待收', value: 0, isLoading: true),
+        error: (_, __) => _buildCard(context, ref, typeColor, useCompact, 
+          label: '待收', value: 0),
+      );
+    }
+
+    if (isPayableAccount) {
+      final statsAsync = ref.watch(payableStatsProvider(account.id));
+      return statsAsync.when(
+        data: (stats) => _buildCard(context, ref, typeColor, useCompact, 
+          label: '待付', value: stats.pending),
+        loading: () => _buildCard(context, ref, typeColor, useCompact, 
+          label: '待付', value: 0, isLoading: true),
+        error: (_, __) => _buildCard(context, ref, typeColor, useCompact, 
+          label: '待付', value: 0),
+      );
+    }
+
+    return _buildCard(context, ref, typeColor, useCompact, 
+      label: null, value: balance);
+  }
+
+  Widget _buildCard(
+    BuildContext context, 
+    WidgetRef ref, 
+    Color typeColor, 
+    bool useCompact, {
+    String? label,
+    required double value,
+    bool isLoading = false,
+  }) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(12.0.scaled(context, ref)),
@@ -784,20 +891,50 @@ class _AccountsCard extends ConsumerWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
+              if (label != null) ...[
+                SizedBox(width: 6.0.scaled(context, ref)),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 6.0.scaled(context, ref),
+                    vertical: 2.0.scaled(context, ref),
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
-          // 余额
-          AmountText(
-            value: balance,
-            signed: false,
-            showCurrency: true,
-            useCompactFormat: useCompact,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+          // 金额
+          if (isLoading)
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            )
+          else
+            AmountText(
+              value: value,
+              signed: false,
+              showCurrency: true,
+              useCompactFormat: useCompact,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-          ),
         ],
       ),
     );

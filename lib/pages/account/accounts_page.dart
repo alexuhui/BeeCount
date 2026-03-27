@@ -30,6 +30,10 @@ class AccountsPage extends ConsumerWidget {
         return Icons.local_atm;
       case 'wechat':
         return Icons.chat;
+      case 'receivable':
+        return Icons.currency_exchange;
+      case 'payable':
+        return Icons.currency_exchange;
       case 'other':
         return Icons.account_balance_outlined;
       default:
@@ -50,6 +54,10 @@ class AccountsPage extends ConsumerWidget {
         return l10n.accountTypeAlipay;
       case 'wechat':
         return l10n.accountTypeWechat;
+      case 'receivable':
+        return '应收款';
+      case 'payable':
+        return '应付款';
       case 'other':
         return l10n.accountTypeOther;
       default:
@@ -69,6 +77,10 @@ class AccountsPage extends ConsumerWidget {
         return const Color(0xFF1890FF); // 银行卡蓝
       case 'credit_card':
         return Colors.purple;
+      case 'receivable':
+        return Colors.teal;
+      case 'payable':
+        return Colors.deepOrange;
       default:
         return primaryColor;
     }
@@ -368,8 +380,19 @@ class _AccountCard extends ConsumerWidget {
     required this.onEdit,
   });
 
+  bool get isReceivableAccount => account.type == 'receivable';
+  bool get isPayableAccount => account.type == 'payable';
+  bool get isSpecialAccount => isReceivableAccount || isPayableAccount;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final receivableStatsAsync = isReceivableAccount 
+        ? ref.watch(receivableStatsProvider(account.id)) 
+        : null;
+    final payableStatsAsync = isPayableAccount 
+        ? ref.watch(payableStatsProvider(account.id)) 
+        : null;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -525,7 +548,11 @@ class _AccountCard extends ConsumerWidget {
                     ),
                     SizedBox(height: 16.0.scaled(context, ref)),
                     // 统计数据
-                    if (stats != null)
+                    if (isReceivableAccount)
+                      _buildReceivableStats(context, ref, receivableStatsAsync)
+                    else if (isPayableAccount)
+                      _buildPayableStats(context, ref, payableStatsAsync)
+                    else if (stats != null)
                       Row(
                         children: [
                           Expanded(
@@ -579,6 +606,148 @@ class _AccountCard extends ConsumerWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReceivableStats(
+    BuildContext context, 
+    WidgetRef ref, 
+    AsyncValue<({double pending, double total, double received})>? statsAsync,
+  ) {
+    if (statsAsync == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.0),
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            strokeWidth: 2,
+          ),
+        ),
+      );
+    }
+
+    return statsAsync.when(
+      data: (stats) => Row(
+        children: [
+          Expanded(
+            child: _CardStatItem(
+              label: '待收',
+              value: stats.pending,
+              currencyCode: account.currency,
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 30.0.scaled(context, ref),
+            color: Colors.white.withValues(alpha: 0.2),
+          ),
+          Expanded(
+            child: _CardStatItem(
+              label: '总额',
+              value: stats.total,
+              currencyCode: account.currency,
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 30.0.scaled(context, ref),
+            color: Colors.white.withValues(alpha: 0.2),
+          ),
+          Expanded(
+            child: _CardStatItem(
+              label: '已收',
+              value: stats.received,
+              currencyCode: account.currency,
+            ),
+          ),
+        ],
+      ),
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.0),
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            strokeWidth: 2,
+          ),
+        ),
+      ),
+      error: (_, __) => const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.0),
+          child: Text('-', style: TextStyle(color: Colors.white)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPayableStats(
+    BuildContext context, 
+    WidgetRef ref, 
+    AsyncValue<({double pending, double total, double paid})>? statsAsync,
+  ) {
+    if (statsAsync == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.0),
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            strokeWidth: 2,
+          ),
+        ),
+      );
+    }
+
+    return statsAsync.when(
+      data: (stats) => Row(
+        children: [
+          Expanded(
+            child: _CardStatItem(
+              label: '待付',
+              value: stats.pending,
+              currencyCode: account.currency,
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 30.0.scaled(context, ref),
+            color: Colors.white.withValues(alpha: 0.2),
+          ),
+          Expanded(
+            child: _CardStatItem(
+              label: '总额',
+              value: stats.total,
+              currencyCode: account.currency,
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 30.0.scaled(context, ref),
+            color: Colors.white.withValues(alpha: 0.2),
+          ),
+          Expanded(
+            child: _CardStatItem(
+              label: '已付',
+              value: stats.paid,
+              currencyCode: account.currency,
+            ),
+          ),
+        ],
+      ),
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.0),
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            strokeWidth: 2,
+          ),
+        ),
+      ),
+      error: (_, __) => const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.0),
+          child: Text('-', style: TextStyle(color: Colors.white)),
         ),
       ),
     );

@@ -1456,4 +1456,14 @@ class CloudRepository extends BaseRepository {
   Stream<List<Receivable>> watchReceivablesByAccountId(int accountId) {
     throw UnimplementedError('应收功能在云端模式下暂不可用');
   }
+  
+  @override
+  Future<({double paid, double pending, double total})> getPayableStats(int accountId) {
+    throw UnimplementedError('应付功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Future<({double pending, double received, double total})> getReceivableStats(int accountId) {
+    throw UnimplementedError('应收功能在云端模式下暂不可用');
+  }
 }

@@ -1154,6 +1154,13 @@ final receivableBalanceProvider = FutureProvider.family
   return repo.getReceivableBalance(accountId);
 });
 
+// Provider: 应收款统计
+final receivableStatsProvider = FutureProvider.family
+    .autoDispose<({double pending, double total, double received}), int>((ref, accountId) {
+  final repo = ref.watch(repositoryProvider);
+  return repo.getReceivableStats(accountId);
+});
+
 // Provider: 应付款列表
 final payablesByAccountProvider = StreamProvider.family
     .autoDispose<List<db.Payable>, int>((ref, accountId) {
@@ -1166,4 +1173,11 @@ final payableBalanceProvider = FutureProvider.family
     .autoDispose<double, int>((ref, accountId) {
   final repo = ref.watch(repositoryProvider);
   return repo.getPayableBalance(accountId);
+});
+
+// Provider: 应付款统计
+final payableStatsProvider = FutureProvider.family
+    .autoDispose<({double pending, double total, double paid}), int>((ref, accountId) {
+  final repo = ref.watch(repositoryProvider);
+  return repo.getPayableStats(accountId);
 });

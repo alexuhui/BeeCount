@@ -755,77 +755,39 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                         incomeColor: Theme.of(context).colorScheme.primary,
                       ),
                       const SizedBox(height: 12),
-                      SizedBox(
-                        height: 240,
-                        child: LineChart(
-                          values: values,
-                          xLabels: xLabels,
-                          highlightIndex: highlightIndex,
-                          hideAmounts: hide,
-                          themeColor: Theme.of(context).colorScheme.primary,
-                          // 使用统一图表令牌
-                          lineWidth: BeeChartTokens.lineWidth,
-                          dotRadius: BeeChartTokens.dotRadius,
-                          cornerRadius: BeeChartTokens.cornerRadius,
-                          xLabelFontSize: BeeChartTokens.xLabelFontSize,
-                          yLabelFontSize: BeeChartTokens.yLabelFontSize,
-                          onSwipeLeft: () {
-                            // 根据scope切换周期
-                            _onChartSwipeLeft();
-                            setState(() => _chartSwiped = true);
-                          },
-                          onSwipeRight: () {
-                            // 根据scope切换周期
-                            _onChartSwipeRight();
-                            setState(() => _chartSwiped = true);
-                          },
-                          showHint: !chartDismissed,
-                          hintText:
-                              AppLocalizations.of(context).analyticsSwipeHint,
-                          onCloseHint: () async {
-                            final setter =
-                                ref.read(analyticsHintsSetterProvider);
-                            await setter.dismissChart();
-                            if (mounted) {
-                              setState(() => _localChartDismissed = true);
-                            }
-                          },
-                          whiteBg: !BeeTokens.isDark(context),
-                          isDark: BeeTokens.isDark(context),
-                          showGrid: false,
-                          showDots: true,
-                          annotate: true,
-                        ),
+                      // 显示模式切换开关
+                      Row(
+                        children: [
+                          Text(
+                            _type == 'balance'
+                                ? '趋势分析'
+                                : AppLocalizations.of(context)
+                                    .analyticsCategoryRanking,
+                            style: BeeTextTokens.title(context),
+                          ),
+                          const Spacer(),
+                          CapsuleSwitcher<String>(
+                            selectedValue: _displayMode,
+                            options: [
+                              CapsuleOption(
+                                value: 'list',
+                                label: '列表',
+                              ),
+                              CapsuleOption(
+                                value: 'pie',
+                                label: '饼图',
+                              ),
+                              CapsuleOption(
+                                value: 'line',
+                                label: '折线',
+                              ),
+                            ],
+                            onChanged: (value) => setState(() => _displayMode = value),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 12),
-                      // 结余视角不显示分类相关内容
-                      if (_type != 'balance')
-                        Row(
-                          children: [
-                            Text(
-                              AppLocalizations.of(context)
-                                  .analyticsCategoryRanking,
-                              style: BeeTextTokens.title(context),
-                            ),
-                            const Spacer(),
-                            // 显示模式切换开关
-                            CapsuleSwitcher<String>(
-                              selectedValue: _displayMode,
-                              options: [
-                                CapsuleOption(
-                                  value: 'list',
-                                  label: '列表',
-                                ),
-                                CapsuleOption(
-                                  value: 'pie',
-                                  label: '饼图',
-                                ),
-                              ],
-                              onChanged: (value) => setState(() => _displayMode = value),
-                            ),
-                          ],
-                        ),
-                      if (_type != 'balance') const SizedBox(height: 8),
+                      const SizedBox(height: 8),
+                      // 列表模式
                       if (_type != 'balance' && _displayMode == 'list')
                         for (final item in catData)
                           CategoryRankRow(
@@ -840,6 +802,7 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                             scope: _scope,
                             selMonth: selMonth,
                           ),
+                      // 饼图模式
                       if (_type != 'balance' && _displayMode == 'pie')
                         SizedBox(
                           height: 300,
@@ -866,6 +829,47 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                             themeColor: Theme.of(context).colorScheme.primary,
                             whiteBg: !BeeTokens.isDark(context),
                             isDark: BeeTokens.isDark(context),
+                          ),
+                        ),
+                      // 折线图模式
+                      if (_displayMode == 'line')
+                        SizedBox(
+                          height: 240,
+                          child: LineChart(
+                            values: values,
+                            xLabels: xLabels,
+                            highlightIndex: highlightIndex,
+                            hideAmounts: hide,
+                            themeColor: Theme.of(context).colorScheme.primary,
+                            lineWidth: BeeChartTokens.lineWidth,
+                            dotRadius: BeeChartTokens.dotRadius,
+                            cornerRadius: BeeChartTokens.cornerRadius,
+                            xLabelFontSize: BeeChartTokens.xLabelFontSize,
+                            yLabelFontSize: BeeChartTokens.yLabelFontSize,
+                            onSwipeLeft: () {
+                              _onChartSwipeLeft();
+                              setState(() => _chartSwiped = true);
+                            },
+                            onSwipeRight: () {
+                              _onChartSwipeRight();
+                              setState(() => _chartSwiped = true);
+                            },
+                            showHint: !chartDismissed,
+                            hintText:
+                                AppLocalizations.of(context).analyticsSwipeHint,
+                            onCloseHint: () async {
+                              final setter =
+                                  ref.read(analyticsHintsSetterProvider);
+                              await setter.dismissChart();
+                              if (mounted) {
+                                setState(() => _localChartDismissed = true);
+                              }
+                            },
+                            whiteBg: !BeeTokens.isDark(context),
+                            isDark: BeeTokens.isDark(context),
+                            showGrid: false,
+                            showDots: true,
+                            annotate: true,
                           ),
                         ),
                     ],

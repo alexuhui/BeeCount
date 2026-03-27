@@ -193,6 +193,82 @@ class Budgets extends Table {
   BoolColumn get ignored => boolean().nullable()();
 }
 
+/// 应收款记录表
+class Receivables extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// 关联账户ID（应收款账户）
+  IntColumn get accountId => integer()();
+
+  /// 借款人名称
+  TextColumn get borrowerName => text()();
+
+  /// 金额
+  RealColumn get amount => real()();
+
+  /// 借款日期
+  DateTimeColumn get borrowDate => dateTime()();
+
+  /// 备注
+  TextColumn get note => text().nullable()();
+
+  /// 借款账户ID（借款时扣款的账户）
+  IntColumn get fromAccountId => integer()();
+
+  /// 是否已收款
+  BoolColumn get isReceived => boolean().withDefault(const Constant(false))();
+
+  /// 收款日期
+  DateTimeColumn get receiveDate => dateTime().nullable()();
+
+  /// 收款账户ID（收回借款时入账的账户）
+  IntColumn get toAccountId => integer().nullable()();
+
+  /// 创建时间
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  /// 更新时间
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+/// 应付款记录表
+class Payables extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// 关联账户ID（应付款账户）
+  IntColumn get accountId => integer()();
+
+  /// 收款人名称
+  TextColumn get payeeName => text()();
+
+  /// 金额
+  RealColumn get amount => real()();
+
+  /// 日期
+  DateTimeColumn get payDate => dateTime()();
+
+  /// 备注
+  TextColumn get note => text().nullable()();
+
+  /// 入账账户ID（钱转入到了哪里）
+  IntColumn get toAccountId => integer()();
+
+  /// 是否已还款
+  BoolColumn get isPaid => boolean().withDefault(const Constant(false))();
+
+  /// 还款日期
+  DateTimeColumn get paidDate => dateTime().nullable()();
+
+  /// 还款账户ID
+  IntColumn get fromAccountId => integer().nullable()();
+
+  /// 创建时间
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  /// 更新时间
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 @DriftDatabase(tables: [
   Ledgers,
   Accounts,
@@ -205,12 +281,14 @@ class Budgets extends Table {
   TransactionTags,
   Budgets,
   TransactionAttachments,
+  Receivables,
+  Payables,
 ])
 class BeeDatabase extends _$BeeDatabase {
   BeeDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -580,6 +658,14 @@ class BeeDatabase extends _$BeeDatabase {
                 PRIMARY KEY (entity, local_id)
               );
             ''');
+          }
+          if (from < 17) {
+            // v17: 添加应收款/应付款表
+            print('[DB Migration] 开始迁移到 v17: 添加应收款/应付款表');
+            await migrator.createTable(receivables);
+            await migrator.createTable(payables);
+            logger.info('DB', 'v17: receivables 和 payables 表已创建');
+            print('[DB Migration] v17 迁移完成');
           }
         },
       );

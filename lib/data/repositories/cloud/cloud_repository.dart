@@ -1384,7 +1384,76 @@ class CloudRepository extends BaseRepository {
   
   @override
   Future<void> clearAllData() {
-    // TODO: implement clearAllData
     throw UnimplementedError('附件功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Future<int> createPayable({required int accountId, required String payeeName, required double amount, required DateTime payDate, String? note, required int toAccountId, bool isPaid = false, DateTime? paidDate, int? fromAccountId}) {
+    throw UnimplementedError('应付功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Future<int> createReceivable({required int accountId, required String borrowerName, required double amount, required DateTime borrowDate, String? note, required int fromAccountId, bool isReceived = false, DateTime? receiveDate, int? toAccountId}) {
+    throw UnimplementedError('应收功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Future<void> deletePayable(int id) {
+    throw UnimplementedError('应付功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Future<void> deleteReceivable(int id) {
+    throw UnimplementedError('应收功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Future<double> getPayableBalance(int accountId) {
+    throw UnimplementedError('应付功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Future<Payable?> getPayableById(int id) {
+    throw UnimplementedError('应付功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Future<List<Payable>> getPayablesByAccountId(int accountId) {
+    throw UnimplementedError('应付功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Future<double> getReceivableBalance(int accountId) {
+    throw UnimplementedError('应收功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Future<Receivable?> getReceivableById(int id) {
+    throw UnimplementedError('应收功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Future<List<Receivable>> getReceivablesByAccountId(int accountId) {
+    throw UnimplementedError('应收功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Future<void> updatePayable({required int id, String? payeeName, double? amount, DateTime? payDate, String? note, int? toAccountId, bool? isPaid, DateTime? paidDate, int? fromAccountId, DateTime? updatedAt}) {
+    throw UnimplementedError('应付功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Future<void> updateReceivable({required int id, String? borrowerName, double? amount, DateTime? borrowDate, String? note, int? fromAccountId, bool? isReceived, DateTime? receiveDate, int? toAccountId, DateTime? updatedAt}) {
+    throw UnimplementedError('应收功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Stream<List<Payable>> watchPayablesByAccountId(int accountId) {
+    throw UnimplementedError('应付功能在云端模式下暂不可用');
+  }
+  
+  @override
+  Stream<List<Receivable>> watchReceivablesByAccountId(int accountId) {
+    throw UnimplementedError('应收功能在云端模式下暂不可用');
   }
 }

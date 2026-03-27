@@ -517,4 +517,130 @@ class BeeCountSyncingRepository extends LocalRepository {
     await super.deleteRecurringTransaction(id);
     await sync.enqueueDelete('recurring_transactions', id);
   }
+
+  // ============================================
+  // ReceivablePayableRepository 接口覆盖 - 添加同步支持
+  // ============================================
+
+  @override
+  Future<int> createReceivable({
+    required int accountId,
+    required String borrowerName,
+    required double amount,
+    required DateTime borrowDate,
+    String? note,
+    required int fromAccountId,
+    bool isReceived = false,
+    DateTime? receiveDate,
+    int? toAccountId,
+  }) async {
+    final id = await super.createReceivable(
+      accountId: accountId,
+      borrowerName: borrowerName,
+      amount: amount,
+      borrowDate: borrowDate,
+      note: note,
+      fromAccountId: fromAccountId,
+      isReceived: isReceived,
+      receiveDate: receiveDate,
+      toAccountId: toAccountId,
+    );
+    await sync.enqueueUpsert('receivables', id);
+    return id;
+  }
+
+  @override
+  Future<void> updateReceivable({
+    required int id,
+    String? borrowerName,
+    double? amount,
+    DateTime? borrowDate,
+    String? note,
+    int? fromAccountId,
+    bool? isReceived,
+    DateTime? receiveDate,
+    int? toAccountId,
+    DateTime? updatedAt,
+  }) async {
+    await super.updateReceivable(
+      id: id,
+      borrowerName: borrowerName,
+      amount: amount,
+      borrowDate: borrowDate,
+      note: note,
+      fromAccountId: fromAccountId,
+      isReceived: isReceived,
+      receiveDate: receiveDate,
+      toAccountId: toAccountId,
+      updatedAt: updatedAt,
+    );
+    await sync.enqueueUpsert('receivables', id);
+  }
+
+  @override
+  Future<void> deleteReceivable(int id) async {
+    await super.deleteReceivable(id);
+    await sync.enqueueDelete('receivables', id);
+  }
+
+  @override
+  Future<int> createPayable({
+    required int accountId,
+    required String payeeName,
+    required double amount,
+    required DateTime payDate,
+    String? note,
+    required int toAccountId,
+    bool isPaid = false,
+    DateTime? paidDate,
+    int? fromAccountId,
+  }) async {
+    final id = await super.createPayable(
+      accountId: accountId,
+      payeeName: payeeName,
+      amount: amount,
+      payDate: payDate,
+      note: note,
+      toAccountId: toAccountId,
+      isPaid: isPaid,
+      paidDate: paidDate,
+      fromAccountId: fromAccountId,
+    );
+    await sync.enqueueUpsert('payables', id);
+    return id;
+  }
+
+  @override
+  Future<void> updatePayable({
+    required int id,
+    String? payeeName,
+    double? amount,
+    DateTime? payDate,
+    String? note,
+    int? toAccountId,
+    bool? isPaid,
+    DateTime? paidDate,
+    int? fromAccountId,
+    DateTime? updatedAt,
+  }) async {
+    await super.updatePayable(
+      id: id,
+      payeeName: payeeName,
+      amount: amount,
+      payDate: payDate,
+      note: note,
+      toAccountId: toAccountId,
+      isPaid: isPaid,
+      paidDate: paidDate,
+      fromAccountId: fromAccountId,
+      updatedAt: updatedAt,
+    );
+    await sync.enqueueUpsert('payables', id);
+  }
+
+  @override
+  Future<void> deletePayable(int id) async {
+    await super.deletePayable(id);
+    await sync.enqueueDelete('payables', id);
+  }
 }

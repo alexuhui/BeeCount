@@ -168,6 +168,8 @@ class BeeCountSyncEngine {
     'recurring_transactions',
     'transactions',
     'transaction_tags',
+    'receivables',
+    'payables',
   ];
 
   Future<bool> _flushOnce() async {
@@ -481,6 +483,48 @@ class BeeCountSyncEngine {
           'prompt': row.prompt,
           'prompt_day': row.promptDay,
           'ignored': row.ignored,
+          'user_id': provider.currentUserId,
+        };
+
+      case 'receivables':
+        final row = await (db.select(db.receivables)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        if (row == null) return null;
+        final remoteAccountId = await _requireRemoteId('accounts', row.accountId);
+        final remoteFromAccountId = await _requireRemoteId('accounts', row.fromAccountId);
+        final remoteToAccountId = row.toAccountId == null ? null : await _requireRemoteId('accounts', row.toAccountId!);
+        return {
+          'account_id': remoteAccountId,
+          'borrower_name': row.borrowerName,
+          'amount': row.amount,
+          'borrow_date': row.borrowDate.toIso8601String(),
+          'note': row.note,
+          'from_account_id': remoteFromAccountId,
+          'is_received': row.isReceived,
+          'receive_date': row.receiveDate?.toIso8601String(),
+          'to_account_id': remoteToAccountId,
+          'created_at': row.createdAt.toIso8601String(),
+          'updated_at': row.updatedAt.toIso8601String(),
+          'user_id': provider.currentUserId,
+        };
+
+      case 'payables':
+        final row = await (db.select(db.payables)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        if (row == null) return null;
+        final remoteAccountId = await _requireRemoteId('accounts', row.accountId);
+        final remoteToAccountId = await _requireRemoteId('accounts', row.toAccountId);
+        final remoteFromAccountId = row.fromAccountId == null ? null : await _requireRemoteId('accounts', row.fromAccountId!);
+        return {
+          'account_id': remoteAccountId,
+          'payee_name': row.payeeName,
+          'amount': row.amount,
+          'pay_date': row.payDate.toIso8601String(),
+          'note': row.note,
+          'to_account_id': remoteToAccountId,
+          'is_paid': row.isPaid,
+          'paid_date': row.paidDate?.toIso8601String(),
+          'from_account_id': remoteFromAccountId,
+          'created_at': row.createdAt.toIso8601String(),
+          'updated_at': row.updatedAt.toIso8601String(),
           'user_id': provider.currentUserId,
         };
     }

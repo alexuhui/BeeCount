@@ -12,6 +12,9 @@ import '../../utils/ui_scale_extensions.dart';
 import '../../utils/transaction_edit_utils.dart';
 import '../../services/data/category_service.dart';
 import '../../widgets/category_icon.dart';
+import '../receivable_payable/receivable_edit_page.dart';
+import '../receivable_payable/payable_edit_page.dart';
+import '../transaction/transaction_editor_page.dart';
 
 /// 账户详情页面
 /// 显示账户的统计信息和相关交易
@@ -23,17 +26,13 @@ class AccountDetailPage extends ConsumerWidget {
     required this.account,
   });
 
+  bool get isReceivableAccount => account.type == 'receivable';
+  bool get isPayableAccount => account.type == 'payable';
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final primaryColor = ref.watch(primaryColorProvider);
-    final statsAsync = ref.watch(accountStatsProvider(account.id));
-    final transactionsAsync =
-        ref.watch(accountTransactionsProvider(account.id));
-    final currentLedgerAsync = ref.watch(currentLedgerProvider);
-    final currencyCode = currentLedgerAsync.asData?.value?.currency ?? 'CNY';
-    final categoriesAsync = ref.watch(categoriesProvider);
-    final transferCategory = ref.watch(transferCategoryProvider).valueOrNull;
 
     return Scaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
@@ -45,162 +44,72 @@ class AccountDetailPage extends ConsumerWidget {
             showBack: true,
           ),
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(
-                horizontal: 0,
-                vertical: 16.0.scaled(context, ref),
-              ),
-              children: [
-                // 统计卡片
-                SectionCard(
-                  child: statsAsync.when(
-                    data: (stats) => Padding(
-                      padding: EdgeInsets.all(12.0.scaled(context, ref)),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _StatCell(
-                              label: l10n.accountBalance,
-                              value: stats.balance,
-                              currencyCode: currencyCode,
-                              color: stats.balance >= 0
-                                  ? BeeTokens.textPrimary(context)
-                                  : BeeTokens.error(context),
-                            ),
-                          ),
-                          Container(
-                            width: 1,
-                            height: 40.0.scaled(context, ref),
-                            color: BeeTokens.border(context),
-                          ),
-                          Expanded(
-                            child: _StatCell(
-                              label: l10n.homeIncome,
-                              value: stats.income,
-                              currencyCode: currencyCode,
-                              color: BeeTokens.incomeColor(context, ref),
-                            ),
-                          ),
-                          Container(
-                            width: 1,
-                            height: 40.0.scaled(context, ref),
-                            color: BeeTokens.border(context),
-                          ),
-                          Expanded(
-                            child: _StatCell(
-                              label: l10n.homeExpense,
-                              value: stats.expense,
-                              currencyCode: currencyCode,
-                              color: BeeTokens.expenseColor(context, ref),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    loading: () => Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(24.0.scaled(context, ref)),
-                        child: const CircularProgressIndicator(),
-                      ),
-                    ),
-                    error: (err, stack) => Padding(
-                      padding: EdgeInsets.all(16.0.scaled(context, ref)),
-                      child: Text(
-                        '${l10n.commonError}: $err',
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 8.0.scaled(context, ref)),
-                // 交易列表
-                SectionCard(
-                  child: transactionsAsync.when(
-                    data: (transactions) {
-                      if (transactions.isEmpty) {
-                        return Padding(
-                          padding: EdgeInsets.all(32.0.scaled(context, ref)),
-                          child: Center(
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.receipt_long_outlined,
-                                  size: 48.0.scaled(context, ref),
-                                  color: BeeTokens.textTertiary(context),
-                                ),
-                                SizedBox(height: 8.0.scaled(context, ref)),
-                                Text(
-                                  l10n.accountNoTransactions,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: BeeTokens.textSecondary(context),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.all(12.0.scaled(context, ref)),
-                            child: Text(
-                              l10n.accountTransactionHistory,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: BeeTokens.textPrimary(context),
-                              ),
-                            ),
-                          ),
-                          ...transactions.asMap().entries.map((entry) {
-                            final index = entry.key;
-                            final tx = entry.value;
-
-                            return Column(
-                              children: [
-                                if (index > 0)
-                                  BeeTokens.cardDivider(context),
-                                _TransactionTile(
-                                  transaction: tx,
-                                  currencyCode: currencyCode,
-                                  primaryColor: primaryColor,
-                                  ledgers: ref.watch(ledgersStreamProvider).asData?.value ?? [],
-                                  categories: categoriesAsync.asData?.value ?? [],
-                                  currentAccountId: account.id, // 传入当前账户ID
-                                  onTap: () =>
-                                      _editTransaction(context, ref, tx),
-                                ),
-                              ],
-                            );
-                          }),
-                        ],
-                      );
-                    },
-                    loading: () => Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(24.0.scaled(context, ref)),
-                        child: const CircularProgressIndicator(),
-                      ),
-                    ),
-                    error: (err, stack) => Padding(
-                      padding: EdgeInsets.all(16.0.scaled(context, ref)),
-                      child: Text(
-                        '${l10n.commonError}: $err',
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            child: isReceivableAccount
+                ? _ReceivableAccountContent(account: account)
+                : isPayableAccount
+                    ? _PayableAccountContent(account: account)
+                    : _NormalAccountContent(account: account),
           ),
         ],
       ),
+      bottomNavigationBar: _buildBottomButton(context, ref, primaryColor),
     );
+  }
+
+  Widget? _buildBottomButton(BuildContext context, WidgetRef ref, Color primaryColor) {
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.all(16.0.scaled(context, ref)),
+        child: SizedBox(
+          width: double.infinity,
+          height: 48.0.scaled(context, ref),
+          child: ElevatedButton.icon(
+            onPressed: () => _onAddRecord(context, ref),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0.scaled(context, ref)),
+              ),
+            ),
+            icon: const Icon(Icons.add),
+            label: const Text(
+              '记录一笔',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onAddRecord(BuildContext context, WidgetRef ref) async {
+    if (isReceivableAccount) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ReceivableEditPage(account: account),
+        ),
+      );
+    } else if (isPayableAccount) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PayableEditPage(account: account),
+        ),
+      );
+    } else {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TransactionEditorPage(
+            initialKind: 'expense',
+            initialAccountId: account.id,
+          ),
+        ),
+      );
+    }
   }
 
   String _getTypeLabel(BuildContext context, String type) {
@@ -216,16 +125,186 @@ class AccountDetailPage extends ConsumerWidget {
         return l10n.accountTypeAlipay;
       case 'wechat':
         return l10n.accountTypeWechat;
+      case 'receivable':
+        return '应收款';
+      case 'payable':
+        return '应付款';
       case 'other':
         return l10n.accountTypeOther;
       default:
         return type;
     }
   }
+}
+
+/// 普通账户内容
+class _NormalAccountContent extends ConsumerWidget {
+  final db.Account account;
+
+  const _NormalAccountContent({required this.account});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final primaryColor = ref.watch(primaryColorProvider);
+    final statsAsync = ref.watch(accountStatsProvider(account.id));
+    final transactionsAsync = ref.watch(accountTransactionsProvider(account.id));
+    final currentLedgerAsync = ref.watch(currentLedgerProvider);
+    final currencyCode = currentLedgerAsync.asData?.value?.currency ?? 'CNY';
+    final categoriesAsync = ref.watch(categoriesProvider);
+
+    return ListView(
+      padding: EdgeInsets.symmetric(
+        horizontal: 0,
+        vertical: 16.0.scaled(context, ref),
+      ),
+      children: [
+        SectionCard(
+          child: statsAsync.when(
+            data: (stats) => Padding(
+              padding: EdgeInsets.all(12.0.scaled(context, ref)),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _StatCell(
+                      label: l10n.accountBalance,
+                      value: stats.balance,
+                      currencyCode: currencyCode,
+                      color: stats.balance >= 0
+                          ? BeeTokens.textPrimary(context)
+                          : BeeTokens.error(context),
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40.0.scaled(context, ref),
+                    color: BeeTokens.border(context),
+                  ),
+                  Expanded(
+                    child: _StatCell(
+                      label: l10n.homeIncome,
+                      value: stats.income,
+                      currencyCode: currencyCode,
+                      color: BeeTokens.incomeColor(context, ref),
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40.0.scaled(context, ref),
+                    color: BeeTokens.border(context),
+                  ),
+                  Expanded(
+                    child: _StatCell(
+                      label: l10n.homeExpense,
+                      value: stats.expense,
+                      currencyCode: currencyCode,
+                      color: BeeTokens.expenseColor(context, ref),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            loading: () => Center(
+              child: Padding(
+                padding: EdgeInsets.all(24.0.scaled(context, ref)),
+                child: const CircularProgressIndicator(),
+              ),
+            ),
+            error: (err, stack) => Padding(
+              padding: EdgeInsets.all(16.0.scaled(context, ref)),
+              child: Text(
+                '${l10n.commonError}: $err',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: 8.0.scaled(context, ref)),
+        SectionCard(
+          child: transactionsAsync.when(
+            data: (transactions) {
+              if (transactions.isEmpty) {
+                return Padding(
+                  padding: EdgeInsets.all(32.0.scaled(context, ref)),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.receipt_long_outlined,
+                          size: 48.0.scaled(context, ref),
+                          color: BeeTokens.textTertiary(context),
+                        ),
+                        SizedBox(height: 8.0.scaled(context, ref)),
+                        Text(
+                          l10n.accountNoTransactions,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: BeeTokens.textSecondary(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(12.0.scaled(context, ref)),
+                    child: Text(
+                      l10n.accountTransactionHistory,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: BeeTokens.textPrimary(context),
+                      ),
+                    ),
+                  ),
+                  ...transactions.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final tx = entry.value;
+
+                    return Column(
+                      children: [
+                        if (index > 0) BeeTokens.cardDivider(context),
+                        _TransactionTile(
+                          transaction: tx,
+                          currencyCode: currencyCode,
+                          primaryColor: primaryColor,
+                          ledgers: ref.watch(ledgersStreamProvider).asData?.value ?? [],
+                          categories: categoriesAsync.asData?.value ?? [],
+                          currentAccountId: account.id,
+                          onTap: () => _editTransaction(context, ref, tx),
+                        ),
+                      ],
+                    );
+                  }),
+                ],
+              );
+            },
+            loading: () => Center(
+              child: Padding(
+                padding: EdgeInsets.all(24.0.scaled(context, ref)),
+                child: const CircularProgressIndicator(),
+              ),
+            ),
+            error: (err, stack) => Padding(
+              padding: EdgeInsets.all(16.0.scaled(context, ref)),
+              child: Text(
+                '${l10n.commonError}: $err',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   Future<void> _editTransaction(
       BuildContext context, WidgetRef ref, db.Transaction tx) async {
-    // 先获取分类信息
     final categoryAsync = tx.categoryId != null
         ? await ref.read(categoriesProvider.future)
         : null;
@@ -237,9 +316,557 @@ class AccountDetailPage extends ConsumerWidget {
     if (!context.mounted) return;
     await TransactionEditUtils.editTransaction(context, ref, tx, category);
 
-    // 刷新统计数据
     ref.invalidate(accountStatsProvider(account.id));
     ref.invalidate(accountTransactionsProvider(account.id));
+  }
+}
+
+/// 应收款账户内容
+class _ReceivableAccountContent extends ConsumerWidget {
+  final db.Account account;
+
+  const _ReceivableAccountContent({required this.account});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final receivablesAsync = ref.watch(receivablesByAccountProvider(account.id));
+    final balanceAsync = ref.watch(receivableBalanceProvider(account.id));
+    final currentLedgerAsync = ref.watch(currentLedgerProvider);
+    final currencyCode = currentLedgerAsync.asData?.value?.currency ?? 'CNY';
+
+    return ListView(
+      padding: EdgeInsets.symmetric(
+        horizontal: 0,
+        vertical: 16.0.scaled(context, ref),
+      ),
+      children: [
+        SectionCard(
+          child: Padding(
+            padding: EdgeInsets.all(16.0.scaled(context, ref)),
+            child: Column(
+              children: [
+                Text(
+                  '未收金额',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: BeeTokens.textSecondary(context),
+                  ),
+                ),
+                SizedBox(height: 8.0.scaled(context, ref)),
+                balanceAsync.when(
+                  data: (balance) => AmountText(
+                    value: balance,
+                    signed: false,
+                    showCurrency: true,
+                    currencyCode: currencyCode,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: BeeTokens.textPrimary(context),
+                    ),
+                  ),
+                  loading: () => const CircularProgressIndicator(),
+                  error: (_, __) => const Text('-'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(height: 8.0.scaled(context, ref)),
+        SectionCard(
+          child: receivablesAsync.when(
+            data: (receivables) {
+              if (receivables.isEmpty) {
+                return Padding(
+                  padding: EdgeInsets.all(32.0.scaled(context, ref)),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.receipt_long_outlined,
+                          size: 48.0.scaled(context, ref),
+                          color: BeeTokens.textTertiary(context),
+                        ),
+                        SizedBox(height: 8.0.scaled(context, ref)),
+                        Text(
+                          '暂无应收款记录',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: BeeTokens.textSecondary(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(12.0.scaled(context, ref)),
+                    child: Text(
+                      '应收款记录',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: BeeTokens.textPrimary(context),
+                      ),
+                    ),
+                  ),
+                  ...receivables.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final r = entry.value;
+
+                    return Column(
+                      children: [
+                        if (index > 0) BeeTokens.cardDivider(context),
+                        _ReceivableTile(
+                          receivable: r,
+                          currencyCode: currencyCode,
+                          onTap: () => _editReceivable(context, ref, r),
+                        ),
+                      ],
+                    );
+                  }),
+                ],
+              );
+            },
+            loading: () => Center(
+              child: Padding(
+                padding: EdgeInsets.all(24.0.scaled(context, ref)),
+                child: const CircularProgressIndicator(),
+              ),
+            ),
+            error: (err, stack) => Padding(
+              padding: EdgeInsets.all(16.0.scaled(context, ref)),
+              child: Text(
+                '${l10n.commonError}: $err',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _editReceivable(
+      BuildContext context, WidgetRef ref, db.Receivable r) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReceivableEditPage(account: account, receivable: r),
+      ),
+    );
+    ref.invalidate(receivablesByAccountProvider(account.id));
+    ref.invalidate(receivableBalanceProvider(account.id));
+  }
+}
+
+/// 应付款账户内容
+class _PayableAccountContent extends ConsumerWidget {
+  final db.Account account;
+
+  const _PayableAccountContent({required this.account});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final payablesAsync = ref.watch(payablesByAccountProvider(account.id));
+    final balanceAsync = ref.watch(payableBalanceProvider(account.id));
+    final currentLedgerAsync = ref.watch(currentLedgerProvider);
+    final currencyCode = currentLedgerAsync.asData?.value?.currency ?? 'CNY';
+
+    return ListView(
+      padding: EdgeInsets.symmetric(
+        horizontal: 0,
+        vertical: 16.0.scaled(context, ref),
+      ),
+      children: [
+        SectionCard(
+          child: Padding(
+            padding: EdgeInsets.all(16.0.scaled(context, ref)),
+            child: Column(
+              children: [
+                Text(
+                  '未付金额',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: BeeTokens.textSecondary(context),
+                  ),
+                ),
+                SizedBox(height: 8.0.scaled(context, ref)),
+                balanceAsync.when(
+                  data: (balance) => AmountText(
+                    value: balance,
+                    signed: false,
+                    showCurrency: true,
+                    currencyCode: currencyCode,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: BeeTokens.textPrimary(context),
+                    ),
+                  ),
+                  loading: () => const CircularProgressIndicator(),
+                  error: (_, __) => const Text('-'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(height: 8.0.scaled(context, ref)),
+        SectionCard(
+          child: payablesAsync.when(
+            data: (payables) {
+              if (payables.isEmpty) {
+                return Padding(
+                  padding: EdgeInsets.all(32.0.scaled(context, ref)),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.receipt_long_outlined,
+                          size: 48.0.scaled(context, ref),
+                          color: BeeTokens.textTertiary(context),
+                        ),
+                        SizedBox(height: 8.0.scaled(context, ref)),
+                        Text(
+                          '暂无应付款记录',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: BeeTokens.textSecondary(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(12.0.scaled(context, ref)),
+                    child: Text(
+                      '应付款记录',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: BeeTokens.textPrimary(context),
+                      ),
+                    ),
+                  ),
+                  ...payables.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final p = entry.value;
+
+                    return Column(
+                      children: [
+                        if (index > 0) BeeTokens.cardDivider(context),
+                        _PayableTile(
+                          payable: p,
+                          currencyCode: currencyCode,
+                          onTap: () => _editPayable(context, ref, p),
+                        ),
+                      ],
+                    );
+                  }),
+                ],
+              );
+            },
+            loading: () => Center(
+              child: Padding(
+                padding: EdgeInsets.all(24.0.scaled(context, ref)),
+                child: const CircularProgressIndicator(),
+              ),
+            ),
+            error: (err, stack) => Padding(
+              padding: EdgeInsets.all(16.0.scaled(context, ref)),
+              child: Text(
+                '${l10n.commonError}: $err',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _editPayable(
+      BuildContext context, WidgetRef ref, db.Payable p) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PayableEditPage(account: account, payable: p),
+      ),
+    );
+    ref.invalidate(payablesByAccountProvider(account.id));
+    ref.invalidate(payableBalanceProvider(account.id));
+  }
+}
+
+/// 应收款记录列表项
+class _ReceivableTile extends ConsumerWidget {
+  final db.Receivable receivable;
+  final String currencyCode;
+  final VoidCallback onTap;
+
+  const _ReceivableTile({
+    required this.receivable,
+    required this.currencyCode,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final primaryColor = ref.watch(primaryColorProvider);
+    final fromAccountAsync = ref.watch(accountByIdProvider(receivable.fromAccountId));
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: 12.0.scaled(context, ref),
+          vertical: 12.0.scaled(context, ref),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: receivable.isReceived
+                    ? Colors.green.withValues(alpha: 0.12)
+                    : primaryColor.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                receivable.isReceived ? Icons.check : Icons.currency_exchange,
+                size: 18,
+                color: receivable.isReceived ? Colors.green : primaryColor,
+              ),
+            ),
+            SizedBox(width: 12.0.scaled(context, ref)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          receivable.borrowerName,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: BeeTokens.textPrimary(context),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (receivable.isReceived)
+                        Container(
+                          margin: EdgeInsets.only(left: 8.0.scaled(context, ref)),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6.0.scaled(context, ref),
+                            vertical: 2.0.scaled(context, ref),
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4.0.scaled(context, ref)),
+                          ),
+                          child: const Text(
+                            '已收款',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.green,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
+                    child: Text(
+                      '借款账户: ${fromAccountAsync.value?.name ?? '-'}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: BeeTokens.textSecondary(context),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
+                    child: Text(
+                      _formatDate(receivable.borrowDate),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: BeeTokens.textTertiary(context),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            AmountText(
+              value: receivable.amount,
+              signed: false,
+              showCurrency: false,
+              currencyCode: currencyCode,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: receivable.isReceived
+                    ? BeeTokens.textSecondary(context)
+                    : BeeTokens.textPrimary(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final local = date.toLocal();
+    return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
+  }
+}
+
+/// 应付款记录列表项
+class _PayableTile extends ConsumerWidget {
+  final db.Payable payable;
+  final String currencyCode;
+  final VoidCallback onTap;
+
+  const _PayableTile({
+    required this.payable,
+    required this.currencyCode,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final primaryColor = ref.watch(primaryColorProvider);
+    final toAccountAsync = ref.watch(accountByIdProvider(payable.toAccountId));
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: 12.0.scaled(context, ref),
+          vertical: 12.0.scaled(context, ref)),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: payable.isPaid
+                    ? Colors.green.withValues(alpha: 0.12)
+                    : primaryColor.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                payable.isPaid ? Icons.check : Icons.currency_exchange,
+                size: 18,
+                color: payable.isPaid ? Colors.green : primaryColor,
+              ),
+            ),
+            SizedBox(width: 12.0.scaled(context, ref)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          payable.payeeName,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: BeeTokens.textPrimary(context),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (payable.isPaid)
+                        Container(
+                          margin: EdgeInsets.only(left: 8.0.scaled(context, ref)),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6.0.scaled(context, ref),
+                            vertical: 2.0.scaled(context, ref),
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4.0.scaled(context, ref)),
+                          ),
+                          child: const Text(
+                            '已还款',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.green,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
+                    child: Text(
+                      '入账账户: ${toAccountAsync.value?.name ?? '-'}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: BeeTokens.textSecondary(context),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
+                    child: Text(
+                      _formatDate(payable.payDate),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: BeeTokens.textTertiary(context),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            AmountText(
+              value: payable.amount,
+              signed: false,
+              showCurrency: false,
+              currencyCode: currencyCode,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: payable.isPaid
+                    ? BeeTokens.textSecondary(context)
+                    : BeeTokens.textPrimary(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final local = date.toLocal();
+    return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
   }
 }
 
@@ -294,7 +921,7 @@ class _TransactionTile extends ConsumerWidget {
   final List<db.Ledger> ledgers;
   final List<db.Category> categories;
   final VoidCallback onTap;
-  final int? currentAccountId; // 当前账户ID，用于判断转账方向
+  final int? currentAccountId;
 
   const _TransactionTile({
     required this.transaction,
@@ -308,12 +935,10 @@ class _TransactionTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 交易类型颜色
     Color amountColor;
     final l10n = AppLocalizations.of(context);
     final transferCategory = ref.watch(transferCategoryProvider).valueOrNull;
 
-    // 判断转账方向（在账户详情页中）
     bool isTransferOut = false;
     bool isTransferIn = false;
     if (transaction.type == 'transfer' && currentAccountId != null) {
@@ -329,16 +954,12 @@ class _TransactionTile extends ConsumerWidget {
         amountColor = BeeTokens.expenseColor(context, ref);
         break;
       case 'transfer':
-        // 转出使用支出颜色，转入使用收入颜色
         amountColor = isTransferOut ? BeeTokens.expenseColor(context, ref) : BeeTokens.incomeColor(context, ref);
         break;
       default:
         amountColor = BeeTokens.textPrimary(context);
     }
 
-    // v1.15.0: 获取分类信息
-    // 对于转账，category_id 现在指向虚拟转账分类，但 categories 列表不包含它
-    // 所以对于转账，使用 transferCategory
     final category = transaction.type == 'transfer'
         ? transferCategory
         : (transaction.categoryId != null
@@ -348,28 +969,23 @@ class _TransactionTile extends ConsumerWidget {
                 )
             : null);
 
-    // v1.15.0: 标题显示逻辑
     String displayTitle;
-    String? displaySubtitle; // 用于转账时显示对方账户
+    String? displaySubtitle;
 
     if (transaction.type == 'transfer') {
-      // 转账：优先显示备注，如果没有备注则显示"转账"
       if (transaction.note?.isNotEmpty == true) {
         displayTitle = transaction.note!;
       } else {
         displayTitle = l10n.transferTitle;
       }
 
-      // 获取对方账户名称
       if (isTransferOut && transaction.toAccountId != null) {
-        // 转出：显示目标账户
         final toAccountAsync = ref.watch(accountByIdProvider(transaction.toAccountId!));
         final toAccountName = toAccountAsync.value?.name;
         if (toAccountName != null) {
           displaySubtitle = '${l10n.transferToPrefix} $toAccountName';
         }
       } else if (isTransferIn && transaction.accountId != null) {
-        // 转入：显示来源账户
         final fromAccountAsync = ref.watch(accountByIdProvider(transaction.accountId!));
         final fromAccountName = fromAccountAsync.value?.name;
         if (fromAccountName != null) {
@@ -377,25 +993,20 @@ class _TransactionTile extends ConsumerWidget {
         }
       }
     } else {
-      // 收入/支出：备注优先，否则显示分类名称
       if (transaction.note?.isNotEmpty == true) {
         displayTitle = transaction.note!;
       } else if (category != null) {
         displayTitle = category.name;
       } else {
-        displayTitle = transaction.type == 'income'
-            ? l10n.homeIncome
-            : l10n.homeExpense;
+        displayTitle = transaction.type == 'income' ? l10n.homeIncome : l10n.homeExpense;
       }
     }
 
-    // v1.15.0: 获取账本名称（支持国际化）
     final ledger = ledgers.cast<db.Ledger?>().firstWhere(
           (l) => l?.id == transaction.ledgerId,
           orElse: () => null,
         );
     String ledgerName = ledger?.name ?? '';
-    // 如果是默认账本，使用国际化名称
     if (ledgerName == 'Default Ledger') {
       ledgerName = l10n.ledgersDefaultLedgerName;
     }
@@ -409,7 +1020,6 @@ class _TransactionTile extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            // v1.15.0: 显示分类图标（与 TransactionListItem 保持一致的样式）
             Container(
               width: 32,
               height: 32,
@@ -423,12 +1033,10 @@ class _TransactionTile extends ConsumerWidget {
               ),
             ),
             SizedBox(width: 12.0.scaled(context, ref)),
-            // 内容
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // v1.15.0: 标题 + 账本标签
                   Row(
                     children: [
                       Flexible(
@@ -466,7 +1074,6 @@ class _TransactionTile extends ConsumerWidget {
                       ],
                     ],
                   ),
-                  // 转账时显示对方账户
                   if (displaySubtitle != null)
                     Padding(
                       padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
@@ -491,7 +1098,6 @@ class _TransactionTile extends ConsumerWidget {
                 ],
               ),
             ),
-            // 金额
             AmountText(
               value: transaction.type == 'expense'
                   ? -transaction.amount
@@ -532,4 +1138,32 @@ final accountTransactionsProvider = StreamProvider.family
     .autoDispose<List<db.Transaction>, int>((ref, accountId) {
   final repo = ref.watch(repositoryProvider);
   return repo.watchAccountTransactions(accountId);
+});
+
+// Provider: 应收款列表
+final receivablesByAccountProvider = StreamProvider.family
+    .autoDispose<List<db.Receivable>, int>((ref, accountId) {
+  final repo = ref.watch(repositoryProvider);
+  return repo.watchReceivablesByAccountId(accountId);
+});
+
+// Provider: 应收款余额
+final receivableBalanceProvider = FutureProvider.family
+    .autoDispose<double, int>((ref, accountId) {
+  final repo = ref.watch(repositoryProvider);
+  return repo.getReceivableBalance(accountId);
+});
+
+// Provider: 应付款列表
+final payablesByAccountProvider = StreamProvider.family
+    .autoDispose<List<db.Payable>, int>((ref, accountId) {
+  final repo = ref.watch(repositoryProvider);
+  return repo.watchPayablesByAccountId(accountId);
+});
+
+// Provider: 应付款余额
+final payableBalanceProvider = FutureProvider.family
+    .autoDispose<double, int>((ref, accountId) {
+  final repo = ref.watch(repositoryProvider);
+  return repo.getPayableBalance(accountId);
 });

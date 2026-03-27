@@ -106,7 +106,6 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
 
     _options = [];
 
-    // 添加"不选择账户"选项
     if (widget.allowNull) {
       _options.add(AccountOption(
         id: null,
@@ -116,8 +115,10 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
       ));
     }
 
-    // 添加账户列表
     for (final account in accounts) {
+      if (account.type == 'receivable' || account.type == 'payable') {
+        continue;
+      }
       _options.add(AccountOption(
         id: account.id,
         name: account.name,

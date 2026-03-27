@@ -12,6 +12,7 @@ import 'local_ai_repository.dart';
 import 'local_tag_repository.dart';
 import 'local_budget_repository.dart';
 import 'local_attachment_repository.dart';
+import 'local_receivable_payable_repository.dart';
 
 /// LocalRepository 本地数据库实现
 /// 基于 Drift 本地数据库实现所有 Repository 接口
@@ -32,6 +33,7 @@ class LocalRepository extends BaseRepository {
   late final LocalTagRepository _tagRepo;
   late final LocalBudgetRepository _budgetRepo;
   late final LocalAttachmentRepository _attachmentRepo;
+  late final LocalReceivablePayableRepository _receivablePayableRepo;
 
   LocalRepository(this.db) {
     _ledgerRepo = LocalLedgerRepository(db);
@@ -44,6 +46,7 @@ class LocalRepository extends BaseRepository {
     _tagRepo = LocalTagRepository(db);
     _budgetRepo = LocalBudgetRepository(db);
     _attachmentRepo = LocalAttachmentRepository(db);
+    _receivablePayableRepo = LocalReceivablePayableRepository(db);
   }
 
   // ============================================
@@ -1263,4 +1266,148 @@ class LocalRepository extends BaseRepository {
       logger.info('LocalRepository', '已清空同步队列');
     });
   }
+
+  // ============================================
+  // ReceivablePayableRepository 接口实现 - 委托给 LocalReceivablePayableRepository
+  // ============================================
+
+  @override
+  Future<int> createReceivable({
+    required int accountId,
+    required String borrowerName,
+    required double amount,
+    required DateTime borrowDate,
+    String? note,
+    required int fromAccountId,
+    bool isReceived = false,
+    DateTime? receiveDate,
+    int? toAccountId,
+  }) =>
+      _receivablePayableRepo.createReceivable(
+        accountId: accountId,
+        borrowerName: borrowerName,
+        amount: amount,
+        borrowDate: borrowDate,
+        note: note,
+        fromAccountId: fromAccountId,
+        isReceived: isReceived,
+        receiveDate: receiveDate,
+        toAccountId: toAccountId,
+      );
+
+  @override
+  Future<void> updateReceivable({
+    required int id,
+    String? borrowerName,
+    double? amount,
+    DateTime? borrowDate,
+    String? note,
+    int? fromAccountId,
+    bool? isReceived,
+    DateTime? receiveDate,
+    int? toAccountId,
+    DateTime? updatedAt,
+  }) =>
+      _receivablePayableRepo.updateReceivable(
+        id: id,
+        borrowerName: borrowerName,
+        amount: amount,
+        borrowDate: borrowDate,
+        note: note,
+        fromAccountId: fromAccountId,
+        isReceived: isReceived,
+        receiveDate: receiveDate,
+        toAccountId: toAccountId,
+        updatedAt: updatedAt,
+      );
+
+  @override
+  Future<void> deleteReceivable(int id) =>
+      _receivablePayableRepo.deleteReceivable(id);
+
+  @override
+  Future<List<Receivable>> getReceivablesByAccountId(int accountId) =>
+      _receivablePayableRepo.getReceivablesByAccountId(accountId);
+
+  @override
+  Stream<List<Receivable>> watchReceivablesByAccountId(int accountId) =>
+      _receivablePayableRepo.watchReceivablesByAccountId(accountId);
+
+  @override
+  Future<Receivable?> getReceivableById(int id) =>
+      _receivablePayableRepo.getReceivableById(id);
+
+  @override
+  Future<double> getReceivableBalance(int accountId) =>
+      _receivablePayableRepo.getReceivableBalance(accountId);
+
+  @override
+  Future<int> createPayable({
+    required int accountId,
+    required String payeeName,
+    required double amount,
+    required DateTime payDate,
+    String? note,
+    required int toAccountId,
+    bool isPaid = false,
+    DateTime? paidDate,
+    int? fromAccountId,
+  }) =>
+      _receivablePayableRepo.createPayable(
+        accountId: accountId,
+        payeeName: payeeName,
+        amount: amount,
+        payDate: payDate,
+        note: note,
+        toAccountId: toAccountId,
+        isPaid: isPaid,
+        paidDate: paidDate,
+        fromAccountId: fromAccountId,
+      );
+
+  @override
+  Future<void> updatePayable({
+    required int id,
+    String? payeeName,
+    double? amount,
+    DateTime? payDate,
+    String? note,
+    int? toAccountId,
+    bool? isPaid,
+    DateTime? paidDate,
+    int? fromAccountId,
+    DateTime? updatedAt,
+  }) =>
+      _receivablePayableRepo.updatePayable(
+        id: id,
+        payeeName: payeeName,
+        amount: amount,
+        payDate: payDate,
+        note: note,
+        toAccountId: toAccountId,
+        isPaid: isPaid,
+        paidDate: paidDate,
+        fromAccountId: fromAccountId,
+        updatedAt: updatedAt,
+      );
+
+  @override
+  Future<void> deletePayable(int id) =>
+      _receivablePayableRepo.deletePayable(id);
+
+  @override
+  Future<List<Payable>> getPayablesByAccountId(int accountId) =>
+      _receivablePayableRepo.getPayablesByAccountId(accountId);
+
+  @override
+  Stream<List<Payable>> watchPayablesByAccountId(int accountId) =>
+      _receivablePayableRepo.watchPayablesByAccountId(accountId);
+
+  @override
+  Future<Payable?> getPayableById(int id) =>
+      _receivablePayableRepo.getPayableById(id);
+
+  @override
+  Future<double> getPayableBalance(int accountId) =>
+      _receivablePayableRepo.getPayableBalance(accountId);
 }

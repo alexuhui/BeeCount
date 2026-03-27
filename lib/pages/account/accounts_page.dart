@@ -80,7 +80,6 @@ class AccountsPage extends ConsumerWidget {
     final ledgerId = ref.watch(currentLedgerIdProvider);
     // v1.15.0: 显示所有账户，不限账本
     final accountsAsync = ref.watch(allAccountsStreamProvider);
-    final accountFeatureAsync = ref.watch(accountFeatureEnabledProvider);
     final primaryColor = ref.watch(primaryColorProvider);
     // v1.15.0: 全局统计，不再限制账本
     final totalStatsAsync = ref.watch(allAccountsTotalStatsProvider);
@@ -110,61 +109,31 @@ class AccountsPage extends ConsumerWidget {
                     vertical: 8.0.scaled(context, ref),
                   ),
                   children: [
-                    // 功能开关卡片
-                    accountFeatureAsync.when(
-                      data: (enabled) {
-                        return SectionCard(
-                          margin: EdgeInsets.zero,
-                          child: Column(
-                            children: [
-                              SwitchListTile(
-                                title: Text(
-                                  l10n.accountsEnableFeature,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                subtitle: Text(l10n.accountsFeatureDescription),
-                                value: enabled,
-                                activeColor: primaryColor,
-                                onChanged: (value) async {
-                                  await ref
-                                      .read(accountFeatureSetterProvider)
-                                      .setEnabled(value);
-                                  ref.invalidate(accountFeatureEnabledProvider);
-                                },
-                              ),
-                              // 默认账户设置（仅在启用账户功能时显示）
-                              if (enabled && accounts.isNotEmpty) ...[
-                                Divider(
-                                  height: 1,
-                                  color: BeeTokens.divider(context),
-                                ),
-                                _DefaultAccountSelector(
-                                  accounts: accounts,
-                                  primaryColor: primaryColor,
-                                  type: 'expense',
-                                ),
-                                Divider(
-                                  height: 1,
-                                  indent: 16,
-                                  endIndent: 16,
-                                  color: BeeTokens.divider(context),
-                                ),
-                                _DefaultAccountSelector(
-                                  accounts: accounts,
-                                  primaryColor: primaryColor,
-                                  type: 'income',
-                                ),
-                              ],
-                            ],
-                          ),
-                        );
-                      },
-                      loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
-                    ),
+                    // 默认账户设置（账户功能默认开启）
+                    if (accounts.isNotEmpty)
+                      SectionCard(
+                        margin: EdgeInsets.zero,
+                        child: Column(
+                          children: [
+                            _DefaultAccountSelector(
+                              accounts: accounts,
+                              primaryColor: primaryColor,
+                              type: 'expense',
+                            ),
+                            Divider(
+                              height: 1,
+                              indent: 16,
+                              endIndent: 16,
+                              color: BeeTokens.divider(context),
+                            ),
+                            _DefaultAccountSelector(
+                              accounts: accounts,
+                              primaryColor: primaryColor,
+                              type: 'income',
+                            ),
+                          ],
+                        ),
+                      ),
 
                     if (accounts.isEmpty)
                       // 空状态

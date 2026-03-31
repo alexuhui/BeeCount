@@ -399,8 +399,23 @@ class TransactionListState extends ConsumerState<TransactionList> {
             final isTransfer = it.t.type == 'transfer';
             final isExpense = it.t.type == 'expense';
 
-            // 获取分类显示名称
-            final categoryName = CategoryUtils.getDisplayName(it.category?.name, context);
+            // 获取分类显示名称（二级分类显示为"一级分类→二级分类"）
+            String categoryName;
+            final category = it.category;
+            if (category != null && category.level == 2 && category.parentId != null) {
+              // 二级分类：获取所有分类，找到父分类
+              final allCategories = ref.watch(categoriesProvider).valueOrNull ?? [];
+              final parentCategory = allCategories.where((c) => c.id == category.parentId).firstOrNull;
+              if (parentCategory != null) {
+                final parentName = CategoryUtils.getDisplayName(parentCategory.name, context);
+                final childName = CategoryUtils.getDisplayName(category.name, context);
+                categoryName = '$parentName → $childName';
+              } else {
+                categoryName = CategoryUtils.getDisplayName(category.name, context);
+              }
+            } else {
+              categoryName = CategoryUtils.getDisplayName(category?.name, context);
+            }
 
             final subtitle = it.t.note ?? '';
 

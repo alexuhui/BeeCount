@@ -264,14 +264,14 @@ class _BeeAppState extends ConsumerState<BeeApp>
         onTap: () => ImageBillingHelper.openCameraForBilling(context, ref),
       ),
       SpeedDialAction(
-        icon: Icons.photo_library_rounded,
-        label: AppLocalizations.of(context).fabActionGallery,
-        onTap: () => ImageBillingHelper.pickImageForBilling(context, ref),
-      ),
-      SpeedDialAction(
         icon: Icons.mic_rounded,
         label: AppLocalizations.of(context).fabActionVoice,
         onTap: () => VoiceBillingHelper.startVoiceBilling(context, ref),
+      ),
+      SpeedDialAction(
+        icon: Icons.photo_library_rounded,
+        label: AppLocalizations.of(context).fabActionGallery,
+        onTap: () => ImageBillingHelper.pickImageForBilling(context, ref),
       ),
     ];
 
@@ -310,14 +310,14 @@ class _BeeAppState extends ConsumerState<BeeApp>
             onTap: () => ImageBillingHelper.openCameraForBilling(context, ref),
           ),
           SpeedDialAction(
-            icon: Icons.photo_library_rounded,
-            label: AppLocalizations.of(context).fabActionGallery,
-            onTap: () => ImageBillingHelper.pickImageForBilling(context, ref),
-          ),
-          SpeedDialAction(
             icon: Icons.mic_rounded,
             label: AppLocalizations.of(context).fabActionVoice,
             onTap: () => VoiceBillingHelper.startVoiceBilling(context, ref),
+          ),
+          SpeedDialAction(
+            icon: Icons.photo_library_rounded,
+            label: AppLocalizations.of(context).fabActionGallery,
+            onTap: () => ImageBillingHelper.pickImageForBilling(context, ref),
           ),
         ],
         animation: _expandAnimation,

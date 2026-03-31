@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -179,41 +180,57 @@ class AIConfigData {
 
 /// AI 配置 Notifier
 class AIConfigNotifier extends StateNotifier<AIConfigData> {
+  Completer<void>? _loadCompleter;
+
   AIConfigNotifier() : super(const AIConfigData()) {
     _loadFromPrefs();
   }
 
+  /// 等待配置加载完成
+  Future<void> get ready async {
+    if (_loadCompleter != null) {
+      await _loadCompleter!.future;
+    }
+  }
+
   /// 从 SharedPreferences 加载配置
   Future<void> _loadFromPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
+    _loadCompleter = Completer<void>();
+    try {
+      final prefs = await SharedPreferences.getInstance();
 
-    final providerStr =
-        prefs.getString(AIConstants.keyAiServiceProvider) ?? 'zhipuGLM';
-    final provider = providerStr == 'custom'
-        ? AIServiceProvider.custom
-        : AIServiceProvider.zhipuGLM;
+      final providerStr =
+          prefs.getString(AIConstants.keyAiServiceProvider) ?? 'zhipuGLM';
+      final provider = providerStr == 'custom'
+          ? AIServiceProvider.custom
+          : AIServiceProvider.zhipuGLM;
 
-    final strategyStr =
-        prefs.getString(AIConstants.keyAiStrategy) ?? 'cloud_first';
-    final strategy = _parseStrategy(strategyStr);
+      final strategyStr =
+          prefs.getString(AIConstants.keyAiStrategy) ?? 'cloud_first';
+      final strategy = _parseStrategy(strategyStr);
 
-    state = AIConfigData(
-      provider: provider,
-      glmApiKey: prefs.getString(AIConstants.keyGlmApiKey) ?? '',
-      customApiKey: prefs.getString(AIConstants.keyCustomApiKey) ?? '',
-      customBaseUrl: prefs.getString(AIConstants.keyCustomBaseUrl),
-      // GLM 模型配置
-      glmTextModel: prefs.getString(AIConstants.keyGlmModel),
-      glmVisionModel: prefs.getString(AIConstants.keyGlmVisionModel),
-      glmAudioModel: prefs.getString(AIConstants.keyGlmAudioModel),
-      // 自定义服务商模型配置
-      customTextModel: prefs.getString(AIConstants.keyCustomTextModel),
-      customVisionModel: prefs.getString(AIConstants.keyCustomVisionModel),
-      customAudioModel: prefs.getString(AIConstants.keyCustomAudioModel),
-      enabled: prefs.getBool(AIConstants.keyAiBillExtractionEnabled) ?? false,
-      useVision: prefs.getBool(AIConstants.keyAiUseVision) ?? true,
-      strategy: strategy,
-    );
+      state = AIConfigData(
+        provider: provider,
+        glmApiKey: prefs.getString(AIConstants.keyGlmApiKey) ?? '',
+        customApiKey: prefs.getString(AIConstants.keyCustomApiKey) ?? '',
+        customBaseUrl: prefs.getString(AIConstants.keyCustomBaseUrl),
+        // GLM 模型配置
+        glmTextModel: prefs.getString(AIConstants.keyGlmModel),
+        glmVisionModel: prefs.getString(AIConstants.keyGlmVisionModel),
+        glmAudioModel: prefs.getString(AIConstants.keyGlmAudioModel),
+        // 自定义服务商模型配置
+        customTextModel: prefs.getString(AIConstants.keyCustomTextModel),
+        customVisionModel: prefs.getString(AIConstants.keyCustomVisionModel),
+        customAudioModel: prefs.getString(AIConstants.keyCustomAudioModel),
+        enabled: prefs.getBool(AIConstants.keyAiBillExtractionEnabled) ?? false,
+        useVision: prefs.getBool(AIConstants.keyAiUseVision) ?? true,
+        strategy: strategy,
+      );
+      _loadCompleter!.complete();
+    } catch (e) {
+      _loadCompleter!.complete();
+      rethrow;
+    }
   }
 
   AIStrategy _parseStrategy(String str) {

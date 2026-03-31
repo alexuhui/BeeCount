@@ -8,6 +8,7 @@ import 'font_scale_provider.dart';
 import 'update_providers.dart';
 import 'smart_billing_providers.dart';
 import 'sync_providers.dart';
+import 'ai_config_providers.dart';
 import '../data/db.dart';
 import '../services/data/recurring_transaction_service.dart';
 import '../services/billing/post_processor.dart';
@@ -193,6 +194,12 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
     ]);
     logger.info(tag,
         '基础配置初始化完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
+    stepTime = DateTime.now();
+
+    // 预加载 AI 配置（确保语音记账等功能立即可用）
+    await ref.read(aiConfigProvider.notifier).ready;
+    logger.info(tag,
+        'AI配置预加载完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
     stepTime = DateTime.now();
 
     // 尝试自动登录

@@ -29,7 +29,10 @@ class VoiceBillingHelper {
     final l10n = AppLocalizations.of(context);
 
     try {
-      // 0. 检查AI是否启用（使用旧系统的启用开关）
+      // 0. 等待 AI 配置加载完成，确保配置已从 SharedPreferences 读取
+      await ref.read(aiConfigProvider.notifier).ready;
+
+      // 检查AI是否启用（使用旧系统的启用开关）
       final aiConfig = ref.read(aiConfigProvider);
       if (!aiConfig.enabled) {
         if (!context.mounted) return;

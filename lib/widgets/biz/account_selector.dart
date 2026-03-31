@@ -58,8 +58,13 @@ class _AccountSelectorState extends ConsumerState<AccountSelector> {
       }
 
       // 获取所有账户，然后过滤与当前账本币种相同的账户
+      // 同时过滤掉应收/应付类型的账户（这些账户在新增记账时不应该显示）
       final allAccounts = await repo.getAllAccounts();
-      final accounts = allAccounts.where((a) => a.currency == ledger.currency).toList();
+      final accounts = allAccounts.where((a) =>
+        a.currency == ledger.currency &&
+        a.type != 'receivable' &&
+        a.type != 'payable'
+      ).toList();
 
       // 获取 LRU 排序
       final lruOrder = await _lruCache.getOrderedIds();

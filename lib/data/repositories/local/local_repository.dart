@@ -388,8 +388,12 @@ class LocalRepository extends BaseRepository {
       _categoryRepo.getUsableCategories(kind);
 
   @override
-  Future<bool> isCategoryNameDuplicate({required String name, int? excludeId}) =>
-      _categoryRepo.isCategoryNameDuplicate(name: name, excludeId: excludeId);
+  Future<bool> isCategoryNameDuplicate({
+    required String name,
+    int? excludeId,
+    int? parentId,
+  }) =>
+      _categoryRepo.isCategoryNameDuplicate(name: name, excludeId: excludeId, parentId: parentId);
 
   @override
   Future<bool> hasSubCategories(int categoryId) =>

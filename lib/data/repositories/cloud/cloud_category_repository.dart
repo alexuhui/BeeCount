@@ -227,24 +227,81 @@ class CloudCategoryRepository implements CategoryRepository {
   Future<bool> isCategoryNameDuplicate({
     required String name,
     int? excludeId,
+    int? parentId,
   }) async {
-    final filters = [
+    // 1. 检查一级分类之间是否同名
+    // 2. 检查二级分类是否和任何一级分类同名
+    final topLevelFilters = [
       QueryFilter(column: 'name', operator: 'eq', value: name),
+      QueryFilter(column: 'level', operator: 'eq', value: 1),
     ];
 
     if (excludeId != null) {
-      filters.add(
+      topLevelFilters.add(
         QueryFilter(column: 'id', operator: 'neq', value: excludeId),
       );
     }
 
-    final results = await provider.databaseService!.query(
+    final topLevelResults = await provider.databaseService!.query(
       table: 'categories',
-      filters: filters,
+      filters: topLevelFilters,
       limit: 1,
     );
 
-    return results.isNotEmpty;
+    if (topLevelResults.isNotEmpty) {
+      return true;
+    }
+
+    // 4. 检查一级分类是否与任何二级分类同名
+    if (parentId == null) {
+      final subCategoryFilters = [
+        QueryFilter(column: 'name', operator: 'eq', value: name),
+        QueryFilter(column: 'level', operator: 'eq', value: 2),
+      ];
+
+      if (excludeId != null) {
+        subCategoryFilters.add(
+          QueryFilter(column: 'id', operator: 'neq', value: excludeId),
+        );
+      }
+
+      final subCategoryResults = await provider.databaseService!.query(
+        table: 'categories',
+        filters: subCategoryFilters,
+        limit: 1,
+      );
+
+      if (subCategoryResults.isNotEmpty) {
+        return true;
+      }
+    }
+
+    // 3. 如果是二级分类，检查同一个父分类下的二级分类是否同名
+    if (parentId != null) {
+      final subCategoryFilters = [
+        QueryFilter(column: 'name', operator: 'eq', value: name),
+        QueryFilter(column: 'parent_id', operator: 'eq', value: parentId),
+        QueryFilter(column: 'level', operator: 'eq', value: 2),
+      ];
+
+      if (excludeId != null) {
+        subCategoryFilters.add(
+          QueryFilter(column: 'id', operator: 'neq', value: excludeId),
+        );
+      }
+
+      final subCategoryResults = await provider.databaseService!.query(
+        table: 'categories',
+        filters: subCategoryFilters,
+        limit: 1,
+      );
+
+      if (subCategoryResults.isNotEmpty) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   @override

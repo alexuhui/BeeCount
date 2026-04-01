@@ -59,9 +59,11 @@ abstract class CategoryRepository {
   Future<List<Category>> getUsableCategories(String kind);
 
   /// 检查分类名称是否重复
+  /// [parentId] 父分类ID，用于二级分类的重复检查
   Future<bool> isCategoryNameDuplicate({
     required String name,
     int? excludeId,
+    int? parentId,
   });
 
   /// 检查分类是否有子分类

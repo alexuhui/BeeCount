@@ -150,6 +150,7 @@ class _CategoryEditPageState extends ConsumerState<CategoryEditPage> {
     final isDuplicate = await repo.isCategoryNameDuplicate(
       name: name,
       excludeId: excludeId,
+      parentId: _isSubCategory ? _selectedParentCategory?.id : null,
     );
 
     if (mounted) {
@@ -451,6 +452,7 @@ class _CategoryEditPageState extends ConsumerState<CategoryEditPage> {
     final isDuplicate = await repo.isCategoryNameDuplicate(
       name: name,
       excludeId: excludeId,
+      parentId: _isSubCategory ? _selectedParentCategory?.id : null,
     );
 
     if (isDuplicate) {
@@ -864,6 +866,8 @@ class _CategoryEditPageState extends ConsumerState<CategoryEditPage> {
         _selectedParentCategory = null;
       }
     });
+    // 切换二级分类开关后，重新检查名称是否重复
+    _checkNameDuplicate();
   }
 
   void _selectParentCategory() async {
@@ -893,6 +897,8 @@ class _CategoryEditPageState extends ConsumerState<CategoryEditPage> {
       setState(() {
         _selectedParentCategory = selected;
       });
+      // 选择父分类后，重新检查名称是否重复
+      _checkNameDuplicate();
     }
   }
 

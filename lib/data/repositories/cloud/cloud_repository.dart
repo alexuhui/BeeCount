@@ -371,10 +371,12 @@ class CloudRepository extends BaseRepository {
   Future<bool> isCategoryNameDuplicate({
     required String name,
     int? excludeId,
+    int? parentId,
   }) =>
       _category.isCategoryNameDuplicate(
         name: name,
         excludeId: excludeId,
+        parentId: parentId,
       );
 
   @override

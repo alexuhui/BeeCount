@@ -136,16 +136,47 @@ class LocalCategoryRepository implements CategoryRepository {
   Future<bool> isCategoryNameDuplicate({
     required String name,
     int? excludeId,
+    int? parentId,
   }) async {
-    var expression = db.categories.name.equals(name);
-
+    // 1. 检查一级分类之间是否同名
+    // 2. 检查二级分类是否和任何一级分类同名
+    var topLevelQuery = db.select(db.categories);
     if (excludeId != null) {
-      expression = expression & db.categories.id.equals(excludeId).not();
+      topLevelQuery = topLevelQuery..where((c) => c.id.equals(excludeId).not());
+    }
+    topLevelQuery = topLevelQuery..where((c) => c.name.equals(name) & c.level.equals(1));
+    final topLevelResults = await topLevelQuery.get();
+    if (topLevelResults.isNotEmpty) {
+      return true;
     }
 
-    final query = db.select(db.categories)..where((c) => expression);
-    final results = await query.get();
-    return results.isNotEmpty;
+    // 4. 检查一级分类是否与任何二级分类同名
+    if (parentId == null) {
+      var subCategoryQuery = db.select(db.categories);
+      if (excludeId != null) {
+        subCategoryQuery = subCategoryQuery..where((c) => c.id.equals(excludeId).not());
+      }
+      subCategoryQuery = subCategoryQuery..where((c) => c.name.equals(name) & c.level.equals(2));
+      final subCategoryResults = await subCategoryQuery.get();
+      if (subCategoryResults.isNotEmpty) {
+        return true;
+      }
+    }
+
+    // 3. 如果是二级分类，检查同一个父分类下的二级分类是否同名
+    if (parentId != null) {
+      var subCategoryQuery = db.select(db.categories);
+      if (excludeId != null) {
+        subCategoryQuery = subCategoryQuery..where((c) => c.id.equals(excludeId).not());
+      }
+      subCategoryQuery = subCategoryQuery..where((c) => c.name.equals(name) & c.parentId.equals(parentId) & c.level.equals(2));
+      final subCategoryResults = await subCategoryQuery.get();
+      if (subCategoryResults.isNotEmpty) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   @override

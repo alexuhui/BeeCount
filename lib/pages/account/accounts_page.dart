@@ -96,6 +96,7 @@ class AccountsPage extends ConsumerWidget {
     // v1.15.0: 全局统计，不再限制账本
     final totalStatsAsync = ref.watch(allAccountsTotalStatsProvider);
     final allStatsAsync = ref.watch(allAccountStatsProvider);
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
@@ -261,6 +262,7 @@ class AccountsPage extends ConsumerWidget {
                               _editAccount(context, ref, account, ledgerId),
                         );
                       }),
+                      SizedBox(height: bottomPadding),
                     ],
                   ],
                 );

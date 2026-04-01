@@ -29,6 +29,7 @@ class _TagManagePageState extends ConsumerState<TagManagePage> {
     final l10n = AppLocalizations.of(context);
     final tagsAsync = ref.watch(tagsWithStatsProvider);
     final primaryColor = ref.watch(primaryColorProvider);
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
@@ -61,6 +62,7 @@ class _TagManagePageState extends ConsumerState<TagManagePage> {
               },
             ),
           ),
+          SizedBox(height: bottomPadding),
         ],
       ),
     );

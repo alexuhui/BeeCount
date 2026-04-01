@@ -88,6 +88,8 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    
     return Scaffold(
       body: Column(
         children: [
@@ -163,6 +165,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
               ],
             ),
           ),
+          SizedBox(height: bottomPadding),
         ],
       ),
     );

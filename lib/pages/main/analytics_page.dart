@@ -289,6 +289,7 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
     final repo = ref.watch(repositoryProvider);
     final ledgerId = ref.watch(currentLedgerIdProvider);
     final selMonth = ref.watch(selectedMonthProvider);
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
     // 统计刷新 tick：当有新增/编辑/删除时我们会 +1，这里监听以触发重建和重新拉取
     ref.watch(statsRefreshProvider);
 
@@ -630,6 +631,7 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                                               context))),
                             ],
                           ),
+                        SizedBox(height: bottomPadding),
                       ],
                     ),
                   );
@@ -873,6 +875,7 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                             annotate: true,
                           ),
                         ),
+                      SizedBox(height: bottomPadding),
                     ],
                   ),
                 );

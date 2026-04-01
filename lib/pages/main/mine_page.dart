@@ -48,6 +48,8 @@ class MinePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    
     return Scaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context), // ⭐ 使用 Token
       body: Column(
@@ -459,6 +461,7 @@ class MinePage extends ConsumerWidget {
                   ),
                 ),
                 SizedBox(height: BeeDimens.p16.scaled(context, ref)),
+                SizedBox(height: bottomPadding),
               ],
             ),
           ),

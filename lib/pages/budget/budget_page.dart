@@ -22,6 +22,7 @@ class BudgetPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final overviewAsync = ref.watch(budgetOverviewForYearMonthProvider);
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
@@ -45,6 +46,7 @@ class BudgetPage extends ConsumerWidget {
               error: (e, _) => Center(child: Text('Error: $e')),
             ),
           ),
+          SizedBox(height: bottomPadding),
         ],
       ),
     );

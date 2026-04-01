@@ -59,6 +59,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
     final categoriesWithCountAsync = ref.watch(categoriesWithCountProvider);
     final l10n = AppLocalizations.of(context);
     final primaryColor = ref.watch(primaryColorProvider);
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       body: Column(
@@ -108,6 +109,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
               },
             ),
           ),
+          SizedBox(height: bottomPadding),
         ],
       ),
     );

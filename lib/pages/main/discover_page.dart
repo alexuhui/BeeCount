@@ -31,6 +31,7 @@ class DiscoverPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
@@ -43,17 +44,18 @@ class DiscoverPage extends StatelessWidget {
                 horizontal: 12.0.scaledSimple(context),
                 vertical: 8.0.scaledSimple(context),
               ),
-              children: const [
+              children: [
                 // 预算管理卡片
-                RepaintBoundary(child: _BudgetCard()),
-                SizedBox(height: 10),
+                const RepaintBoundary(child: _BudgetCard()),
+                const SizedBox(height: 10),
 
                 // 账户总览卡片
-                RepaintBoundary(child: _AccountsCard()),
-                SizedBox(height: 10),
+                const RepaintBoundary(child: _AccountsCard()),
+                const SizedBox(height: 10),
 
                 // 快捷记账入口
                 // const _QuickActionsCard(),
+                SizedBox(height: bottomPadding),
               ],
             ),
           ),

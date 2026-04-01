@@ -184,6 +184,8 @@ class _CategoryEditPageState extends ConsumerState<CategoryEditPage> {
 
   Widget _buildScaffold(
       BuildContext context, String headerTitle, String? headerSubtitle) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    
     return Scaffold(
       body: Column(
         children: [
@@ -402,7 +404,7 @@ class _CategoryEditPageState extends ConsumerState<CategoryEditPage> {
           // 底部保存按钮
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPadding),
             child: FilledButton(
               onPressed: (_saving || _isDuplicateName) ? null : _saveCategory,
               child: _saving

@@ -151,6 +151,7 @@ class _AccountEditPageState extends ConsumerState<AccountEditPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final primaryColor = ref.watch(primaryColorProvider);
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
@@ -439,6 +440,9 @@ class _AccountEditPageState extends ConsumerState<AccountEditPage> {
                       ),
                     ),
                   ],
+
+                  // 底部padding，避免虚拟导航按钮遮挡
+                  SizedBox(height: bottomPadding),
                 ],
               ),
             ),

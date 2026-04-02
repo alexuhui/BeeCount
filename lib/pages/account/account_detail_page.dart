@@ -322,16 +322,24 @@ class _NormalAccountContent extends ConsumerWidget {
 }
 
 /// 应收款账户内容
-class _ReceivableAccountContent extends ConsumerWidget {
+class _ReceivableAccountContent extends ConsumerStatefulWidget {
   final db.Account account;
 
   const _ReceivableAccountContent({required this.account});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ReceivableAccountContent> createState() => _ReceivableAccountContentState();
+}
+
+class _ReceivableAccountContentState extends ConsumerState<_ReceivableAccountContent> {
+  String _filter = 'all'; // all, received, pending
+  Map<String, bool> _expandedBorrowers = {}; // 借款人展开状态
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final receivablesAsync = ref.watch(receivablesByAccountProvider(account.id));
-    final balanceAsync = ref.watch(receivableBalanceProvider(account.id));
+    final receivablesAsync = ref.watch(receivablesByAccountProvider(widget.account.id));
+    final balanceAsync = ref.watch(receivableBalanceProvider(widget.account.id));
     final currentLedgerAsync = ref.watch(currentLedgerProvider);
     final currencyCode = currentLedgerAsync.asData?.value?.currency ?? 'CNY';
 
@@ -377,57 +385,189 @@ class _ReceivableAccountContent extends ConsumerWidget {
         SectionCard(
           child: receivablesAsync.when(
             data: (receivables) {
-              if (receivables.isEmpty) {
-                return Padding(
-                  padding: EdgeInsets.all(32.0.scaled(context, ref)),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.receipt_long_outlined,
-                          size: 48.0.scaled(context, ref),
-                          color: BeeTokens.textTertiary(context),
-                        ),
-                        SizedBox(height: 8.0.scaled(context, ref)),
-                        Text(
-                          '暂无应收款记录',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: BeeTokens.textSecondary(context),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+              // 过滤应收款
+              final filteredReceivables = receivables.where((r) {
+                if (_filter == 'all') return true;
+                if (_filter == 'received') return r.isReceived;
+                if (_filter == 'pending') return !r.isReceived;
+                return true;
+              }).toList();
+
+              // 按借款人分组
+              final groupedByBorrower = <String, List<db.Receivable>>{};
+              for (final r in filteredReceivables) {
+                final borrowerName = r.borrowerName;
+                if (!groupedByBorrower.containsKey(borrowerName)) {
+                  groupedByBorrower[borrowerName] = [];
+                }
+                groupedByBorrower[borrowerName]!.add(r);
               }
+
+              // 按借款人名称排序
+              final sortedBorrowers = groupedByBorrower.keys.toList()..sort();
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 过滤开关 - 始终显示
                   Padding(
                     padding: EdgeInsets.all(12.0.scaled(context, ref)),
-                    child: Text(
-                      '应收款记录',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: BeeTokens.textPrimary(context),
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '应收款记录',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: BeeTokens.textPrimary(context),
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            _buildFilterChip(context, '全部', 'all'),
+                            SizedBox(width: 8.0.scaled(context, ref)),
+                            _buildFilterChip(context, '已收', 'received'),
+                            SizedBox(width: 8.0.scaled(context, ref)),
+                            _buildFilterChip(context, '未收', 'pending'),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  ...receivables.asMap().entries.map((entry) {
+                  // 记录列表或空状态
+                  if (filteredReceivables.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.all(32.0.scaled(context, ref)),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.receipt_long_outlined,
+                              size: 48.0.scaled(context, ref),
+                              color: BeeTokens.textTertiary(context),
+                            ),
+                            SizedBox(height: 8.0.scaled(context, ref)),
+                            Text(
+                              _filter == 'all' ? '暂无应收款记录' : 
+                              _filter == 'received' ? '暂无已收款记录' : '暂无未收款记录',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: BeeTokens.textSecondary(context),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ...sortedBorrowers.asMap().entries.map((entry) {
                     final index = entry.key;
-                    final r = entry.value;
+                    final borrowerName = entry.value;
+                    final borrowerReceivables = groupedByBorrower[borrowerName]!;
+                    final isExpanded = _expandedBorrowers[borrowerName] ?? true;
+
+                    // 计算该借款人的总金额
+                    double totalAmount = 0;
+                    double pendingAmount = 0;
+                    for (final r in borrowerReceivables) {
+                      totalAmount += r.amount;
+                      if (!r.isReceived) {
+                        pendingAmount += r.amount;
+                      }
+                    }
 
                     return Column(
                       children: [
                         if (index > 0) BeeTokens.cardDivider(context),
-                        _ReceivableTile(
-                          receivable: r,
-                          currencyCode: currencyCode,
-                          onTap: () => _editReceivable(context, ref, r),
+                        // 借款人分组头部
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _expandedBorrowers[borrowerName] = !isExpanded;
+                            });
+                          },
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12.0.scaled(context, ref),
+                              vertical: 12.0.scaled(context, ref),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: BeeTokens.primary(context).withValues(alpha: 0.12),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+                                    size: 20,
+                                    color: BeeTokens.primary(context),
+                                  ),
+                                ),
+                                SizedBox(width: 12.0.scaled(context, ref)),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        borrowerName,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: BeeTokens.textPrimary(context),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
+                                        child: Text(
+                                          '共 ${borrowerReceivables.length} 笔，未收 ${pendingAmount.toStringAsFixed(2)}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: BeeTokens.textSecondary(context),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                AmountText(
+                                  value: totalAmount,
+                                  signed: false,
+                                  showCurrency: false,
+                                  currencyCode: currencyCode,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: BeeTokens.textPrimary(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
+                        // 展开的应收款列表
+                        if (isExpanded)
+                          ...borrowerReceivables.asMap().entries.map((receivableEntry) {
+                            final receivableIndex = receivableEntry.key;
+                            final r = receivableEntry.value;
+
+                            return Column(
+                              children: [
+                                BeeTokens.cardDivider(context),
+                                Padding(
+                                  padding: EdgeInsets.only(left: 44.0.scaled(context, ref)),
+                                  child: _ReceivableTile(
+                                    receivable: r,
+                                    currencyCode: currencyCode,
+                                    onTap: () => _editReceivable(context, ref, r),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
                       ],
                     );
                   }),
@@ -453,30 +593,66 @@ class _ReceivableAccountContent extends ConsumerWidget {
     );
   }
 
+  Widget _buildFilterChip(BuildContext context, String label, String value) {
+    final isSelected = _filter == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _filter = value;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: 12.0.scaled(context, ref),
+          vertical: 4.0.scaled(context, ref),
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? BeeTokens.primary(context) : BeeTokens.surfaceSecondary(context),
+          borderRadius: BorderRadius.circular(12.0.scaled(context, ref)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: isSelected ? Colors.white : BeeTokens.textSecondary(context),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _editReceivable(
       BuildContext context, WidgetRef ref, db.Receivable r) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ReceivableEditPage(account: account, receivable: r),
+        builder: (context) => ReceivableEditPage(account: widget.account, receivable: r),
       ),
     );
-    ref.invalidate(receivablesByAccountProvider(account.id));
-    ref.invalidate(receivableBalanceProvider(account.id));
+    ref.invalidate(receivablesByAccountProvider(widget.account.id));
+    ref.invalidate(receivableBalanceProvider(widget.account.id));
   }
 }
 
 /// 应付款账户内容
-class _PayableAccountContent extends ConsumerWidget {
+class _PayableAccountContent extends ConsumerStatefulWidget {
   final db.Account account;
 
   const _PayableAccountContent({required this.account});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PayableAccountContent> createState() => _PayableAccountContentState();
+}
+
+class _PayableAccountContentState extends ConsumerState<_PayableAccountContent> {
+  String _filter = 'all'; // all, paid, pending
+  Map<String, bool> _expandedPayees = {}; // 收款人展开状态
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final payablesAsync = ref.watch(payablesByAccountProvider(account.id));
-    final balanceAsync = ref.watch(payableBalanceProvider(account.id));
+    final payablesAsync = ref.watch(payablesByAccountProvider(widget.account.id));
+    final balanceAsync = ref.watch(payableBalanceProvider(widget.account.id));
     final currentLedgerAsync = ref.watch(currentLedgerProvider);
     final currencyCode = currentLedgerAsync.asData?.value?.currency ?? 'CNY';
 
@@ -522,57 +698,189 @@ class _PayableAccountContent extends ConsumerWidget {
         SectionCard(
           child: payablesAsync.when(
             data: (payables) {
-              if (payables.isEmpty) {
-                return Padding(
-                  padding: EdgeInsets.all(32.0.scaled(context, ref)),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.receipt_long_outlined,
-                          size: 48.0.scaled(context, ref),
-                          color: BeeTokens.textTertiary(context),
-                        ),
-                        SizedBox(height: 8.0.scaled(context, ref)),
-                        Text(
-                          '暂无应付款记录',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: BeeTokens.textSecondary(context),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+              // 过滤应付款
+              final filteredPayables = payables.where((p) {
+                if (_filter == 'all') return true;
+                if (_filter == 'paid') return p.isPaid;
+                if (_filter == 'pending') return !p.isPaid;
+                return true;
+              }).toList();
+
+              // 按收款人分组
+              final groupedByPayee = <String, List<db.Payable>>{};
+              for (final p in filteredPayables) {
+                final payeeName = p.payeeName;
+                if (!groupedByPayee.containsKey(payeeName)) {
+                  groupedByPayee[payeeName] = [];
+                }
+                groupedByPayee[payeeName]!.add(p);
               }
+
+              // 按收款人名称排序
+              final sortedPayees = groupedByPayee.keys.toList()..sort();
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 过滤开关 - 始终显示
                   Padding(
                     padding: EdgeInsets.all(12.0.scaled(context, ref)),
-                    child: Text(
-                      '应付款记录',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: BeeTokens.textPrimary(context),
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '应付款记录',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: BeeTokens.textPrimary(context),
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            _buildFilterChip(context, '全部', 'all'),
+                            SizedBox(width: 8.0.scaled(context, ref)),
+                            _buildFilterChip(context, '已付', 'paid'),
+                            SizedBox(width: 8.0.scaled(context, ref)),
+                            _buildFilterChip(context, '未付', 'pending'),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  ...payables.asMap().entries.map((entry) {
+                  // 记录列表或空状态
+                  if (filteredPayables.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.all(32.0.scaled(context, ref)),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.receipt_long_outlined,
+                              size: 48.0.scaled(context, ref),
+                              color: BeeTokens.textTertiary(context),
+                            ),
+                            SizedBox(height: 8.0.scaled(context, ref)),
+                            Text(
+                              _filter == 'all' ? '暂无应付款记录' : 
+                              _filter == 'paid' ? '暂无已付款记录' : '暂无未付款记录',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: BeeTokens.textSecondary(context),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ...sortedPayees.asMap().entries.map((entry) {
                     final index = entry.key;
-                    final p = entry.value;
+                    final payeeName = entry.value;
+                    final payeePayables = groupedByPayee[payeeName]!;
+                    final isExpanded = _expandedPayees[payeeName] ?? true;
+
+                    // 计算该收款人的总金额
+                    double totalAmount = 0;
+                    double pendingAmount = 0;
+                    for (final p in payeePayables) {
+                      totalAmount += p.amount;
+                      if (!p.isPaid) {
+                        pendingAmount += p.amount;
+                      }
+                    }
 
                     return Column(
                       children: [
                         if (index > 0) BeeTokens.cardDivider(context),
-                        _PayableTile(
-                          payable: p,
-                          currencyCode: currencyCode,
-                          onTap: () => _editPayable(context, ref, p),
+                        // 收款人分组头部
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _expandedPayees[payeeName] = !isExpanded;
+                            });
+                          },
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12.0.scaled(context, ref),
+                              vertical: 12.0.scaled(context, ref),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: BeeTokens.primary(context).withValues(alpha: 0.12),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+                                    size: 20,
+                                    color: BeeTokens.primary(context),
+                                  ),
+                                ),
+                                SizedBox(width: 12.0.scaled(context, ref)),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        payeeName,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: BeeTokens.textPrimary(context),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
+                                        child: Text(
+                                          '共 ${payeePayables.length} 笔，未付 ${pendingAmount.toStringAsFixed(2)}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: BeeTokens.textSecondary(context),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                AmountText(
+                                  value: totalAmount,
+                                  signed: false,
+                                  showCurrency: false,
+                                  currencyCode: currencyCode,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: BeeTokens.textPrimary(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
+                        // 展开的应付款列表
+                        if (isExpanded)
+                          ...payeePayables.asMap().entries.map((payableEntry) {
+                            final payableIndex = payableEntry.key;
+                            final p = payableEntry.value;
+
+                            return Column(
+                              children: [
+                                BeeTokens.cardDivider(context),
+                                Padding(
+                                  padding: EdgeInsets.only(left: 44.0.scaled(context, ref)),
+                                  child: _PayableTile(
+                                    payable: p,
+                                    currencyCode: currencyCode,
+                                    onTap: () => _editPayable(context, ref, p),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
                       ],
                     );
                   }),
@@ -598,16 +906,44 @@ class _PayableAccountContent extends ConsumerWidget {
     );
   }
 
+  Widget _buildFilterChip(BuildContext context, String label, String value) {
+    final isSelected = _filter == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _filter = value;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: 12.0.scaled(context, ref),
+          vertical: 4.0.scaled(context, ref),
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? BeeTokens.primary(context) : BeeTokens.surfaceSecondary(context),
+          borderRadius: BorderRadius.circular(12.0.scaled(context, ref)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: isSelected ? Colors.white : BeeTokens.textSecondary(context),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _editPayable(
       BuildContext context, WidgetRef ref, db.Payable p) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PayableEditPage(account: account, payable: p),
+        builder: (context) => PayableEditPage(account: widget.account, payable: p),
       ),
     );
-    ref.invalidate(payablesByAccountProvider(account.id));
-    ref.invalidate(payableBalanceProvider(account.id));
+    ref.invalidate(payablesByAccountProvider(widget.account.id));
+    ref.invalidate(payableBalanceProvider(widget.account.id));
   }
 }
 

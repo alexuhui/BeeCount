@@ -627,6 +627,9 @@ class CloudAccountRepository implements AccountRepository {
       happenedAt: DateTime.parse(json['happened_at'] as String),
       note: json['note'] as String?,
       recurringId: json['recurring_id'] as int?,
+      excludeFromStats: json['exclude_from_stats'] as bool? ?? false,
+      receivableId: json['receivable_id'] as int?,
+      payableId: json['payable_id'] as int?,
     );
   }
 

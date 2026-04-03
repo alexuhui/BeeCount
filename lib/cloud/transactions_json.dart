@@ -152,6 +152,7 @@ Future<String> exportTransactionsJson(BeeDatabase db, int ledgerId) async {
       'categoryKind': catInfo?['kind'],
       'happenedAt': t.happenedAt.toUtc().toIso8601String(),
       'note': _sanitizeString(t.note),
+      'excludeFromStats': t.excludeFromStats,
     };
 
     // 添加账户信息
@@ -385,6 +386,7 @@ ImportData parseJsonToImportData(String jsonStr) {
         toAccountName: type == 'transfer' ? it['toAccountName'] as String? : null,
         tagNames: tagNames,
         attachments: attachments,
+        excludeFromStats: it['excludeFromStats'] as bool? ?? false,
       ));
     }
   }

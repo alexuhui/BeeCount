@@ -367,6 +367,7 @@ class CloudCategoryRepository implements CategoryRepository {
       table: 'transactions',
       filters: [
         QueryFilter(column: 'category_id', operator: 'eq', value: categoryId),
+        QueryFilter(column: 'exclude_from_stats', operator: 'eq', value: false),
       ],
     );
 
@@ -394,6 +395,7 @@ class CloudCategoryRepository implements CategoryRepository {
       table: 'transactions',
       filters: [
         QueryFilter(column: 'category_id', operator: 'eq', value: categoryId),
+        QueryFilter(column: 'exclude_from_stats', operator: 'eq', value: false),
       ],
       orderBy: 'happened_at',
       descending: true,
@@ -426,6 +428,7 @@ class CloudCategoryRepository implements CategoryRepository {
       table: 'transactions',
       filters: [
         QueryFilter(column: 'category_id', operator: 'eq', value: categoryId),
+        QueryFilter(column: 'exclude_from_stats', operator: 'eq', value: false),
       ],
       orderBy: orderBy,
     );
@@ -852,6 +855,9 @@ class CloudCategoryRepository implements CategoryRepository {
       happenedAt: DateTime.parse(json['happened_at'] as String),
       note: json['note'] as String?,
       recurringId: json['recurring_id'] as int?,
+      excludeFromStats: json['exclude_from_stats'] as bool? ?? false,
+      receivableId: json['receivable_id'] as int?,
+      payableId: json['payable_id'] as int?,
     );
   }
 

@@ -407,7 +407,7 @@ class LocalTagRepository implements TagRepository {
       SELECT tx.*
       FROM transactions tx
       INNER JOIN transaction_tags tt ON tx.id = tt.transaction_id
-      WHERE tt.tag_id = ?
+      WHERE tt.tag_id = ? AND tx.exclude_from_stats = 0
       ORDER BY tx.happened_at DESC
       ''',
       variables: [d.Variable.withInt(tagId)],
@@ -425,6 +425,9 @@ class LocalTagRepository implements TagRepository {
           happenedAt: row.read<DateTime>('happened_at'),
           note: row.read<String?>('note'),
           recurringId: row.read<int?>('recurring_id'),
+          excludeFromStats: row.read<bool>('exclude_from_stats'),
+          receivableId: row.read<int?>('receivable_id'),
+          payableId: row.read<int?>('payable_id'),
         );
       }).toList();
     });

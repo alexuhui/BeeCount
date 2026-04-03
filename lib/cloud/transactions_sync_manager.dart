@@ -398,6 +398,7 @@ class TransactionsSyncManager implements SyncService {
               'categoryName': it['categoryName'] as String? ?? '',
               'categoryKind': it['categoryKind'] as String? ?? '',
               'note': it['note'] as String? ?? '',
+              'excludeFromStats': it['excludeFromStats']?.toString() ?? 'false',
             })
         .toList();
     canon.sort((a, b) {
@@ -902,6 +903,7 @@ class _TransactionSerializer implements fcs.DataSerializer<int> {
               'categoryName': it['categoryName'] as String? ?? '',
               'categoryKind': it['categoryKind'] as String? ?? '',
               'note': it['note'] as String? ?? '',
+              'excludeFromStats': it['excludeFromStats']?.toString() ?? 'false',
             })
         .toList();
     canon.sort((a, b) {

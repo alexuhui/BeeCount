@@ -21,7 +21,7 @@ class LocalTransactionRepository implements TransactionRepository {
     int limit = 20,
   }) {
     return (db.select(db.transactions)
-          ..where((t) => t.ledgerId.equals(ledgerId))
+          ..where((t) => t.ledgerId.equals(ledgerId) & t.excludeFromStats.equals(false))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -40,7 +40,8 @@ class LocalTransactionRepository implements TransactionRepository {
     return (db.select(db.transactions)
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
-              t.happenedAt.isBetweenValues(start, end))
+              t.happenedAt.isBetweenValues(start, end) &
+              t.excludeFromStats.equals(false))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -55,7 +56,9 @@ class LocalTransactionRepository implements TransactionRepository {
   }) {
     final select = db.select(db.transactions);
     if (ledgerId != null) {
-      select.where((t) => t.ledgerId.equals(ledgerId));
+      select.where((t) => t.ledgerId.equals(ledgerId) & t.excludeFromStats.equals(false));
+    } else {
+      select.where((t) => t.excludeFromStats.equals(false));
     }
     select.orderBy([
       (t) => d.OrderingTerm(
@@ -84,7 +87,8 @@ class LocalTransactionRepository implements TransactionRepository {
     final q = (db.select(db.transactions)
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
-              t.happenedAt.isBetweenValues(start, end))
+              t.happenedAt.isBetweenValues(start, end) &
+              t.excludeFromStats.equals(false))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -112,7 +116,8 @@ class LocalTransactionRepository implements TransactionRepository {
     final q = (db.select(db.transactions)
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
-              t.happenedAt.isBetweenValues(start, end))
+              t.happenedAt.isBetweenValues(start, end) &
+              t.excludeFromStats.equals(false))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -142,7 +147,8 @@ class LocalTransactionRepository implements TransactionRepository {
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
               t.type.equals(type) &
-              t.happenedAt.isBetweenValues(start, end))
+              t.happenedAt.isBetweenValues(start, end) &
+              t.excludeFromStats.equals(false))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -308,7 +314,7 @@ class LocalTransactionRepository implements TransactionRepository {
     required int limit,
   }) async {
     final q = (db.select(db.transactions)
-          ..where((t) => t.ledgerId.equals(ledgerId))
+          ..where((t) => t.ledgerId.equals(ledgerId) & t.excludeFromStats.equals(false))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -335,7 +341,7 @@ class LocalTransactionRepository implements TransactionRepository {
     required DateTime end,
   }) async {
     final row = await db.customSelect(
-      'SELECT COUNT(*) AS c FROM transactions WHERE ledger_id = ?1 AND type = ?2 AND happened_at >= ?3 AND happened_at < ?4',
+      'SELECT COUNT(*) AS c FROM transactions WHERE ledger_id = ?1 AND type = ?2 AND happened_at >= ?3 AND happened_at < ?4 AND exclude_from_stats = 0',
       variables: [
         d.Variable<int>(ledgerId),
         d.Variable<String>(type),
@@ -354,7 +360,7 @@ class LocalTransactionRepository implements TransactionRepository {
   @override
   Future<List<Transaction>> getTransactionsByLedger(int ledgerId) async {
     return await (db.select(db.transactions)
-          ..where((t) => t.ledgerId.equals(ledgerId))
+          ..where((t) => t.ledgerId.equals(ledgerId) & t.excludeFromStats.equals(false))
           ..orderBy([
             (t) =>
                 d.OrderingTerm(expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -372,7 +378,8 @@ class LocalTransactionRepository implements TransactionRepository {
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
               t.happenedAt.isBiggerOrEqualValue(start) &
-              t.happenedAt.isSmallerThanValue(end))
+              t.happenedAt.isSmallerThanValue(end) &
+              t.excludeFromStats.equals(false))
           ..orderBy([
             (t) =>
                 d.OrderingTerm(expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -449,6 +456,7 @@ class LocalTransactionRepository implements TransactionRepository {
       WHERE ledger_id = ?
         AND happened_at >= ?
         AND happened_at <= ?
+        AND exclude_from_stats = 0
     ''';
 
     final countResult = await db.customSelect(
@@ -465,7 +473,7 @@ class LocalTransactionRepository implements TransactionRepository {
 
     // 查看一条交易的 happened_at 值
     if (totalCount > 0) {
-      final sampleQuery = 'SELECT happened_at FROM transactions WHERE ledger_id = ? LIMIT 1';
+      final sampleQuery = 'SELECT happened_at FROM transactions WHERE ledger_id = ? AND exclude_from_stats = 0 LIMIT 1';
       final sample = await db.customSelect(
         sampleQuery,
         variables: [d.Variable.withInt(ledgerId)],
@@ -489,6 +497,7 @@ class LocalTransactionRepository implements TransactionRepository {
       WHERE ledger_id = ?
         AND happened_at >= ?
         AND happened_at <= ?
+        AND exclude_from_stats = 0
       GROUP BY date
       ORDER BY date DESC
     ''';
@@ -536,7 +545,8 @@ class LocalTransactionRepository implements TransactionRepository {
     final transactions = await (db.select(db.transactions)
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
-              t.happenedAt.isBetweenValues(startOfDay, endOfDay))
+              t.happenedAt.isBetweenValues(startOfDay, endOfDay) &
+              t.excludeFromStats.equals(false))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -637,7 +647,8 @@ class LocalTransactionRepository implements TransactionRepository {
     final transactions = await (db.select(db.transactions)
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
-              t.happenedAt.isBetweenValues(startDate, endDate))
+              t.happenedAt.isBetweenValues(startDate, endDate) &
+              t.excludeFromStats.equals(false))
           ..orderBy([
             (t) => d.OrderingTerm(
                   expression: t.happenedAt,
@@ -711,11 +722,12 @@ class LocalTransactionRepository implements TransactionRepository {
     final endDate = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
 
     final query = '''
-      SELECT DISTINCT DATE(happened_at) as date
+      SELECT DISTINCT strftime('%Y-%m-%d', happened_at, 'unixepoch', 'localtime') as date
       FROM transactions
       WHERE ledger_id = ?
         AND happened_at >= ?
         AND happened_at <= ?
+        AND exclude_from_stats = 0
       ORDER BY date DESC
     ''';
 

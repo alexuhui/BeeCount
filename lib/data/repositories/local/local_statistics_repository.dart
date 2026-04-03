@@ -21,7 +21,8 @@ class LocalStatisticsRepository implements StatisticsRepository {
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
               t.type.equals(type) &
-              t.happenedAt.isBetweenValues(start, end)))
+              t.happenedAt.isBetweenValues(start, end) &
+              t.excludeFromStats.equals(false)))
         .join([
       d.leftOuterJoin(db.categories,
           db.categories.id.equalsExp(db.transactions.categoryId)),
@@ -59,7 +60,8 @@ class LocalStatisticsRepository implements StatisticsRepository {
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
               t.type.equals(type) &
-              t.happenedAt.isBetweenValues(start, end)))
+              t.happenedAt.isBetweenValues(start, end) &
+              t.excludeFromStats.equals(false)))
         .join([
       d.leftOuterJoin(db.categories,
           db.categories.id.equalsExp(db.transactions.categoryId)),
@@ -120,7 +122,8 @@ class LocalStatisticsRepository implements StatisticsRepository {
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
               t.type.equals(type) &
-              t.happenedAt.isBetweenValues(start, end)))
+              t.happenedAt.isBetweenValues(start, end) &
+              t.excludeFromStats.equals(false)))
         .get();
     final map = <DateTime, double>{};
     for (final t in rows) {
@@ -150,7 +153,8 @@ class LocalStatisticsRepository implements StatisticsRepository {
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
               t.type.equals(type) &
-              t.happenedAt.isBetweenValues(start, end)))
+              t.happenedAt.isBetweenValues(start, end) &
+              t.excludeFromStats.equals(false)))
         .get();
     final map = <int, double>{};
     for (final t in rows) {
@@ -170,7 +174,7 @@ class LocalStatisticsRepository implements StatisticsRepository {
     required String type,
   }) async {
     final rows = await (db.select(db.transactions)
-          ..where((t) => t.ledgerId.equals(ledgerId) & t.type.equals(type)))
+          ..where((t) => t.ledgerId.equals(ledgerId) & t.type.equals(type) & t.excludeFromStats.equals(false)))
         .get();
     if (rows.isEmpty) return const [];
     final map = <int, double>{};
@@ -201,7 +205,7 @@ class LocalStatisticsRepository implements StatisticsRepository {
         COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS income,
         COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) AS expense
       FROM transactions
-      WHERE ledger_id = ?1 AND happened_at >= ?2 AND happened_at < ?3
+      WHERE ledger_id = ?1 AND happened_at >= ?2 AND happened_at < ?3 AND exclude_from_stats = 0
       ''',
       variables: [
         d.Variable<int>(ledgerId),
@@ -231,7 +235,7 @@ class LocalStatisticsRepository implements StatisticsRepository {
         COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS income,
         COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) AS expense
       FROM transactions
-      WHERE ledger_id = ?1 AND happened_at >= ?2 AND happened_at < ?3
+      WHERE ledger_id = ?1 AND happened_at >= ?2 AND happened_at < ?3 AND exclude_from_stats = 0
       ''',
       variables: [
         d.Variable<int>(ledgerId),
@@ -261,7 +265,7 @@ class LocalStatisticsRepository implements StatisticsRepository {
         COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS income,
         COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) AS expense
       FROM transactions
-      WHERE ledger_id = ?1 AND happened_at >= ?2 AND happened_at < ?3
+      WHERE ledger_id = ?1 AND happened_at >= ?2 AND happened_at < ?3 AND exclude_from_stats = 0
       ''',
       variables: [
         d.Variable<int>(ledgerId),

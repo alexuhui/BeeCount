@@ -90,6 +90,7 @@ class CloudTransactionRepository implements TransactionRepository {
       table: 'transactions',
       filters: [
         QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
+        QueryFilter(column: 'exclude_from_stats', operator: 'eq', value: false),
       ],
       orderBy: 'happened_at',
       descending: true,
@@ -194,6 +195,7 @@ class CloudTransactionRepository implements TransactionRepository {
           operator: 'lt',
           value: end.toIso8601String(),
         ),
+        QueryFilter(column: 'exclude_from_stats', operator: 'eq', value: false),
       ],
       orderBy: 'happened_at',
       descending: true,
@@ -230,6 +232,7 @@ class CloudTransactionRepository implements TransactionRepository {
     if (ledgerId != null) {
       filters.add(QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId));
     }
+    filters.add(QueryFilter(column: 'exclude_from_stats', operator: 'eq', value: false));
 
     // 立即获取初始数据
     logger.info('CloudTransactionRepo', '开始获取初始数据: ledgerId=$ledgerId');
@@ -365,6 +368,7 @@ class CloudTransactionRepository implements TransactionRepository {
         QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
         QueryFilter(column: 'happened_at', operator: 'gte', value: start.toIso8601String()),
         QueryFilter(column: 'happened_at', operator: 'lt', value: end.toIso8601String()),
+        QueryFilter(column: 'exclude_from_stats', operator: 'eq', value: false),
       ],
     ).then((data) {
       if (!controller.isClosed) {
@@ -448,6 +452,7 @@ class CloudTransactionRepository implements TransactionRepository {
         QueryFilter(column: 'ledger_id', operator: 'eq', value: ledgerId),
         QueryFilter(column: 'happened_at', operator: 'gte', value: start.toIso8601String()),
         QueryFilter(column: 'happened_at', operator: 'lt', value: end.toIso8601String()),
+        QueryFilter(column: 'exclude_from_stats', operator: 'eq', value: false),
       ],
     ).then((data) {
       if (!controller.isClosed) {
@@ -530,6 +535,7 @@ class CloudTransactionRepository implements TransactionRepository {
       QueryFilter(column: 'happened_at', operator: 'gte', value: start.toIso8601String()),
       QueryFilter(column: 'happened_at', operator: 'lt', value: end.toIso8601String()),
       QueryFilter(column: 'type', operator: 'eq', value: type),
+      QueryFilter(column: 'exclude_from_stats', operator: 'eq', value: false),
     ];
 
     if (categoryId != null) {
@@ -734,6 +740,9 @@ class CloudTransactionRepository implements TransactionRepository {
       happenedAt: DateTime.parse(json['happened_at'] as String),
       note: json['note'] as String?,
       recurringId: json['recurring_id'] as int?,
+      excludeFromStats: json['exclude_from_stats'] as bool? ?? false,
+      receivableId: json['receivable_id'] as int?,
+      payableId: json['payable_id'] as int?,
     );
   }
 

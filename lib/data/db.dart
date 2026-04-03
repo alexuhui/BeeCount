@@ -62,6 +62,10 @@ class Transactions extends Table {
   DateTimeColumn get happenedAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get note => text().nullable()();
   IntColumn get recurringId => integer().nullable()(); // 关联到重复交易模板
+  BoolColumn get excludeFromStats =>
+      boolean().withDefault(const Constant(false))(); // v1.17.1: 是否排除在统计之外
+  IntColumn get receivableId => integer().nullable()(); // v1.17.1: 关联的应收款ID
+  IntColumn get payableId => integer().nullable()(); // v1.17.1: 关联的应付款ID
 }
 
 class RecurringTransactions extends Table {
@@ -288,7 +292,7 @@ class BeeDatabase extends _$BeeDatabase {
   BeeDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -666,6 +670,24 @@ class BeeDatabase extends _$BeeDatabase {
             await migrator.createTable(payables);
             logger.info('DB', 'v17: receivables 和 payables 表已创建');
             print('[DB Migration] v17 迁移完成');
+          }
+          if (from < 18) {
+            // v18: 添加 Transactions.exclude_from_stats 字段
+            print('[DB Migration] 开始迁移到 v18: 添加 Transactions.exclude_from_stats 等字段');
+            final tableInfo = await customSelect('PRAGMA table_info(transactions)').get();
+            final hasExcludeFromStats = tableInfo.any((row) => row.data['name'] == 'exclude_from_stats');
+            if (!hasExcludeFromStats) {
+              await customStatement('ALTER TABLE transactions ADD COLUMN exclude_from_stats INTEGER NOT NULL DEFAULT 0;');
+            }
+            final hasReceivableId = tableInfo.any((row) => row.data['name'] == 'receivable_id');
+            if (!hasReceivableId) {
+              await customStatement('ALTER TABLE transactions ADD COLUMN receivable_id INTEGER;');
+            }
+            final hasPayableId = tableInfo.any((row) => row.data['name'] == 'payable_id');
+            if (!hasPayableId) {
+              await customStatement('ALTER TABLE transactions ADD COLUMN payable_id INTEGER;');
+            }
+            logger.info('DB', 'v18 迁移完成: transactions 扩展字段已添加');
           }
         },
       );

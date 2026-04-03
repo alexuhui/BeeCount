@@ -1283,6 +1283,28 @@ class $TransactionsTable extends Transactions
   late final GeneratedColumn<int> recurringId = GeneratedColumn<int>(
       'recurring_id', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _excludeFromStatsMeta =
+      const VerificationMeta('excludeFromStats');
+  @override
+  late final GeneratedColumn<bool> excludeFromStats = GeneratedColumn<bool>(
+      'exclude_from_stats', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("exclude_from_stats" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _receivableIdMeta =
+      const VerificationMeta('receivableId');
+  @override
+  late final GeneratedColumn<int> receivableId = GeneratedColumn<int>(
+      'receivable_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _payableIdMeta =
+      const VerificationMeta('payableId');
+  @override
+  late final GeneratedColumn<int> payableId = GeneratedColumn<int>(
+      'payable_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -1294,7 +1316,10 @@ class $TransactionsTable extends Transactions
         toAccountId,
         happenedAt,
         note,
-        recurringId
+        recurringId,
+        excludeFromStats,
+        receivableId,
+        payableId
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1359,6 +1384,22 @@ class $TransactionsTable extends Transactions
           recurringId.isAcceptableOrUnknown(
               data['recurring_id']!, _recurringIdMeta));
     }
+    if (data.containsKey('exclude_from_stats')) {
+      context.handle(
+          _excludeFromStatsMeta,
+          excludeFromStats.isAcceptableOrUnknown(
+              data['exclude_from_stats']!, _excludeFromStatsMeta));
+    }
+    if (data.containsKey('receivable_id')) {
+      context.handle(
+          _receivableIdMeta,
+          receivableId.isAcceptableOrUnknown(
+              data['receivable_id']!, _receivableIdMeta));
+    }
+    if (data.containsKey('payable_id')) {
+      context.handle(_payableIdMeta,
+          payableId.isAcceptableOrUnknown(data['payable_id']!, _payableIdMeta));
+    }
     return context;
   }
 
@@ -1388,6 +1429,12 @@ class $TransactionsTable extends Transactions
           .read(DriftSqlType.string, data['${effectivePrefix}note']),
       recurringId: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}recurring_id']),
+      excludeFromStats: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}exclude_from_stats'])!,
+      receivableId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}receivable_id']),
+      payableId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}payable_id']),
     );
   }
 
@@ -1408,6 +1455,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
   final DateTime happenedAt;
   final String? note;
   final int? recurringId;
+  final bool excludeFromStats;
+  final int? receivableId;
+  final int? payableId;
   const Transaction(
       {required this.id,
       required this.ledgerId,
@@ -1418,7 +1468,10 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       this.toAccountId,
       required this.happenedAt,
       this.note,
-      this.recurringId});
+      this.recurringId,
+      required this.excludeFromStats,
+      this.receivableId,
+      this.payableId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1441,6 +1494,13 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     }
     if (!nullToAbsent || recurringId != null) {
       map['recurring_id'] = Variable<int>(recurringId);
+    }
+    map['exclude_from_stats'] = Variable<bool>(excludeFromStats);
+    if (!nullToAbsent || receivableId != null) {
+      map['receivable_id'] = Variable<int>(receivableId);
+    }
+    if (!nullToAbsent || payableId != null) {
+      map['payable_id'] = Variable<int>(payableId);
     }
     return map;
   }
@@ -1465,6 +1525,13 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       recurringId: recurringId == null && nullToAbsent
           ? const Value.absent()
           : Value(recurringId),
+      excludeFromStats: Value(excludeFromStats),
+      receivableId: receivableId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(receivableId),
+      payableId: payableId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payableId),
     );
   }
 
@@ -1482,6 +1549,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       happenedAt: serializer.fromJson<DateTime>(json['happenedAt']),
       note: serializer.fromJson<String?>(json['note']),
       recurringId: serializer.fromJson<int?>(json['recurringId']),
+      excludeFromStats: serializer.fromJson<bool>(json['excludeFromStats']),
+      receivableId: serializer.fromJson<int?>(json['receivableId']),
+      payableId: serializer.fromJson<int?>(json['payableId']),
     );
   }
   @override
@@ -1498,6 +1568,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       'happenedAt': serializer.toJson<DateTime>(happenedAt),
       'note': serializer.toJson<String?>(note),
       'recurringId': serializer.toJson<int?>(recurringId),
+      'excludeFromStats': serializer.toJson<bool>(excludeFromStats),
+      'receivableId': serializer.toJson<int?>(receivableId),
+      'payableId': serializer.toJson<int?>(payableId),
     };
   }
 
@@ -1511,7 +1584,10 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           Value<int?> toAccountId = const Value.absent(),
           DateTime? happenedAt,
           Value<String?> note = const Value.absent(),
-          Value<int?> recurringId = const Value.absent()}) =>
+          Value<int?> recurringId = const Value.absent(),
+          bool? excludeFromStats,
+          Value<int?> receivableId = const Value.absent(),
+          Value<int?> payableId = const Value.absent()}) =>
       Transaction(
         id: id ?? this.id,
         ledgerId: ledgerId ?? this.ledgerId,
@@ -1523,6 +1599,10 @@ class Transaction extends DataClass implements Insertable<Transaction> {
         happenedAt: happenedAt ?? this.happenedAt,
         note: note.present ? note.value : this.note,
         recurringId: recurringId.present ? recurringId.value : this.recurringId,
+        excludeFromStats: excludeFromStats ?? this.excludeFromStats,
+        receivableId:
+            receivableId.present ? receivableId.value : this.receivableId,
+        payableId: payableId.present ? payableId.value : this.payableId,
       );
   Transaction copyWithCompanion(TransactionsCompanion data) {
     return Transaction(
@@ -1540,6 +1620,13 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       note: data.note.present ? data.note.value : this.note,
       recurringId:
           data.recurringId.present ? data.recurringId.value : this.recurringId,
+      excludeFromStats: data.excludeFromStats.present
+          ? data.excludeFromStats.value
+          : this.excludeFromStats,
+      receivableId: data.receivableId.present
+          ? data.receivableId.value
+          : this.receivableId,
+      payableId: data.payableId.present ? data.payableId.value : this.payableId,
     );
   }
 
@@ -1555,14 +1642,29 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           ..write('toAccountId: $toAccountId, ')
           ..write('happenedAt: $happenedAt, ')
           ..write('note: $note, ')
-          ..write('recurringId: $recurringId')
+          ..write('recurringId: $recurringId, ')
+          ..write('excludeFromStats: $excludeFromStats, ')
+          ..write('receivableId: $receivableId, ')
+          ..write('payableId: $payableId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, ledgerId, type, amount, categoryId,
-      accountId, toAccountId, happenedAt, note, recurringId);
+  int get hashCode => Object.hash(
+      id,
+      ledgerId,
+      type,
+      amount,
+      categoryId,
+      accountId,
+      toAccountId,
+      happenedAt,
+      note,
+      recurringId,
+      excludeFromStats,
+      receivableId,
+      payableId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1576,7 +1678,10 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           other.toAccountId == this.toAccountId &&
           other.happenedAt == this.happenedAt &&
           other.note == this.note &&
-          other.recurringId == this.recurringId);
+          other.recurringId == this.recurringId &&
+          other.excludeFromStats == this.excludeFromStats &&
+          other.receivableId == this.receivableId &&
+          other.payableId == this.payableId);
 }
 
 class TransactionsCompanion extends UpdateCompanion<Transaction> {
@@ -1590,6 +1695,9 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
   final Value<DateTime> happenedAt;
   final Value<String?> note;
   final Value<int?> recurringId;
+  final Value<bool> excludeFromStats;
+  final Value<int?> receivableId;
+  final Value<int?> payableId;
   const TransactionsCompanion({
     this.id = const Value.absent(),
     this.ledgerId = const Value.absent(),
@@ -1601,6 +1709,9 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.happenedAt = const Value.absent(),
     this.note = const Value.absent(),
     this.recurringId = const Value.absent(),
+    this.excludeFromStats = const Value.absent(),
+    this.receivableId = const Value.absent(),
+    this.payableId = const Value.absent(),
   });
   TransactionsCompanion.insert({
     this.id = const Value.absent(),
@@ -1613,6 +1724,9 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.happenedAt = const Value.absent(),
     this.note = const Value.absent(),
     this.recurringId = const Value.absent(),
+    this.excludeFromStats = const Value.absent(),
+    this.receivableId = const Value.absent(),
+    this.payableId = const Value.absent(),
   })  : ledgerId = Value(ledgerId),
         type = Value(type),
         amount = Value(amount);
@@ -1627,6 +1741,9 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Expression<DateTime>? happenedAt,
     Expression<String>? note,
     Expression<int>? recurringId,
+    Expression<bool>? excludeFromStats,
+    Expression<int>? receivableId,
+    Expression<int>? payableId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1639,6 +1756,9 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       if (happenedAt != null) 'happened_at': happenedAt,
       if (note != null) 'note': note,
       if (recurringId != null) 'recurring_id': recurringId,
+      if (excludeFromStats != null) 'exclude_from_stats': excludeFromStats,
+      if (receivableId != null) 'receivable_id': receivableId,
+      if (payableId != null) 'payable_id': payableId,
     });
   }
 
@@ -1652,7 +1772,10 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       Value<int?>? toAccountId,
       Value<DateTime>? happenedAt,
       Value<String?>? note,
-      Value<int?>? recurringId}) {
+      Value<int?>? recurringId,
+      Value<bool>? excludeFromStats,
+      Value<int?>? receivableId,
+      Value<int?>? payableId}) {
     return TransactionsCompanion(
       id: id ?? this.id,
       ledgerId: ledgerId ?? this.ledgerId,
@@ -1664,6 +1787,9 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       happenedAt: happenedAt ?? this.happenedAt,
       note: note ?? this.note,
       recurringId: recurringId ?? this.recurringId,
+      excludeFromStats: excludeFromStats ?? this.excludeFromStats,
+      receivableId: receivableId ?? this.receivableId,
+      payableId: payableId ?? this.payableId,
     );
   }
 
@@ -1700,6 +1826,15 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     if (recurringId.present) {
       map['recurring_id'] = Variable<int>(recurringId.value);
     }
+    if (excludeFromStats.present) {
+      map['exclude_from_stats'] = Variable<bool>(excludeFromStats.value);
+    }
+    if (receivableId.present) {
+      map['receivable_id'] = Variable<int>(receivableId.value);
+    }
+    if (payableId.present) {
+      map['payable_id'] = Variable<int>(payableId.value);
+    }
     return map;
   }
 
@@ -1715,7 +1850,10 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
           ..write('toAccountId: $toAccountId, ')
           ..write('happenedAt: $happenedAt, ')
           ..write('note: $note, ')
-          ..write('recurringId: $recurringId')
+          ..write('recurringId: $recurringId, ')
+          ..write('excludeFromStats: $excludeFromStats, ')
+          ..write('receivableId: $receivableId, ')
+          ..write('payableId: $payableId')
           ..write(')'))
         .toString();
   }
@@ -6781,6 +6919,9 @@ typedef $$TransactionsTableCreateCompanionBuilder = TransactionsCompanion
   Value<DateTime> happenedAt,
   Value<String?> note,
   Value<int?> recurringId,
+  Value<bool> excludeFromStats,
+  Value<int?> receivableId,
+  Value<int?> payableId,
 });
 typedef $$TransactionsTableUpdateCompanionBuilder = TransactionsCompanion
     Function({
@@ -6794,6 +6935,9 @@ typedef $$TransactionsTableUpdateCompanionBuilder = TransactionsCompanion
   Value<DateTime> happenedAt,
   Value<String?> note,
   Value<int?> recurringId,
+  Value<bool> excludeFromStats,
+  Value<int?> receivableId,
+  Value<int?> payableId,
 });
 
 class $$TransactionsTableFilterComposer
@@ -6834,6 +6978,16 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<int> get recurringId => $composableBuilder(
       column: $table.recurringId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get excludeFromStats => $composableBuilder(
+      column: $table.excludeFromStats,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get receivableId => $composableBuilder(
+      column: $table.receivableId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get payableId => $composableBuilder(
+      column: $table.payableId, builder: (column) => ColumnFilters(column));
 }
 
 class $$TransactionsTableOrderingComposer
@@ -6874,6 +7028,17 @@ class $$TransactionsTableOrderingComposer
 
   ColumnOrderings<int> get recurringId => $composableBuilder(
       column: $table.recurringId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get excludeFromStats => $composableBuilder(
+      column: $table.excludeFromStats,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get receivableId => $composableBuilder(
+      column: $table.receivableId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get payableId => $composableBuilder(
+      column: $table.payableId, builder: (column) => ColumnOrderings(column));
 }
 
 class $$TransactionsTableAnnotationComposer
@@ -6914,6 +7079,15 @@ class $$TransactionsTableAnnotationComposer
 
   GeneratedColumn<int> get recurringId => $composableBuilder(
       column: $table.recurringId, builder: (column) => column);
+
+  GeneratedColumn<bool> get excludeFromStats => $composableBuilder(
+      column: $table.excludeFromStats, builder: (column) => column);
+
+  GeneratedColumn<int> get receivableId => $composableBuilder(
+      column: $table.receivableId, builder: (column) => column);
+
+  GeneratedColumn<int> get payableId =>
+      $composableBuilder(column: $table.payableId, builder: (column) => column);
 }
 
 class $$TransactionsTableTableManager extends RootTableManager<
@@ -6952,6 +7126,9 @@ class $$TransactionsTableTableManager extends RootTableManager<
             Value<DateTime> happenedAt = const Value.absent(),
             Value<String?> note = const Value.absent(),
             Value<int?> recurringId = const Value.absent(),
+            Value<bool> excludeFromStats = const Value.absent(),
+            Value<int?> receivableId = const Value.absent(),
+            Value<int?> payableId = const Value.absent(),
           }) =>
               TransactionsCompanion(
             id: id,
@@ -6964,6 +7141,9 @@ class $$TransactionsTableTableManager extends RootTableManager<
             happenedAt: happenedAt,
             note: note,
             recurringId: recurringId,
+            excludeFromStats: excludeFromStats,
+            receivableId: receivableId,
+            payableId: payableId,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -6976,6 +7156,9 @@ class $$TransactionsTableTableManager extends RootTableManager<
             Value<DateTime> happenedAt = const Value.absent(),
             Value<String?> note = const Value.absent(),
             Value<int?> recurringId = const Value.absent(),
+            Value<bool> excludeFromStats = const Value.absent(),
+            Value<int?> receivableId = const Value.absent(),
+            Value<int?> payableId = const Value.absent(),
           }) =>
               TransactionsCompanion.insert(
             id: id,
@@ -6988,6 +7171,9 @@ class $$TransactionsTableTableManager extends RootTableManager<
             happenedAt: happenedAt,
             note: note,
             recurringId: recurringId,
+            excludeFromStats: excludeFromStats,
+            receivableId: receivableId,
+            payableId: payableId,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

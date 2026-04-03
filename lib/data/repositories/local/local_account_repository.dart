@@ -266,7 +266,7 @@ class LocalAccountRepository implements AccountRepository {
 
     // 获取作为主账户的支出和转出
     final normalTxs = await (db.select(db.transactions)
-          ..where((t) => t.accountId.equals(accountId)))
+          ..where((t) => t.accountId.equals(accountId) & t.excludeFromStats.equals(false)))
         .get();
 
     for (final t in normalTxs) {
@@ -287,7 +287,7 @@ class LocalAccountRepository implements AccountRepository {
 
     // 获取作为主账户的收入
     final normalTxs = await (db.select(db.transactions)
-          ..where((t) => t.accountId.equals(accountId)))
+          ..where((t) => t.accountId.equals(accountId) & t.excludeFromStats.equals(false)))
         .get();
 
     for (final t in normalTxs) {
@@ -298,7 +298,7 @@ class LocalAccountRepository implements AccountRepository {
 
     // 作为转入账户的转账
     final transfersIn = await (db.select(db.transactions)
-          ..where((t) => t.toAccountId.equals(accountId) & t.type.equals('transfer')))
+          ..where((t) => t.toAccountId.equals(accountId) & t.type.equals('transfer') & t.excludeFromStats.equals(false)))
         .get();
 
     for (final t in transfersIn) {

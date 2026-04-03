@@ -93,6 +93,7 @@ class ImportTransaction {
   final List<String>? tagNames; // 标签名称列表
   final int? categoryId; // 预解析的分类ID（优先于categoryName）
   final List<ImportAttachment>? attachments; // 附件元数据列表
+  final bool excludeFromStats; // 是否排除在统计之外
 
   const ImportTransaction({
     required this.type,
@@ -107,6 +108,7 @@ class ImportTransaction {
     this.tagNames,
     this.categoryId,
     this.attachments,
+    this.excludeFromStats = false,
   });
 }
 
@@ -494,6 +496,7 @@ class DataImportService {
         toAccountId: d.Value(toAccountId),
         happenedAt: d.Value(tx.happenedAt),
         note: d.Value(tx.note),
+        excludeFromStats: d.Value(tx.excludeFromStats),
       );
 
       // 如果有标签或附件，单独插入并关联

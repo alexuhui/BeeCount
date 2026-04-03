@@ -10,6 +10,7 @@ import '../../styles/tokens.dart';
 import '../../utils/ui_scale_extensions.dart';
 import '../account/account_detail_page.dart' show payableStatsProvider, payableBalanceProvider;
 import '../../providers/statistics_providers.dart' show allAccountStatsProvider, allAccountsTotalStatsProvider;
+import '../../utils/receivable_payable_category_helper.dart';
 import 'payment_edit_page.dart';
 
 /// 应付款记录编辑页面
@@ -789,62 +790,68 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
           final note = _noteController.text.trim();
 
           if (_toAccountId != null) {
-            final incomeNote = note.isNotEmpty 
-                ? '向$payeeName借款: $note' 
-                : '向$payeeName借款';
-            final incomeTransactions = await repo.getTransactionsByNote(
-              notePattern: '向$payeeName借款',
-            );
-            
-            if (incomeTransactions.isNotEmpty) {
-              await repo.updateTransaction(
-                id: incomeTransactions.first.id,
-                type: 'income',
-                amount: _amount,
-                accountId: _toAccountId!,
-                happenedAt: _payDate,
-                note: incomeNote,
+              final incomeNote = note.isNotEmpty 
+                  ? '向$payeeName借款: $note' 
+                  : '向$payeeName借款';
+              final incomeCategory = await ReceivablePayableCategoryHelper.getOrCreateBorrowCategory(repo);
+              final incomeTransactions = await repo.getTransactionsByNote(
+                notePattern: '向$payeeName借款',
               );
-            } else {
-              await repo.addTransaction(
-                ledgerId: currentLedger.id,
-                type: 'income',
-                amount: _amount,
-                accountId: _toAccountId!,
-                happenedAt: _payDate,
-                note: incomeNote,
-              );
+              
+              if (incomeTransactions.isNotEmpty) {
+                await repo.updateTransaction(
+                  id: incomeTransactions.first.id,
+                  type: 'income',
+                  amount: _amount,
+                  categoryId: incomeCategory.id,
+                  accountId: _toAccountId!,
+                  happenedAt: _payDate,
+                  note: incomeNote,
+                );
+              } else {
+                await repo.addTransaction(
+                  ledgerId: currentLedger.id,
+                  type: 'income',
+                  amount: _amount,
+                  categoryId: incomeCategory.id,
+                  accountId: _toAccountId!,
+                  happenedAt: _payDate,
+                  note: incomeNote,
+                );
+              }
             }
-          }
 
-          if (_isPaid && _fromAccountId != null) {
-            final expenseNote = note.isNotEmpty 
-                ? '还$payeeName款: $note' 
-                : '还$payeeName款';
-            final expenseTransactions = await repo.getTransactionsByNote(
-              notePattern: '还$payeeName款',
-            );
-            
-            if (expenseTransactions.isNotEmpty) {
-              await repo.updateTransaction(
-                id: expenseTransactions.first.id,
-                type: 'expense',
-                amount: _amount,
-                accountId: _fromAccountId!,
-                happenedAt: _paidDate ?? DateTime.now(),
-                note: expenseNote,
+            if (_isPaid && _fromAccountId != null) {
+              final expenseNote = note.isNotEmpty 
+                  ? '还$payeeName款: $note' 
+                  : '还$payeeName款';
+              final expenseCategory = await ReceivablePayableCategoryHelper.getOrCreateRepayBorrowCategory(repo);
+              final expenseTransactions = await repo.getTransactionsByNote(
+                notePattern: '还$payeeName款',
               );
-            } else {
-              await repo.addTransaction(
-                ledgerId: currentLedger.id,
-                type: 'expense',
-                amount: _amount,
-                accountId: _fromAccountId!,
-                happenedAt: _paidDate ?? DateTime.now(),
-                note: expenseNote,
-              );
+              
+              if (expenseTransactions.isNotEmpty) {
+                await repo.updateTransaction(
+                  id: expenseTransactions.first.id,
+                  type: 'expense',
+                  amount: _amount,
+                  categoryId: expenseCategory.id,
+                  accountId: _fromAccountId!,
+                  happenedAt: _paidDate ?? DateTime.now(),
+                  note: expenseNote,
+                );
+              } else {
+                await repo.addTransaction(
+                  ledgerId: currentLedger.id,
+                  type: 'expense',
+                  amount: _amount,
+                  categoryId: expenseCategory.id,
+                  accountId: _fromAccountId!,
+                  happenedAt: _paidDate ?? DateTime.now(),
+                  note: expenseNote,
+                );
+              }
             }
-          }
         }
       } else {
         await repo.createPayable(

@@ -231,6 +231,72 @@ class LocalTransactionRepository implements TransactionRepository {
 
   @override
   Future<void> deleteTransaction(int id) async {
+    // 先获取交易记录
+    final transaction = await (db.select(db.transactions)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+
+    if (transaction != null) {
+      // 检查是否是借还款相关的交易
+      final note = transaction.note ?? '';
+      if (note.contains('借给') || note.contains('收') || note.contains('向') || note.contains('还')) {
+        // 处理借还款相关的交易记录
+        if (note.contains('借给')) {
+          // 借出交易，需要更新应收记录
+          final borrowerName = note.replaceAll('借给', '').replaceAll(':', '').trim();
+          final receivables = await (db.select(db.receivables)
+                ..where((r) => r.borrowerName.equals(borrowerName)))
+              .get();
+          for (final receivable in receivables) {
+            await (db.update(db.receivables)
+                  ..where((r) => r.id.equals(receivable.id)))
+                .write(ReceivablesCompanion(
+                  fromAccountId: const d.Value.absent(),
+                ));
+          }
+        } else if (note.contains('收') && note.contains('款')) {
+          // 收款交易，需要更新应收记录
+          final borrowerName = note.replaceAll('收', '').replaceAll('款', '').replaceAll(':', '').trim();
+          final receivables = await (db.select(db.receivables)
+                ..where((r) => r.borrowerName.equals(borrowerName)))
+              .get();
+          for (final receivable in receivables) {
+            await (db.update(db.receivables)
+                  ..where((r) => r.id.equals(receivable.id)))
+                .write(ReceivablesCompanion(
+                  toAccountId: const d.Value.absent(),
+                ));
+          }
+        } else if (note.contains('向') && note.contains('借款')) {
+          // 借款交易，需要更新应付记录
+          final payeeName = note.replaceAll('向', '').replaceAll('借款', '').replaceAll(':', '').trim();
+          final payables = await (db.select(db.payables)
+                ..where((p) => p.payeeName.equals(payeeName)))
+              .get();
+          for (final payable in payables) {
+            await (db.update(db.payables)
+                  ..where((p) => p.id.equals(payable.id)))
+                .write(PayablesCompanion(
+                  toAccountId: const d.Value.absent(),
+                ));
+          }
+        } else if (note.contains('还') && note.contains('款')) {
+          // 还款交易，需要更新应付记录
+          final payeeName = note.replaceAll('还', '').replaceAll('款', '').replaceAll(':', '').trim();
+          final payables = await (db.select(db.payables)
+                ..where((p) => p.payeeName.equals(payeeName)))
+              .get();
+          for (final payable in payables) {
+            await (db.update(db.payables)
+                  ..where((p) => p.id.equals(payable.id)))
+                .write(PayablesCompanion(
+                  fromAccountId: const d.Value.absent(),
+                ));
+          }
+        }
+      }
+    }
+
     // 先删除关联的附件
     await _deleteAttachmentsForTransaction(id);
 

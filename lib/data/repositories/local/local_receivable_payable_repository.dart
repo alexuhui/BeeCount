@@ -82,6 +82,40 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
 
   @override
   Future<void> deleteReceivable(int id) async {
+    // 先获取应收款记录
+    final receivable = await (db.select(db.receivables)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+
+    if (receivable != null) {
+      // 删除对应的交易记录
+      final borrowerName = receivable.borrowerName;
+      
+      // 删除借出交易记录
+      if (receivable.fromAccountId != null) {
+        final expenseTransactions = await (db.select(db.transactions)
+              ..where((t) => t.note.like('%借给$borrowerName%')))
+            .get();
+        for (final tx in expenseTransactions) {
+          await (db.delete(db.transactions)..where((t) => t.id.equals(tx.id))).go();
+        }
+      }
+
+      // 删除收款交易记录
+      if (receivable.toAccountId != null) {
+        final incomeTransactions = await (db.select(db.transactions)
+              ..where((t) => t.note.like('%收$borrowerName款%')))
+            .get();
+        for (final tx in incomeTransactions) {
+          await (db.delete(db.transactions)..where((t) => t.id.equals(tx.id))).go();
+        }
+      }
+
+      // 删除关联的付款记录
+      await (db.delete(db.receivablePayments)..where((p) => p.receivableId.equals(id))).go();
+    }
+
+    // 删除应收款记录
     await (db.delete(db.receivables)..where((t) => t.id.equals(id))).go();
     logger.info('LocalReceivablePayableRepository', '删除应收款记录: id=$id');
   }
@@ -217,6 +251,40 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
 
   @override
   Future<void> deletePayable(int id) async {
+    // 先获取应付款记录
+    final payable = await (db.select(db.payables)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+
+    if (payable != null) {
+      // 删除对应的交易记录
+      final payeeName = payable.payeeName;
+      
+      // 删除借款交易记录
+      if (payable.toAccountId != null) {
+        final incomeTransactions = await (db.select(db.transactions)
+              ..where((t) => t.note.like('%向$payeeName借款%')))
+            .get();
+        for (final tx in incomeTransactions) {
+          await (db.delete(db.transactions)..where((t) => t.id.equals(tx.id))).go();
+        }
+      }
+
+      // 删除还款交易记录
+      if (payable.fromAccountId != null) {
+        final expenseTransactions = await (db.select(db.transactions)
+              ..where((t) => t.note.like('%还$payeeName款%')))
+            .get();
+        for (final tx in expenseTransactions) {
+          await (db.delete(db.transactions)..where((t) => t.id.equals(tx.id))).go();
+        }
+      }
+
+      // 删除关联的付款记录
+      await (db.delete(db.payablePayments)..where((p) => p.payableId.equals(id))).go();
+    }
+
+    // 删除应付款记录
     await (db.delete(db.payables)..where((t) => t.id.equals(id))).go();
     logger.info('LocalReceivablePayableRepository', '删除应付款记录: id=$id');
   }

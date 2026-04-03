@@ -810,6 +810,22 @@ class CloudTransactionRepository implements TransactionRepository {
   }
 
   @override
+  Future<List<Transaction>> getTransactionsByNote({
+    required String notePattern,
+  }) async {
+    final results = await provider.databaseService!.query(
+      table: 'transactions',
+      filters: [
+        QueryFilter(column: 'note', operator: 'like', value: '%$notePattern%'),
+      ],
+      orderBy: 'happened_at',
+      descending: true,
+    );
+
+    return results.map((data) => _transactionFromJson(data)).toList();
+  }
+
+  @override
   Future<List<Transaction>> getTransactionsByLedger(int ledgerId) async {
     throw UnimplementedError('云端获取账本交易列表暂不支持');
   }

@@ -334,6 +334,7 @@ class _ReceivableAccountContent extends ConsumerStatefulWidget {
 class _ReceivableAccountContentState extends ConsumerState<_ReceivableAccountContent> {
   String _filter = 'all'; // all, received, pending
   Map<String, bool> _expandedBorrowers = {}; // 借款人展开状态
+  Map<int, double> _receivablePaidAmounts = {}; // 应收款已付款金额缓存
 
   @override
   Widget build(BuildContext context) {
@@ -342,6 +343,21 @@ class _ReceivableAccountContentState extends ConsumerState<_ReceivableAccountCon
     final balanceAsync = ref.watch(receivableBalanceProvider(widget.account.id));
     final currentLedgerAsync = ref.watch(currentLedgerProvider);
     final currencyCode = currentLedgerAsync.asData?.value?.currency ?? 'CNY';
+    final repo = ref.watch(repositoryProvider);
+
+    // 加载所有应收款的已付款金额
+    receivablesAsync.whenData((receivables) async {
+      for (final r in receivables) {
+        if (!_receivablePaidAmounts.containsKey(r.id)) {
+          final paidAmount = await repo.getReceivablePaidAmount(r.id);
+          if (mounted) {
+            setState(() {
+              _receivablePaidAmounts[r.id] = paidAmount;
+            });
+          }
+        }
+      }
+    });
 
     return ListView(
       padding: EdgeInsets.symmetric(
@@ -467,13 +483,15 @@ class _ReceivableAccountContentState extends ConsumerState<_ReceivableAccountCon
                     final borrowerReceivables = groupedByBorrower[borrowerName]!;
                     final isExpanded = _expandedBorrowers[borrowerName] ?? true;
 
-                    // 计算该借款人的总金额
+                    // 计算该借款人的总金额和待收金额
                     double totalAmount = 0;
                     double pendingAmount = 0;
                     for (final r in borrowerReceivables) {
                       totalAmount += r.amount;
                       if (!r.isReceived) {
-                        pendingAmount += r.amount;
+                        // 获取该应收款的已付款金额
+                        final paidAmount = _receivablePaidAmounts[r.id] ?? 0.0;
+                        pendingAmount += (r.amount - paidAmount);
                       }
                     }
 
@@ -647,6 +665,7 @@ class _PayableAccountContent extends ConsumerStatefulWidget {
 class _PayableAccountContentState extends ConsumerState<_PayableAccountContent> {
   String _filter = 'all'; // all, paid, pending
   Map<String, bool> _expandedPayees = {}; // 收款人展开状态
+  Map<int, double> _payablePaidAmounts = {}; // 应付款已付款金额缓存
 
   @override
   Widget build(BuildContext context) {
@@ -655,6 +674,21 @@ class _PayableAccountContentState extends ConsumerState<_PayableAccountContent> 
     final balanceAsync = ref.watch(payableBalanceProvider(widget.account.id));
     final currentLedgerAsync = ref.watch(currentLedgerProvider);
     final currencyCode = currentLedgerAsync.asData?.value?.currency ?? 'CNY';
+    final repo = ref.watch(repositoryProvider);
+
+    // 加载所有应付款的已付款金额
+    payablesAsync.whenData((payables) async {
+      for (final p in payables) {
+        if (!_payablePaidAmounts.containsKey(p.id)) {
+          final paidAmount = await repo.getPayablePaidAmount(p.id);
+          if (mounted) {
+            setState(() {
+              _payablePaidAmounts[p.id] = paidAmount;
+            });
+          }
+        }
+      }
+    });
 
     return ListView(
       padding: EdgeInsets.symmetric(
@@ -780,13 +814,15 @@ class _PayableAccountContentState extends ConsumerState<_PayableAccountContent> 
                     final payeePayables = groupedByPayee[payeeName]!;
                     final isExpanded = _expandedPayees[payeeName] ?? true;
 
-                    // 计算该收款人的总金额
+                    // 计算该收款人的总金额和待付金额
                     double totalAmount = 0;
                     double pendingAmount = 0;
                     for (final p in payeePayables) {
                       totalAmount += p.amount;
                       if (!p.isPaid) {
-                        pendingAmount += p.amount;
+                        // 获取该应付款的已付款金额
+                        final paidAmount = _payablePaidAmounts[p.id] ?? 0.0;
+                        pendingAmount += (p.amount - paidAmount);
                       }
                     }
 
@@ -962,7 +998,9 @@ class _ReceivableTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final primaryColor = ref.watch(primaryColorProvider);
-    final fromAccountAsync = ref.watch(accountByIdProvider(receivable.fromAccountId));
+    final fromAccountAsync = receivable.fromAccountId != null ? ref.watch(accountByIdProvider(receivable.fromAccountId!)) : null;
+    final repo = ref.watch(repositoryProvider);
+    final paidAmountFuture = repo.getReceivablePaidAmount(receivable.id);
 
     return InkWell(
       onTap: onTap,
@@ -1032,7 +1070,7 @@ class _ReceivableTile extends ConsumerWidget {
                   Padding(
                     padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
                     child: Text(
-                      '借款账户: ${fromAccountAsync.value?.name ?? '-'}',
+                      '借款账户: ${fromAccountAsync?.value?.name ?? '-'}',
                       style: TextStyle(
                         fontSize: 12,
                         color: BeeTokens.textSecondary(context),
@@ -1049,20 +1087,85 @@ class _ReceivableTile extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  FutureBuilder<double>(
+                    future: paidAmountFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        final paidAmount = snapshot.data!;
+                        final pendingAmount = receivable.amount - paidAmount;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.only(top: 4.0.scaled(context, ref)),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    '总额: ',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: BeeTokens.textTertiary(context),
+                                    ),
+                                  ),
+                                  Text(
+                                    '¥ ${receivable.amount.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: BeeTokens.textSecondary(context),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    '已收: ',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: BeeTokens.textTertiary(context),
+                                    ),
+                                  ),
+                                  Text(
+                                    '¥ ${paidAmount.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    '待收: ',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: BeeTokens.textTertiary(context),
+                                    ),
+                                  ),
+                                  Text(
+                                    '¥ ${pendingAmount.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: pendingAmount > 0 ? Colors.red : BeeTokens.textSecondary(context),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                      return const SizedBox();
+                    },
+                  ),
                 ],
-              ),
-            ),
-            AmountText(
-              value: receivable.amount,
-              signed: false,
-              showCurrency: false,
-              currencyCode: currencyCode,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: receivable.isReceived
-                    ? BeeTokens.textSecondary(context)
-                    : BeeTokens.textPrimary(context),
               ),
             ),
           ],
@@ -1092,7 +1195,9 @@ class _PayableTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final primaryColor = ref.watch(primaryColorProvider);
-    final toAccountAsync = ref.watch(accountByIdProvider(payable.toAccountId));
+    final toAccountAsync = payable.toAccountId != null ? ref.watch(accountByIdProvider(payable.toAccountId!)) : null;
+    final repo = ref.watch(repositoryProvider);
+    final paidAmountFuture = repo.getPayablePaidAmount(payable.id);
 
     return InkWell(
       onTap: onTap,
@@ -1139,8 +1244,7 @@ class _PayableTile extends ConsumerWidget {
                       if (payable.isPaid)
                         Container(
                           margin: EdgeInsets.only(left: 8.0.scaled(context, ref)),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 6.0.scaled(context, ref),
+                          padding: EdgeInsets.symmetric(horizontal: 6.0.scaled(context, ref),
                             vertical: 2.0.scaled(context, ref),
                           ),
                           decoration: BoxDecoration(
@@ -1161,7 +1265,7 @@ class _PayableTile extends ConsumerWidget {
                   Padding(
                     padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
                     child: Text(
-                      '入账账户: ${toAccountAsync.value?.name ?? '-'}',
+                      '入账账户: ${toAccountAsync?.value?.name ?? '-'}',
                       style: TextStyle(
                         fontSize: 12,
                         color: BeeTokens.textSecondary(context),
@@ -1178,20 +1282,85 @@ class _PayableTile extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  FutureBuilder<double>(
+                    future: paidAmountFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        final paidAmount = snapshot.data!;
+                        final pendingAmount = payable.amount - paidAmount;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.only(top: 4.0.scaled(context, ref)),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    '总额: ',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: BeeTokens.textTertiary(context),
+                                    ),
+                                  ),
+                                  Text(
+                                    '¥ ${payable.amount.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: BeeTokens.textSecondary(context),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    '已付: ',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: BeeTokens.textTertiary(context),
+                                    ),
+                                  ),
+                                  Text(
+                                    '¥ ${paidAmount.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    '待付: ',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: BeeTokens.textTertiary(context),
+                                    ),
+                                  ),
+                                  Text(
+                                    '¥ ${pendingAmount.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: pendingAmount > 0 ? Colors.red : BeeTokens.textSecondary(context),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                      return const SizedBox();
+                    },
+                  ),
                 ],
-              ),
-            ),
-            AmountText(
-              value: payable.amount,
-              signed: false,
-              showCurrency: false,
-              currencyCode: currencyCode,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: payable.isPaid
-                    ? BeeTokens.textSecondary(context)
-                    : BeeTokens.textPrimary(context),
               ),
             ),
           ],
@@ -1485,14 +1654,14 @@ final receivablesByAccountProvider = StreamProvider.family
 
 // Provider: 应收款余额
 final receivableBalanceProvider = FutureProvider.family
-    .autoDispose<double, int>((ref, accountId) {
+    <double, int>((ref, accountId) {
   final repo = ref.watch(repositoryProvider);
   return repo.getReceivableBalance(accountId);
 });
 
 // Provider: 应收款统计
 final receivableStatsProvider = FutureProvider.family
-    .autoDispose<({double pending, double total, double received}), int>((ref, accountId) {
+    <({double pending, double total, double received}), int>((ref, accountId) {
   final repo = ref.watch(repositoryProvider);
   return repo.getReceivableStats(accountId);
 });
@@ -1506,14 +1675,14 @@ final payablesByAccountProvider = StreamProvider.family
 
 // Provider: 应付款余额
 final payableBalanceProvider = FutureProvider.family
-    .autoDispose<double, int>((ref, accountId) {
+    <double, int>((ref, accountId) {
   final repo = ref.watch(repositoryProvider);
   return repo.getPayableBalance(accountId);
 });
 
 // Provider: 应付款统计
 final payableStatsProvider = FutureProvider.family
-    .autoDispose<({double pending, double total, double paid}), int>((ref, accountId) {
+    <({double pending, double total, double paid}), int>((ref, accountId) {
   final repo = ref.watch(repositoryProvider);
   return repo.getPayableStats(accountId);
 });

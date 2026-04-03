@@ -166,7 +166,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               return DropdownMenuItem<int>(
                                 value: index,
                                 child: Text(
-                                  '${server['name']} (${server['ip']})',
+                                  '${server['name']}',
                                   style: const TextStyle(color: Colors.white),
                                 ),
                               );

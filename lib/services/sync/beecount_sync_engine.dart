@@ -169,7 +169,9 @@ class BeeCountSyncEngine {
     'transactions',
     'transaction_tags',
     'receivables',
+    'receivable_payments',
     'payables',
+    'payable_payments',
   ];
 
   Future<bool> _flushOnce() async {
@@ -308,15 +310,21 @@ class BeeCountSyncEngine {
   }
 
   Future<bool> _applyUpsert(String entity, int localId) async {
+    logger.info('BeeCountSync', '_applyUpsert: entity=$entity, localId=$localId');
     final payload = await _buildPayload(entity, localId);
     if (payload == null) {
+      logger.warning('BeeCountSync', '_applyUpsert: payload is null for entity=$entity, localId=$localId');
       await _removeQueueItem(entity, localId);
       return true;
     }
 
+    logger.info('BeeCountSync', '_applyUpsert: payload=$payload');
+
     final remoteId = await _remoteIdOf(entity, localId);
     if (remoteId == null) {
+      logger.info('BeeCountSync', '_applyUpsert: creating new record for entity=$entity, localId=$localId');
       final result = await provider.databaseService!.insert(table: entity, data: payload);
+      logger.info('BeeCountSync', '_applyUpsert: insert result=$result');
       final newRemoteId = result['id'];
       if (newRemoteId is int) {
         await _saveIdMap(entity, localId, newRemoteId);
@@ -329,6 +337,7 @@ class BeeCountSyncEngine {
       return true;
     }
 
+    logger.info('BeeCountSync', '_applyUpsert: updating existing record for entity=$entity, localId=$localId, remoteId=$remoteId');
     await provider.databaseService!.update(table: entity, id: remoteId.toString(), data: payload);
     await _removeQueueItem(entity, localId);
     return true;
@@ -490,7 +499,7 @@ class BeeCountSyncEngine {
         final row = await (db.select(db.receivables)..where((t) => t.id.equals(localId))).getSingleOrNull();
         if (row == null) return null;
         final remoteAccountId = await _requireRemoteId('accounts', row.accountId);
-        final remoteFromAccountId = await _requireRemoteId('accounts', row.fromAccountId);
+        final remoteFromAccountId = row.fromAccountId == null ? null : await _requireRemoteId('accounts', row.fromAccountId!);
         final remoteToAccountId = row.toAccountId == null ? null : await _requireRemoteId('accounts', row.toAccountId!);
         return {
           'account_id': remoteAccountId,
@@ -511,7 +520,7 @@ class BeeCountSyncEngine {
         final row = await (db.select(db.payables)..where((t) => t.id.equals(localId))).getSingleOrNull();
         if (row == null) return null;
         final remoteAccountId = await _requireRemoteId('accounts', row.accountId);
-        final remoteToAccountId = await _requireRemoteId('accounts', row.toAccountId);
+        final remoteToAccountId = row.toAccountId == null ? null : await _requireRemoteId('accounts', row.toAccountId!);
         final remoteFromAccountId = row.fromAccountId == null ? null : await _requireRemoteId('accounts', row.fromAccountId!);
         return {
           'account_id': remoteAccountId,
@@ -525,6 +534,49 @@ class BeeCountSyncEngine {
           'from_account_id': remoteFromAccountId,
           'created_at': row.createdAt.toIso8601String(),
           'updated_at': row.updatedAt.toIso8601String(),
+          'user_id': provider.currentUserId,
+        };
+
+      case 'receivable_payments':
+        logger.info('BeeCountSync', '_buildPayload: receivable_payments, localId=$localId');
+        final receivablePaymentRow = await (db.select(db.receivablePayments)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        if (receivablePaymentRow == null) {
+          logger.warning('BeeCountSync', '_buildPayload: receivable_payment not found, localId=$localId');
+          return null;
+        }
+        logger.info('BeeCountSync', '_buildPayload: receivablePaymentRow=$receivablePaymentRow');
+        final remoteReceivableId = await _requireRemoteId('receivables', receivablePaymentRow.receivableId);
+        final remoteAccountId = receivablePaymentRow.accountId == null ? null : await _requireRemoteId('accounts', receivablePaymentRow.accountId!);
+        logger.info('BeeCountSync', '_buildPayload: remoteReceivableId=$remoteReceivableId, remoteAccountId=$remoteAccountId');
+        return {
+          'receivable_id': remoteReceivableId,
+          'amount': receivablePaymentRow.amount,
+          'payment_date': receivablePaymentRow.paymentDate.toIso8601String(),
+          'account_id': remoteAccountId,
+          'note': receivablePaymentRow.note,
+          'created_at': receivablePaymentRow.createdAt.toIso8601String(),
+          'updated_at': receivablePaymentRow.updatedAt.toIso8601String(),
+          'user_id': provider.currentUserId,
+        };
+
+      case 'payable_payments':
+        logger.info('BeeCountSync', '_buildPayload: payable_payments, localId=$localId');
+        final payablePaymentRow = await (db.select(db.payablePayments)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        if (payablePaymentRow == null) {
+          logger.warning('BeeCountSync', '_buildPayload: payable_payment not found, localId=$localId');
+          return null;
+        }
+        logger.info('BeeCountSync', '_buildPayload: payablePaymentRow=$payablePaymentRow');
+        final remotePayableId = await _requireRemoteId('payables', payablePaymentRow.payableId);
+        final remoteAccountId = payablePaymentRow.accountId == null ? null : await _requireRemoteId('accounts', payablePaymentRow.accountId!);
+        return {
+          'payable_id': remotePayableId,
+          'amount': payablePaymentRow.amount,
+          'payment_date': payablePaymentRow.paymentDate.toIso8601String(),
+          'account_id': remoteAccountId,
+          'note': payablePaymentRow.note,
+          'created_at': payablePaymentRow.createdAt.toIso8601String(),
+          'updated_at': payablePaymentRow.updatedAt.toIso8601String(),
           'user_id': provider.currentUserId,
         };
     }

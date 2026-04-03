@@ -734,4 +734,18 @@ class LocalTransactionRepository implements TransactionRepository {
         .cast<String>()
         .toList();
   }
+
+  @override
+  Future<List<Transaction>> getTransactionsByNote({
+    required String notePattern,
+  }) async {
+    return (db.select(db.transactions)
+          ..where((t) =>
+              t.note.like('%$notePattern%'))
+          ..orderBy([
+            (t) => d.OrderingTerm(
+                expression: t.happenedAt, mode: d.OrderingMode.desc)
+          ]))
+        .get();
+  }
 }

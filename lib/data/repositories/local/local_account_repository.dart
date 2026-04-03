@@ -332,11 +332,56 @@ class LocalAccountRepository implements AccountRepository {
   Future<({double totalBalance, double totalExpense, double totalIncome})> getAllAccountsTotalStats() async {
     final accounts = await db.select(db.accounts).get();
 
-    // 总余额 = 所有账户余额之和（转账不影响总余额）
+    // 净资产 = 普通账户余额 + 应收账户待收金额 - 应付账户待付金额
     double totalBalance = 0.0;
     for (final account in accounts) {
-      final balance = await getAccountBalance(account.id);
-      totalBalance += balance;
+      if (account.type == 'receivable') {
+        // 应收账户：计算待收金额
+        final receivables = await (db.select(db.receivables)
+              ..where((t) => t.accountId.equals(account.id)))
+            .get();
+        double pending = 0.0;
+        for (final r in receivables) {
+          // 获取该应收款的已付款金额
+          final payments = await (db.select(db.receivablePayments)
+                ..where((p) => p.receivableId.equals(r.id)))
+              .get();
+          double paidAmount = 0.0;
+          for (final p in payments) {
+            paidAmount += p.amount;
+          }
+          final pendingAmount = r.amount - paidAmount;
+          if (pendingAmount > 0) {
+            pending += pendingAmount;
+          }
+        }
+        totalBalance += pending;
+      } else if (account.type == 'payable') {
+        // 应付账户：计算待付金额（负值）
+        final payables = await (db.select(db.payables)
+              ..where((t) => t.accountId.equals(account.id)))
+            .get();
+        double pending = 0.0;
+        for (final p in payables) {
+          // 获取该应付款的已付款金额
+          final payments = await (db.select(db.payablePayments)
+                ..where((pp) => pp.payableId.equals(p.id)))
+              .get();
+          double paidAmount = 0.0;
+          for (final pp in payments) {
+            paidAmount += pp.amount;
+          }
+          final pendingAmount = p.amount - paidAmount;
+          if (pendingAmount > 0) {
+            pending += pendingAmount;
+          }
+        }
+        totalBalance -= pending;
+      } else {
+        // 普通账户：使用账户余额
+        final balance = await getAccountBalance(account.id);
+        totalBalance += balance;
+      }
     }
 
     // 总收入/支出：直接从交易表查询，排除转账类型

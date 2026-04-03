@@ -159,3 +159,15 @@ final accountByIdProvider = FutureProvider.family<Account?, int>((ref, accountId
   final repo = ref.watch(repositoryProvider);
   return await repo.getAccount(accountId);
 });
+
+// 应收款付款记录Provider
+final receivablePaymentsProvider = StreamProvider.family<List<dynamic>, int>((ref, receivableId) {
+  final repo = ref.watch(repositoryProvider);
+  return repo.watchReceivablePayments(receivableId);
+});
+
+// 应付款付款记录Provider
+final payablePaymentsProvider = StreamProvider.family<List<dynamic>, int>((ref, payableId) {
+  final repo = ref.watch(repositoryProvider);
+  return repo.watchPayablePayments(payableId);
+});

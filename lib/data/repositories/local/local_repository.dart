@@ -332,6 +332,13 @@ class LocalRepository extends BaseRepository {
       _transactionRepo.getTransactionDatesByMonth(
           ledgerId: ledgerId, month: month);
 
+  @override
+  Future<List<Transaction>> getTransactionsByNote({
+    required String notePattern,
+  }) =>
+      _transactionRepo.getTransactionsByNote(
+          notePattern: notePattern);
+
   // ============================================
   // CategoryRepository 接口实现 - 委托给 LocalCategoryRepository
   // ============================================
@@ -1290,7 +1297,7 @@ class LocalRepository extends BaseRepository {
     required double amount,
     required DateTime borrowDate,
     String? note,
-    required int fromAccountId,
+    int? fromAccountId,
     bool isReceived = false,
     DateTime? receiveDate,
     int? toAccountId,
@@ -1364,7 +1371,7 @@ class LocalRepository extends BaseRepository {
     required double amount,
     required DateTime payDate,
     String? note,
-    required int toAccountId,
+    int? toAccountId,
     bool isPaid = false,
     DateTime? paidDate,
     int? fromAccountId,
@@ -1430,4 +1437,104 @@ class LocalRepository extends BaseRepository {
   @override
   Future<({double pending, double total, double paid})> getPayableStats(int accountId) =>
       _receivablePayableRepo.getPayableStats(accountId);
+
+  // ========== 应收款分批付款相关 ==========
+
+  @override
+  Future<int> createReceivablePayment({
+    required int receivableId,
+    required double amount,
+    required DateTime paymentDate,
+    int? accountId,
+    String? note,
+  }) =>
+      _receivablePayableRepo.createReceivablePayment(
+        receivableId: receivableId,
+        amount: amount,
+        paymentDate: paymentDate,
+        accountId: accountId,
+        note: note,
+      );
+
+  @override
+  Future<void> updateReceivablePayment({
+    required int id,
+    double? amount,
+    DateTime? paymentDate,
+    int? accountId,
+    String? note,
+  }) =>
+      _receivablePayableRepo.updateReceivablePayment(
+        id: id,
+        amount: amount,
+        paymentDate: paymentDate,
+        accountId: accountId,
+        note: note,
+      );
+
+  @override
+  Future<void> deleteReceivablePayment(int id) =>
+      _receivablePayableRepo.deleteReceivablePayment(id);
+
+  @override
+  Future<List<ReceivablePayment>> getReceivablePayments(int receivableId) =>
+      _receivablePayableRepo.getReceivablePayments(receivableId);
+
+  @override
+  Stream<List<ReceivablePayment>> watchReceivablePayments(int receivableId) =>
+      _receivablePayableRepo.watchReceivablePayments(receivableId);
+
+  @override
+  Future<double> getReceivablePaidAmount(int receivableId) =>
+      _receivablePayableRepo.getReceivablePaidAmount(receivableId);
+
+  // ========== 应付款分批付款相关 ==========
+
+  @override
+  Future<int> createPayablePayment({
+    required int payableId,
+    required double amount,
+    required DateTime paymentDate,
+    int? accountId,
+    String? note,
+  }) =>
+      _receivablePayableRepo.createPayablePayment(
+        payableId: payableId,
+        amount: amount,
+        paymentDate: paymentDate,
+        accountId: accountId,
+        note: note,
+      );
+
+  @override
+  Future<void> updatePayablePayment({
+    required int id,
+    double? amount,
+    DateTime? paymentDate,
+    int? accountId,
+    String? note,
+  }) =>
+      _receivablePayableRepo.updatePayablePayment(
+        id: id,
+        amount: amount,
+        paymentDate: paymentDate,
+        accountId: accountId,
+        note: note,
+      );
+
+  @override
+  Future<void> deletePayablePayment(int id) =>
+      _receivablePayableRepo.deletePayablePayment(id);
+
+  @override
+  Future<List<PayablePayment>> getPayablePayments(int payableId) =>
+      _receivablePayableRepo.getPayablePayments(payableId);
+
+  @override
+  Stream<List<PayablePayment>> watchPayablePayments(int payableId) =>
+      _receivablePayableRepo.watchPayablePayments(payableId);
+
+  @override
+  Future<double> getPayablePaidAmount(int payableId) =>
+      _receivablePayableRepo.getPayablePaidAmount(payableId);
 }

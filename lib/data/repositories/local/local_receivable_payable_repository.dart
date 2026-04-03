@@ -19,7 +19,7 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     required double amount,
     required DateTime borrowDate,
     String? note,
-    required int fromAccountId,
+    int? fromAccountId,
     bool isReceived = false,
     DateTime? receiveDate,
     int? toAccountId,
@@ -30,7 +30,7 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
       borrowerName: borrowerName,
       amount: amount,
       borrowDate: borrowDate,
-      fromAccountId: fromAccountId,
+      fromAccountId: d.Value(fromAccountId),
       note: d.Value(note),
       isReceived: d.Value(isReceived),
       receiveDate: d.Value(receiveDate),
@@ -111,12 +111,18 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
   @override
   Future<double> getReceivableBalance(int accountId) async {
     final receivables = await (db.select(db.receivables)
-          ..where((t) => t.accountId.equals(accountId) & t.isReceived.equals(false)))
+          ..where((t) => t.accountId.equals(accountId)))
         .get();
     
     double sum = 0.0;
     for (final r in receivables) {
-      sum += r.amount;
+      // 获取该应收款的已付款金额
+      final paidAmount = await getReceivablePaidAmount(r.id);
+      // 未收金额 = 总金额 - 已付款金额
+      final pendingAmount = r.amount - paidAmount;
+      if (pendingAmount > 0) {
+        sum += pendingAmount;
+      }
     }
     return sum;
   }
@@ -133,10 +139,12 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     
     for (final r in receivables) {
       total += r.amount;
-      if (r.isReceived) {
-        received += r.amount;
-      } else {
-        pending += r.amount;
+      // 获取该应收款的已付款金额
+      final paidAmount = await getReceivablePaidAmount(r.id);
+      received += paidAmount;
+      final pendingAmount = r.amount - paidAmount;
+      if (pendingAmount > 0) {
+        pending += pendingAmount;
       }
     }
     
@@ -152,7 +160,7 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     required double amount,
     required DateTime payDate,
     String? note,
-    required int toAccountId,
+    int? toAccountId,
     bool isPaid = false,
     DateTime? paidDate,
     int? fromAccountId,
@@ -163,7 +171,7 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
       payeeName: payeeName,
       amount: amount,
       payDate: payDate,
-      toAccountId: toAccountId,
+      toAccountId: d.Value(toAccountId),
       note: d.Value(note),
       isPaid: d.Value(isPaid),
       paidDate: d.Value(paidDate),
@@ -238,12 +246,18 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
   @override
   Future<double> getPayableBalance(int accountId) async {
     final payables = await (db.select(db.payables)
-          ..where((t) => t.accountId.equals(accountId) & t.isPaid.equals(false)))
+          ..where((t) => t.accountId.equals(accountId)))
         .get();
     
     double sum = 0.0;
     for (final p in payables) {
-      sum += p.amount;
+      // 获取该应付款的已付款金额
+      final paidAmount = await getPayablePaidAmount(p.id);
+      // 未付金额 = 总金额 - 已付款金额
+      final pendingAmount = p.amount - paidAmount;
+      if (pendingAmount > 0) {
+        sum += pendingAmount;
+      }
     }
     return sum;
   }
@@ -260,13 +274,311 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     
     for (final p in payables) {
       total += p.amount;
-      if (p.isPaid) {
-        paid += p.amount;
-      } else {
-        pending += p.amount;
+      // 获取该应付款的已付款金额
+      final paidAmount = await getPayablePaidAmount(p.id);
+      paid += paidAmount;
+      final pendingAmount = p.amount - paidAmount;
+      if (pendingAmount > 0) {
+        pending += pendingAmount;
       }
     }
     
     return (pending: pending, total: total, paid: paid);
+  }
+
+  // ========== 应收款分批付款相关 ==========
+
+  @override
+  Future<int> createReceivablePayment({
+    required int receivableId,
+    required double amount,
+    required DateTime paymentDate,
+    int? accountId,
+    String? note,
+  }) async {
+    final now = DateTime.now();
+    final id = await db.into(db.receivablePayments).insert(ReceivablePaymentsCompanion.insert(
+      receivableId: receivableId,
+      amount: amount,
+      paymentDate: paymentDate,
+      accountId: d.Value(accountId),
+      note: d.Value(note),
+      createdAt: d.Value(now),
+      updatedAt: d.Value(now),
+    ));
+    
+    logger.info('LocalReceivablePayableRepository', '创建应收款付款记录: id=$id, receivableId=$receivableId, amount=$amount');
+    
+    // 检查是否已全部付款
+    final paidAmount = await getReceivablePaidAmount(receivableId);
+    final receivable = await getReceivableById(receivableId);
+    if (receivable != null && paidAmount >= receivable.amount) {
+      await updateReceivable(
+        id: receivableId,
+        isReceived: true,
+        receiveDate: paymentDate,
+        toAccountId: accountId,
+      );
+    }
+    
+    return id;
+  }
+
+  @override
+  Future<void> updateReceivablePayment({
+    required int id,
+    double? amount,
+    DateTime? paymentDate,
+    int? accountId,
+    String? note,
+  }) async {
+    final payment = await (db.select(db.receivablePayments)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (payment == null) {
+      throw Exception('应收款付款记录不存在: $id');
+    }
+
+    await (db.update(db.receivablePayments)..where((t) => t.id.equals(id))).write(
+      ReceivablePaymentsCompanion(
+        amount: amount != null ? d.Value(amount) : d.Value.absent(),
+        paymentDate: paymentDate != null ? d.Value(paymentDate) : d.Value.absent(),
+        accountId: accountId != null ? d.Value(accountId) : d.Value.absent(),
+        note: note != null ? d.Value(note) : d.Value.absent(),
+        updatedAt: d.Value(DateTime.now()),
+      ),
+    );
+
+    logger.info('LocalReceivablePayableRepository', '更新应收款付款记录: id=$id');
+
+    // 重新检查是否已全部付款
+    final paidAmount = await getReceivablePaidAmount(payment.receivableId);
+    final receivable = await getReceivableById(payment.receivableId);
+    if (receivable != null) {
+      if (paidAmount >= receivable.amount) {
+        await updateReceivable(
+          id: payment.receivableId,
+          isReceived: true,
+          receiveDate: paymentDate ?? payment.paymentDate,
+          toAccountId: accountId ?? payment.accountId,
+        );
+      } else {
+        await updateReceivable(
+          id: payment.receivableId,
+          isReceived: false,
+          receiveDate: null,
+          toAccountId: null,
+        );
+      }
+    }
+  }
+
+  @override
+  Future<void> deleteReceivablePayment(int id) async {
+    final payment = await (db.select(db.receivablePayments)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (payment == null) {
+      throw Exception('应收款付款记录不存在: $id');
+    }
+
+    await (db.delete(db.receivablePayments)..where((t) => t.id.equals(id))).go();
+    logger.info('LocalReceivablePayableRepository', '删除应收款付款记录: id=$id');
+
+    // 重新检查是否已全部付款
+    final paidAmount = await getReceivablePaidAmount(payment.receivableId);
+    final receivable = await getReceivableById(payment.receivableId);
+    if (receivable != null) {
+      if (paidAmount >= receivable.amount) {
+        await updateReceivable(
+          id: payment.receivableId,
+          isReceived: true,
+          receiveDate: payment.paymentDate,
+          toAccountId: payment.accountId,
+        );
+      } else {
+        await updateReceivable(
+          id: payment.receivableId,
+          isReceived: false,
+          receiveDate: null,
+          toAccountId: null,
+        );
+      }
+    }
+  }
+
+  @override
+  Future<List<ReceivablePayment>> getReceivablePayments(int receivableId) async {
+    return await (db.select(db.receivablePayments)
+          ..where((t) => t.receivableId.equals(receivableId))
+          ..orderBy([(t) => d.OrderingTerm.desc(t.paymentDate)]))
+        .get();
+  }
+
+  @override
+  Stream<List<ReceivablePayment>> watchReceivablePayments(int receivableId) {
+    return (db.select(db.receivablePayments)
+          ..where((t) => t.receivableId.equals(receivableId))
+          ..orderBy([(t) => d.OrderingTerm.desc(t.paymentDate)]))
+        .watch();
+  }
+
+  @override
+  Future<double> getReceivablePaidAmount(int receivableId) async {
+    final payments = await (db.select(db.receivablePayments)
+          ..where((t) => t.receivableId.equals(receivableId)))
+        .get();
+    
+    double sum = 0.0;
+    for (final p in payments) {
+      sum += p.amount;
+    }
+    return sum;
+  }
+
+  // ========== 应付款分批付款相关 ==========
+
+  @override
+  Future<int> createPayablePayment({
+    required int payableId,
+    required double amount,
+    required DateTime paymentDate,
+    int? accountId,
+    String? note,
+  }) async {
+    final now = DateTime.now();
+    final id = await db.into(db.payablePayments).insert(PayablePaymentsCompanion.insert(
+      payableId: payableId,
+      amount: amount,
+      paymentDate: paymentDate,
+      accountId: d.Value(accountId),
+      note: d.Value(note),
+      createdAt: d.Value(now),
+      updatedAt: d.Value(now),
+    ));
+    
+    logger.info('LocalReceivablePayableRepository', '创建应付款付款记录: id=$id, payableId=$payableId, amount=$amount');
+    
+    // 检查是否已全部付款
+    final paidAmount = await getPayablePaidAmount(payableId);
+    final payable = await getPayableById(payableId);
+    if (payable != null && paidAmount >= payable.amount) {
+      await updatePayable(
+        id: payableId,
+        isPaid: true,
+        paidDate: paymentDate,
+        fromAccountId: accountId,
+      );
+    }
+    
+    return id;
+  }
+
+  @override
+  Future<void> updatePayablePayment({
+    required int id,
+    double? amount,
+    DateTime? paymentDate,
+    int? accountId,
+    String? note,
+  }) async {
+    final payment = await (db.select(db.payablePayments)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (payment == null) {
+      throw Exception('应付款付款记录不存在: $id');
+    }
+
+    await (db.update(db.payablePayments)..where((t) => t.id.equals(id))).write(
+      PayablePaymentsCompanion(
+        amount: amount != null ? d.Value(amount) : d.Value.absent(),
+        paymentDate: paymentDate != null ? d.Value(paymentDate) : d.Value.absent(),
+        accountId: accountId != null ? d.Value(accountId) : d.Value.absent(),
+        note: note != null ? d.Value(note) : d.Value.absent(),
+        updatedAt: d.Value(DateTime.now()),
+      ),
+    );
+
+    logger.info('LocalReceivablePayableRepository', '更新应付款付款记录: id=$id');
+
+    // 重新检查是否已全部付款
+    final paidAmount = await getPayablePaidAmount(payment.payableId);
+    final payable = await getPayableById(payment.payableId);
+    if (payable != null) {
+      if (paidAmount >= payable.amount) {
+        await updatePayable(
+          id: payment.payableId,
+          isPaid: true,
+          paidDate: paymentDate ?? payment.paymentDate,
+          fromAccountId: accountId ?? payment.accountId,
+        );
+      } else {
+        await updatePayable(
+          id: payment.payableId,
+          isPaid: false,
+          paidDate: null,
+          fromAccountId: null,
+        );
+      }
+    }
+  }
+
+  @override
+  Future<void> deletePayablePayment(int id) async {
+    final payment = await (db.select(db.payablePayments)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (payment == null) {
+      throw Exception('应付款付款记录不存在: $id');
+    }
+
+    await (db.delete(db.payablePayments)..where((t) => t.id.equals(id))).go();
+    logger.info('LocalReceivablePayableRepository', '删除应付款付款记录: id=$id');
+
+    // 重新检查是否已全部付款
+    final paidAmount = await getPayablePaidAmount(payment.payableId);
+    final payable = await getPayableById(payment.payableId);
+    if (payable != null) {
+      if (paidAmount >= payable.amount) {
+        await updatePayable(
+          id: payment.payableId,
+          isPaid: true,
+          paidDate: payment.paymentDate,
+          fromAccountId: payment.accountId,
+        );
+      } else {
+        await updatePayable(
+          id: payment.payableId,
+          isPaid: false,
+          paidDate: null,
+          fromAccountId: null,
+        );
+      }
+    }
+  }
+
+  @override
+  Future<List<PayablePayment>> getPayablePayments(int payableId) async {
+    return await (db.select(db.payablePayments)
+          ..where((t) => t.payableId.equals(payableId))
+          ..orderBy([(t) => d.OrderingTerm.desc(t.paymentDate)]))
+        .get();
+  }
+
+  @override
+  Stream<List<PayablePayment>> watchPayablePayments(int payableId) {
+    return (db.select(db.payablePayments)
+          ..where((t) => t.payableId.equals(payableId))
+          ..orderBy([(t) => d.OrderingTerm.desc(t.paymentDate)]))
+        .watch();
+  }
+
+  @override
+  Future<double> getPayablePaidAmount(int payableId) async {
+    final payments = await (db.select(db.payablePayments)
+          ..where((t) => t.payableId.equals(payableId)))
+        .get();
+    
+    double sum = 0.0;
+    for (final p in payments) {
+      sum += p.amount;
+    }
+    return sum;
   }
 }

@@ -9,6 +9,8 @@ import '../../widgets/biz/biz.dart';
 import '../../styles/tokens.dart';
 import '../../utils/ui_scale_extensions.dart';
 import '../account/account_detail_page.dart' show payableStatsProvider, payableBalanceProvider;
+import '../../providers/statistics_providers.dart' show allAccountStatsProvider, allAccountsTotalStatsProvider;
+import 'payment_edit_page.dart';
 
 /// 应付款记录编辑页面
 class PayableEditPage extends ConsumerStatefulWidget {
@@ -85,6 +87,94 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
                   vertical: 8.0.scaled(context, ref),
                 ),
                 children: [
+                  // 分批付款信息
+                  if (isEditing) ...[
+                    FutureBuilder<double>(
+                      future: _getPaidAmount(),
+                      builder: (context, snapshot) {
+                        final paidAmount = snapshot.data ?? 0.0;
+                        return _buildSectionCard(
+                          context,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '已付金额',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: BeeTokens.textSecondary(context),
+                                  ),
+                                ),
+                                Text(
+                                  '¥ ${paidAmount.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: BeeTokens.textPrimary(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 12.0.scaled(context, ref)),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '待付金额',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: BeeTokens.textSecondary(context),
+                                  ),
+                                ),
+                                Text(
+                                  '¥ ${(_amount - paidAmount).toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: _amount - paidAmount > 0 ? Colors.red : BeeTokens.textPrimary(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    SizedBox(height: 8.0.scaled(context, ref)),
+                    _buildSectionCard(
+                      context,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '付款记录',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: BeeTokens.textPrimary(context),
+                              ),
+                            ),
+                            ElevatedButton.icon(
+                              onPressed: () => _addPayment(),
+                              icon: const Icon(Icons.add, size: 16),
+                              label: const Text('记录付款'),
+                              style: ElevatedButton.styleFrom(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12.0.scaled(context, ref),
+                                  vertical: 4.0.scaled(context, ref),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8.0.scaled(context, ref)),
+                        _buildPaymentList(),
+                      ],
+                    ),
+                    SizedBox(height: 8.0.scaled(context, ref)),
+                  ],
                   _buildSectionCard(
                     context,
                     children: [
@@ -157,7 +247,12 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
                             label: '已还款',
                             value: _isPaid,
                             onChanged: (value) {
-                              setState(() => _isPaid = value);
+                              setState(() {
+                                _isPaid = value;
+                                if (value && _toAccountId != null) {
+                                  _fromAccountId = _toAccountId;
+                                }
+                              });
                             },
                           ),
                           if (_isPaid) ...[
@@ -395,7 +490,7 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
     required String label,
     required String hint,
     required IconData icon,
-    required Function(int) onAccountSelected,
+    required Function(int?) onAccountSelected,
   }) {
     final selectedAccount = selectedAccountId != null
         ? accounts.cast<db.Account?>().firstWhere(
@@ -406,7 +501,7 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
 
     return InkWell(
       onTap: () async {
-        final result = await showModalBottomSheet<int>(
+        final result = await showModalBottomSheet<int?>(
           context: context,
           builder: (context) => SafeArea(
             child: Column(
@@ -422,6 +517,22 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
                       color: BeeTokens.textPrimary(context),
                     ),
                   ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.highlight_off),
+                  title: const Text('不选账户'),
+                  subtitle: Text(
+                    '历史账目，不记账',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: BeeTokens.textTertiary(context),
+                    ),
+                  ),
+                  trailing: selectedAccountId == null
+                      ? Icon(Icons.check, color: ref.watch(primaryColorProvider))
+                      : null,
+                  onTap: () => Navigator.pop(context, null),
                 ),
                 const Divider(height: 1),
                 Flexible(
@@ -449,9 +560,7 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
             ),
           ),
         );
-        if (result != null) {
-          onAccountSelected(result);
-        }
+        onAccountSelected(result);
       },
       child: Padding(
         padding: EdgeInsets.all(16.0.scaled(context, ref)),
@@ -463,27 +572,61 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: BeeTokens.textSecondary(context),
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: BeeTokens.textSecondary(context),
+                        ),
+                      ),
+                      if (selectedAccountId == null) ...[
+                        SizedBox(width: 8),
+                        Text(
+                          '(可选)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: BeeTokens.textTertiary(context),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   SizedBox(height: 4.0.scaled(context, ref)),
-                  Text(
-                    selectedAccount?.name ?? hint,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: selectedAccount != null
-                          ? BeeTokens.textPrimary(context)
-                          : BeeTokens.textTertiary(context),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          selectedAccount?.name ?? (selectedAccountId == null ? '不选账户' : hint),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: selectedAccount != null
+                                ? BeeTokens.textPrimary(context)
+                                : (selectedAccountId == null
+                                    ? BeeTokens.textSecondary(context)
+                                    : BeeTokens.textTertiary(context)),
+                          ),
+                        ),
+                      ),
+                      if (selectedAccountId != null) ...[
+                        SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            onAccountSelected(null);
+                          },
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: BeeTokens.textTertiary(context)),
+            if (selectedAccountId == null)
+              Icon(Icons.chevron_right, color: BeeTokens.textTertiary(context)),
           ],
         ),
       ),
@@ -577,19 +720,54 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
       showToast(context, '请输入有效金额');
       return;
     }
+
     if (_toAccountId == null) {
-      showToast(context, '请选择入账账户');
-      return;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('确认不选择入账账户'),
+          content: const Text('您没有选择入账账户，这将不会向任何账户入账。是否继续？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('继续'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
     }
+
     if (_isPaid && _fromAccountId == null) {
-      showToast(context, '请选择还款账户');
-      return;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('确认不选择还款账户'),
+          content: const Text('您没有选择还款账户，这将不会从任何账户扣款。是否继续？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('继续'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
     }
 
     setState(() => _saving = true);
 
     try {
       final repo = ref.read(repositoryProvider);
+      final currentLedger = await ref.read(currentLedgerProvider.future);
       final now = DateTime.now();
 
       if (isEditing) {
@@ -599,12 +777,75 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
           amount: _amount,
           payDate: _payDate,
           note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
-          toAccountId: _toAccountId!,
+          toAccountId: _toAccountId,
           isPaid: _isPaid,
           paidDate: _isPaid ? _paidDate : null,
           fromAccountId: _isPaid ? _fromAccountId : null,
           updatedAt: now,
         );
+
+        if (currentLedger != null) {
+          final payeeName = _payeeNameController.text.trim();
+          final note = _noteController.text.trim();
+
+          if (_toAccountId != null) {
+            final incomeNote = note.isNotEmpty 
+                ? '向$payeeName借款: $note' 
+                : '向$payeeName借款';
+            final incomeTransactions = await repo.getTransactionsByNote(
+              notePattern: '向$payeeName借款',
+            );
+            
+            if (incomeTransactions.isNotEmpty) {
+              await repo.updateTransaction(
+                id: incomeTransactions.first.id,
+                type: 'income',
+                amount: _amount,
+                accountId: _toAccountId!,
+                happenedAt: _payDate,
+                note: incomeNote,
+              );
+            } else {
+              await repo.addTransaction(
+                ledgerId: currentLedger.id,
+                type: 'income',
+                amount: _amount,
+                accountId: _toAccountId!,
+                happenedAt: _payDate,
+                note: incomeNote,
+              );
+            }
+          }
+
+          if (_isPaid && _fromAccountId != null) {
+            final expenseNote = note.isNotEmpty 
+                ? '还$payeeName款: $note' 
+                : '还$payeeName款';
+            final expenseTransactions = await repo.getTransactionsByNote(
+              notePattern: '还$payeeName款',
+            );
+            
+            if (expenseTransactions.isNotEmpty) {
+              await repo.updateTransaction(
+                id: expenseTransactions.first.id,
+                type: 'expense',
+                amount: _amount,
+                accountId: _fromAccountId!,
+                happenedAt: _paidDate ?? DateTime.now(),
+                note: expenseNote,
+              );
+            } else {
+              await repo.addTransaction(
+                ledgerId: currentLedger.id,
+                type: 'expense',
+                amount: _amount,
+                accountId: _fromAccountId!,
+                happenedAt: _paidDate ?? DateTime.now(),
+                note: expenseNote,
+              );
+            }
+          }
+        }
       } else {
         await repo.createPayable(
           accountId: widget.account.id,
@@ -612,15 +853,45 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
           amount: _amount,
           payDate: _payDate,
           note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
-          toAccountId: _toAccountId!,
+          toAccountId: _toAccountId,
           isPaid: _isPaid,
           paidDate: _isPaid ? _paidDate : null,
           fromAccountId: _isPaid ? _fromAccountId : null,
         );
+        
+        // 如果选择了入账账户，创建收入交易记录
+        if (_toAccountId != null && currentLedger != null) {
+          await repo.addTransaction(
+            ledgerId: currentLedger.id,
+            type: 'income',
+            amount: _amount,
+            accountId: _toAccountId!,
+            happenedAt: _payDate,
+            note: _noteController.text.trim().isNotEmpty 
+                ? '向${_payeeNameController.text.trim()}借款: ${_noteController.text.trim()}' 
+                : '向${_payeeNameController.text.trim()}借款',
+          );
+        }
+        
+        // 如果已还款且选择了还款账户，创建支出交易记录
+        if (_isPaid && _fromAccountId != null && currentLedger != null) {
+          await repo.addTransaction(
+            ledgerId: currentLedger.id,
+            type: 'expense',
+            amount: _amount,
+            accountId: _fromAccountId!,
+            happenedAt: _paidDate ?? DateTime.now(),
+            note: _noteController.text.trim().isNotEmpty 
+                ? '还${_payeeNameController.text.trim()}款: ${_noteController.text.trim()}' 
+                : '还${_payeeNameController.text.trim()}款',
+          );
+        }
       }
 
       ref.invalidate(payableStatsProvider(widget.account.id));
       ref.invalidate(payableBalanceProvider(widget.account.id));
+      ref.invalidate(allAccountStatsProvider);
+      ref.invalidate(allAccountsTotalStatsProvider);
 
       if (mounted) {
         Navigator.of(context).pop(true);
@@ -680,5 +951,161 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
         setState(() => _saving = false);
       }
     }
+  }
+
+  Future<double> _getPaidAmount() async {
+    if (widget.payable == null) return 0.0;
+    final repo = ref.read(repositoryProvider);
+    return await repo.getPayablePaidAmount(widget.payable!.id);
+  }
+
+  Widget _buildPaymentList() {
+    if (widget.payable == null) {
+      return const Center(
+        child: Text('暂无付款记录'),
+      );
+    }
+
+    final paymentsAsync = ref.watch(payablePaymentsProvider(widget.payable!.id));
+    return paymentsAsync.when(
+      data: (payments) {
+        if (payments.isEmpty) {
+          return const Center(
+            child: Text('暂无付款记录'),
+          );
+        }
+
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: payments.length,
+          itemBuilder: (context, index) {
+            final payment = payments[index];
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: 4.0.scaled(context, ref)),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${payment.paymentDate.year}-${payment.paymentDate.month.toString().padLeft(2, '0')}-${payment.paymentDate.day.toString().padLeft(2, '0')}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: BeeTokens.textSecondary(context),
+                          ),
+                        ),
+                        if (payment.note != null && payment.note!.isNotEmpty) ...[
+                          SizedBox(height: 4.0.scaled(context, ref)),
+                          Text(
+                            payment.note!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: BeeTokens.textTertiary(context),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Text(
+                    '¥ ${payment.amount.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: BeeTokens.textPrimary(context),
+                    ),
+                  ),
+                  SizedBox(width: 8.0.scaled(context, ref)),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 20),
+                        onPressed: () => _editPayment(payment),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                        onPressed: () => _deletePayment(payment),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('加载付款记录失败: $err')),
+    );
+  }
+
+  void _editPayment(db.PayablePayment payment) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PaymentEditPage(
+          account: widget.account,
+          payable: widget.payable!,
+          existingPayablePayment: payment,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deletePayment(db.PayablePayment payment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('确认删除'),
+        content: const Text('确定要删除这条付款记录吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final repo = ref.read(repositoryProvider);
+        await repo.deletePayablePayment(payment.id);
+        // 刷新统计数据
+        ref.invalidate(payableStatsProvider(widget.account.id));
+        ref.invalidate(payableBalanceProvider(widget.account.id));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('删除成功')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('删除失败: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  void _addPayment() {
+    if (widget.payable == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PaymentEditPage(
+          account: widget.account,
+          payable: widget.payable!,
+        ),
+      ),
+    );
   }
 }

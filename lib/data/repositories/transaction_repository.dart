@@ -167,4 +167,10 @@ abstract class TransactionRepository {
     required int ledgerId,
     required DateTime month,
   });
+
+  /// 通过备注查找交易记录
+  /// 用于应收/应付记录编辑时更新对应的交易记录
+  Future<List<Transaction>> getTransactionsByNote({
+    required String notePattern,
+  });
 }

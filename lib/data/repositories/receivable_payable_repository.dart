@@ -11,7 +11,7 @@ abstract class ReceivablePayableRepository {
     required double amount,
     required DateTime borrowDate,
     String? note,
-    required int fromAccountId,
+    int? fromAccountId,
     bool isReceived = false,
     DateTime? receiveDate,
     int? toAccountId,
@@ -58,7 +58,7 @@ abstract class ReceivablePayableRepository {
     required double amount,
     required DateTime payDate,
     String? note,
-    required int toAccountId,
+    int? toAccountId,
     bool isPaid = false,
     DateTime? paidDate,
     int? fromAccountId,
@@ -95,4 +95,68 @@ abstract class ReceivablePayableRepository {
 
   /// 获取应付款账户的统计信息（待付金额、总额、已付金额）
   Future<({double pending, double total, double paid})> getPayableStats(int accountId);
+
+  // ========== 应收款分批付款相关 ==========
+
+  /// 创建应收款付款记录
+  Future<int> createReceivablePayment({
+    required int receivableId,
+    required double amount,
+    required DateTime paymentDate,
+    int? accountId,
+    String? note,
+  });
+
+  /// 更新应收款付款记录
+  Future<void> updateReceivablePayment({
+    required int id,
+    double? amount,
+    DateTime? paymentDate,
+    int? accountId,
+    String? note,
+  });
+
+  /// 删除应收款付款记录
+  Future<void> deleteReceivablePayment(int id);
+
+  /// 获取应收款的所有付款记录
+  Future<List<ReceivablePayment>> getReceivablePayments(int receivableId);
+
+  /// 监听应收款的付款记录
+  Stream<List<ReceivablePayment>> watchReceivablePayments(int receivableId);
+
+  /// 获取应收款的已付款总额
+  Future<double> getReceivablePaidAmount(int receivableId);
+
+  // ========== 应付款分批付款相关 ==========
+
+  /// 创建应付款付款记录
+  Future<int> createPayablePayment({
+    required int payableId,
+    required double amount,
+    required DateTime paymentDate,
+    int? accountId,
+    String? note,
+  });
+
+  /// 更新应付款付款记录
+  Future<void> updatePayablePayment({
+    required int id,
+    double? amount,
+    DateTime? paymentDate,
+    int? accountId,
+    String? note,
+  });
+
+  /// 删除应付款付款记录
+  Future<void> deletePayablePayment(int id);
+
+  /// 获取应付款的所有付款记录
+  Future<List<PayablePayment>> getPayablePayments(int payableId);
+
+  /// 监听应付款的付款记录
+  Stream<List<PayablePayment>> watchPayablePayments(int payableId);
+
+  /// 获取应付款的已付款总额
+  Future<double> getPayablePaidAmount(int payableId);
 }

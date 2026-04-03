@@ -419,15 +419,77 @@ class CloudAccountRepository implements AccountRepository {
       getAllAccountsTotalStats() async {
     final accounts = await getAllAccounts();
 
+    // 净资产 = 普通账户余额 + 应收账户待收金额 - 应付账户待付金额
     double totalBalance = 0.0;
     double totalExpense = 0.0;
     double totalIncome = 0.0;
 
     for (final account in accounts) {
-      final stats = await getAccountStats(account.id);
-      totalBalance += stats.balance;
-      totalExpense += stats.expense;
-      totalIncome += stats.income;
+      if (account.type == 'receivable') {
+        // 应收账户：计算待收金额
+        final receivables = await provider.databaseService!.query(
+          table: 'receivables',
+          filters: [
+            QueryFilter(column: 'account_id', operator: 'eq', value: account.id),
+          ],
+        );
+        double pending = 0.0;
+        for (final r in receivables) {
+          final receivableId = r['id'] as int;
+          // 获取该应收款的已付款金额
+          final payments = await provider.databaseService!.query(
+            table: 'receivable_payments',
+            filters: [
+              QueryFilter(column: 'receivable_id', operator: 'eq', value: receivableId),
+            ],
+          );
+          double paidAmount = 0.0;
+          for (final p in payments) {
+            paidAmount += (p['amount'] as num).toDouble();
+          }
+          final totalAmount = (r['amount'] as num).toDouble();
+          final pendingAmount = totalAmount - paidAmount;
+          if (pendingAmount > 0) {
+            pending += pendingAmount;
+          }
+        }
+        totalBalance += pending;
+      } else if (account.type == 'payable') {
+        // 应付账户：计算待付金额（负值）
+        final payables = await provider.databaseService!.query(
+          table: 'payables',
+          filters: [
+            QueryFilter(column: 'account_id', operator: 'eq', value: account.id),
+          ],
+        );
+        double pending = 0.0;
+        for (final p in payables) {
+          final payableId = p['id'] as int;
+          // 获取该应付款的已付款金额
+          final payments = await provider.databaseService!.query(
+            table: 'payable_payments',
+            filters: [
+              QueryFilter(column: 'payable_id', operator: 'eq', value: payableId),
+            ],
+          );
+          double paidAmount = 0.0;
+          for (final pp in payments) {
+            paidAmount += (pp['amount'] as num).toDouble();
+          }
+          final totalAmount = (p['amount'] as num).toDouble();
+          final pendingAmount = totalAmount - paidAmount;
+          if (pendingAmount > 0) {
+            pending += pendingAmount;
+          }
+        }
+        totalBalance -= pending;
+      } else {
+        // 普通账户：使用账户余额
+        final stats = await getAccountStats(account.id);
+        totalBalance += stats.balance;
+        totalExpense += stats.expense;
+        totalIncome += stats.income;
+      }
     }
 
     return (

@@ -213,7 +213,7 @@ class Receivables extends Table {
   TextColumn get note => text().nullable()();
 
   /// 借款账户ID（借款时扣款的账户）
-  IntColumn get fromAccountId => integer()();
+  IntColumn get fromAccountId => integer().nullable()();
 
   /// 是否已收款
   BoolColumn get isReceived => boolean().withDefault(const Constant(false))();
@@ -251,7 +251,7 @@ class Payables extends Table {
   TextColumn get note => text().nullable()();
 
   /// 入账账户ID（钱转入到了哪里）
-  IntColumn get toAccountId => integer()();
+  IntColumn get toAccountId => integer().nullable()();
 
   /// 是否已还款
   BoolColumn get isPaid => boolean().withDefault(const Constant(false))();
@@ -261,6 +261,58 @@ class Payables extends Table {
 
   /// 还款账户ID
   IntColumn get fromAccountId => integer().nullable()();
+
+  /// 创建时间
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  /// 更新时间
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+/// 应收款分批付款记录表
+class ReceivablePayments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// 关联应收款ID
+  IntColumn get receivableId => integer()();
+
+  /// 付款金额
+  RealColumn get amount => real()();
+
+  /// 付款日期
+  DateTimeColumn get paymentDate => dateTime()();
+
+  /// 付款账户ID
+  IntColumn get accountId => integer().nullable()();
+
+  /// 备注
+  TextColumn get note => text().nullable()();
+
+  /// 创建时间
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  /// 更新时间
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+/// 应付款分批付款记录表
+class PayablePayments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// 关联应付款ID
+  IntColumn get payableId => integer()();
+
+  /// 付款金额
+  RealColumn get amount => real()();
+
+  /// 付款日期
+  DateTimeColumn get paymentDate => dateTime()();
+
+  /// 付款账户ID
+  IntColumn get accountId => integer().nullable()();
+
+  /// 备注
+  TextColumn get note => text().nullable()();
 
   /// 创建时间
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -283,12 +335,14 @@ class Payables extends Table {
   TransactionAttachments,
   Receivables,
   Payables,
+  ReceivablePayments,
+  PayablePayments,
 ])
 class BeeDatabase extends _$BeeDatabase {
   BeeDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -666,6 +720,152 @@ class BeeDatabase extends _$BeeDatabase {
             await migrator.createTable(payables);
             logger.info('DB', 'v17: receivables 和 payables 表已创建');
             print('[DB Migration] v17 迁移完成');
+          }
+          if (from < 18) {
+            // v18: 添加应收款/应付款分批付款记录表
+            print('[DB Migration] 开始迁移到 v18: 添加应收款/应付款分批付款记录表');
+            try {
+              await migrator.createTable(receivablePayments);
+              await migrator.createTable(payablePayments);
+              logger.info('DB', 'v18: receivablePayments 和 payablePayments 表已创建');
+              print('[DB Migration] v18 迁移完成');
+            } catch (e) {
+              logger.error('DB', 'v18 迁移失败: $e');
+              print('[DB Migration] v18 迁移失败: $e');
+              // 尝试使用原始SQL创建表
+              try {
+                await customStatement('''
+                  CREATE TABLE IF NOT EXISTS receivable_payments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    receivable_id INTEGER NOT NULL,
+                    amount REAL NOT NULL,
+                    payment_date INTEGER NOT NULL,
+                    account_id INTEGER NOT NULL,
+                    note TEXT,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
+                  );
+                ''');
+                await customStatement('''
+                  CREATE TABLE IF NOT EXISTS payable_payments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    payable_id INTEGER NOT NULL,
+                    amount REAL NOT NULL,
+                    payment_date INTEGER NOT NULL,
+                    account_id INTEGER NOT NULL,
+                    note TEXT,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
+                  );
+                ''');
+                logger.info('DB', 'v18: 使用原始SQL创建表成功');
+                print('[DB Migration] v18: 使用原始SQL创建表成功');
+              } catch (e2) {
+                logger.error('DB', 'v18: 使用原始SQL创建表失败: $e2');
+                print('[DB Migration] v18: 使用原始SQL创建表失败: $e2');
+              }
+            }
+          }
+          if (from < 19) {
+            // v19: 让账户相关字段变为可选
+            print('[DB Migration] 开始迁移到 v19: 让账户相关字段变为可选');
+            
+            // 重建表来修改字段约束（SQLite 不支持直接修改列的约束）
+            
+            // 1. 重建 receivables 表
+            print('[DB Migration] 重建 receivables 表');
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS receivables_new (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER NOT NULL,
+                borrower_name TEXT NOT NULL,
+                amount REAL NOT NULL,
+                borrow_date INTEGER NOT NULL,
+                note TEXT,
+                from_account_id INTEGER,
+                is_received INTEGER NOT NULL DEFAULT 0,
+                receive_date INTEGER,
+                to_account_id INTEGER,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+              );
+            ''');
+            await customStatement('''
+              INSERT INTO receivables_new
+              SELECT * FROM receivables;
+            ''');
+            await customStatement('DROP TABLE receivables;');
+            await customStatement('ALTER TABLE receivables_new RENAME TO receivables;');
+            
+            // 2. 重建 payables 表
+            print('[DB Migration] 重建 payables 表');
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS payables_new (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER NOT NULL,
+                payee_name TEXT NOT NULL,
+                amount REAL NOT NULL,
+                pay_date INTEGER NOT NULL,
+                note TEXT,
+                to_account_id INTEGER,
+                is_paid INTEGER NOT NULL DEFAULT 0,
+                paid_date INTEGER,
+                from_account_id INTEGER,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+              );
+            ''');
+            await customStatement('''
+              INSERT INTO payables_new
+              SELECT * FROM payables;
+            ''');
+            await customStatement('DROP TABLE payables;');
+            await customStatement('ALTER TABLE payables_new RENAME TO payables;');
+            
+            // 3. 重建 receivable_payments 表
+            print('[DB Migration] 重建 receivable_payments 表');
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS receivable_payments_new (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                receivable_id INTEGER NOT NULL,
+                amount REAL NOT NULL,
+                payment_date INTEGER NOT NULL,
+                account_id INTEGER,
+                note TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+              );
+            ''');
+            await customStatement('''
+              INSERT INTO receivable_payments_new
+              SELECT * FROM receivable_payments;
+            ''');
+            await customStatement('DROP TABLE receivable_payments;');
+            await customStatement('ALTER TABLE receivable_payments_new RENAME TO receivable_payments;');
+            
+            // 4. 重建 payable_payments 表
+            print('[DB Migration] 重建 payable_payments 表');
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS payable_payments_new (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                payable_id INTEGER NOT NULL,
+                amount REAL NOT NULL,
+                payment_date INTEGER NOT NULL,
+                account_id INTEGER,
+                note TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+              );
+            ''');
+            await customStatement('''
+              INSERT INTO payable_payments_new
+              SELECT * FROM payable_payments;
+            ''');
+            await customStatement('DROP TABLE payable_payments;');
+            await customStatement('ALTER TABLE payable_payments_new RENAME TO payable_payments;');
+            
+            logger.info('DB', 'v19: 所有表重建完成，账户字段已变为可选');
+            print('[DB Migration] v19 迁移完成');
           }
         },
       );

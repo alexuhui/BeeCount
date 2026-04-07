@@ -332,51 +332,59 @@ class LocalAccountRepository implements AccountRepository {
   Future<({double totalBalance, double totalExpense, double totalIncome})> getAllAccountsTotalStats() async {
     final accounts = await db.select(db.accounts).get();
 
-    // 总余额 = 所有账户余额之和（转账不影响总余额）
+    // 净资产 ≈ 现金类账户余额之和 + 全部应收未收本金 − 全部应付未付本金。
+    //
+    // 应收/应付专户（type=receivable/payable）上的流水来自借出/还款的 transfer，不能与「未收/未付
+    // 本金」重复加：专户若直接加进总和，还清时会出现专户负数与本金归零双重扣减。
+    // 因此不累加专户 getAccountBalance，改由 receivables/payables 表统一计算未收/未付。
+    //
+    // 业务含义：A) 从某账户直接借出 — 现金已减少，未收本金仍是资产，总资产不变；B) 未选借款账户 —
+    // 现金未动，未收本金增加总资产。两种都在「未收本金」里体现，与列表「待收」一致。
+    // 应付款同理（未付本金）。
     double totalBalance = 0.0;
     for (final account in accounts) {
+      if (account.type == 'receivable' || account.type == 'payable') {
+        continue;
+      }
       final balance = await getAccountBalance(account.id);
       totalBalance += balance;
     }
 
-    // 未关联借款/入账账户的应收应付：账户余额中未体现，在此补全净资产
-    double orphanReceivable = 0.0;
-    final orphanRecRows = await db.customSelect(
+    double outstandingReceivable = 0.0;
+    final recRows = await db.customSelect(
       '''
       SELECT r.amount AS amount, COALESCE(SUM(p.amount), 0) AS paid
       FROM receivables r
       LEFT JOIN receivable_payments p ON p.receivable_id = r.id
-      WHERE r.from_account_id IS NULL
       GROUP BY r.id, r.amount
       ''',
       readsFrom: {db.receivables, db.receivablePayments},
     ).get();
-    for (final row in orphanRecRows) {
+    for (final row in recRows) {
       final amount = (row.data['amount'] as num).toDouble();
       final paid = (row.data['paid'] as num).toDouble();
       final o = amount - paid;
-      if (o > 0) orphanReceivable += o;
+      if (o > 0) outstandingReceivable += o;
     }
 
-    double orphanPayable = 0.0;
-    final orphanPayRows = await db.customSelect(
+    double outstandingPayable = 0.0;
+    final payRows = await db.customSelect(
       '''
       SELECT p.amount AS amount, COALESCE(SUM(pp.amount), 0) AS paid
       FROM payables p
       LEFT JOIN payable_payments pp ON pp.payable_id = p.id
-      WHERE p.to_account_id IS NULL
       GROUP BY p.id, p.amount
       ''',
       readsFrom: {db.payables, db.payablePayments},
     ).get();
-    for (final row in orphanPayRows) {
+    for (final row in payRows) {
       final amount = (row.data['amount'] as num).toDouble();
       final paid = (row.data['paid'] as num).toDouble();
       final o = amount - paid;
-      if (o > 0) orphanPayable += o;
+      if (o > 0) outstandingPayable += o;
     }
 
-    totalBalance += orphanReceivable - orphanPayable;
+    totalBalance += outstandingReceivable - outstandingPayable;
 
     // 总收入/支出：直接从交易表查询，排除转账类型
     final accountIds = accounts.map((a) => a.id).toSet();

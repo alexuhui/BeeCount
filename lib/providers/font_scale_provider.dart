@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/ui/ui_scale_service.dart';
+import '../services/user_settings/user_setting_keys.dart';
+import 'database_providers.dart';
 
 /// 字体缩放档位：-3~4 八档调整
 final fontScaleLevelProvider = StateProvider<int>((ref) => 0); // 允许 -3,-2,-1,0,1,2,3,4
@@ -52,39 +53,32 @@ final uiScaleDebugProvider = Provider.family<Map<String, double>, BuildContext>(
   return UIScaleService.getDebugInfo(context, userScale);
 });
 
-/// 初始化: 读取并监听写回
 final fontScaleInitProvider = FutureProvider<void>((ref) async {
-  final prefs = await SharedPreferences.getInstance();
+  final store = ref.read(userSettingsStoreProvider);
 
-  // 读取档位设置
-  final savedLevel = prefs.getInt('fontScaleLevel');
+  final savedLevel = await store.getInt(UserSettingKeys.fontScaleLevel);
   if (savedLevel != null) {
     ref.read(fontScaleLevelProvider.notifier).state = savedLevel.clamp(-3, 4);
   }
 
-  // 读取自定义缩放设置
-  final savedCustom = prefs.getDouble('customFontScale');
+  final savedCustom = await store.getDouble(UserSettingKeys.customFontScale);
   if (savedCustom != null) {
     ref.read(customFontScaleProvider.notifier).state = savedCustom.clamp(0.7, 1.5);
   }
 
-  // 监听档位变化并保存
   ref.listen<int>(fontScaleLevelProvider, (prev, next) async {
-    await prefs.setInt('fontScaleLevel', next);
-    // 当选择档位时，重置自定义缩放
+    await store.setInt(UserSettingKeys.fontScaleLevel, next);
     if (next != 0 || (ref.read(customFontScaleProvider) - 1.0).abs() > 0.01) {
       ref.read(customFontScaleProvider.notifier).state = 1.0;
-      await prefs.setDouble('customFontScale', 1.0);
+      await store.setDouble(UserSettingKeys.customFontScale, 1.0);
     }
   });
 
-  // 监听自定义缩放变化并保存
   ref.listen<double>(customFontScaleProvider, (prev, next) async {
-    await prefs.setDouble('customFontScale', next);
-    // 当使用自定义缩放时，重置档位到标准
+    await store.setDouble(UserSettingKeys.customFontScale, next);
     if ((next - 1.0).abs() > 0.01 && ref.read(fontScaleLevelProvider) != 0) {
       ref.read(fontScaleLevelProvider.notifier).state = 0;
-      await prefs.setInt('fontScaleLevel', 0);
+      await store.setInt(UserSettingKeys.fontScaleLevel, 0);
     }
   });
 });

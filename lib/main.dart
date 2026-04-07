@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
 import 'theme.dart';
@@ -22,6 +21,7 @@ import 'services/platform/app_link_service.dart';
 import 'services/system/logger_service.dart';
 import 'services/data/migration_service.dart';
 import 'services/data/seed_service.dart';
+import 'services/database/database_bootstrap.dart';
 import 'data/db.dart';
 import 'l10n/app_localizations.dart';
 import 'widget/widget_manager.dart';
@@ -31,6 +31,8 @@ import 'dart:io';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await DatabaseBootstrap.initialize();
 
   // 初始化日志系统（确保原生日志桥接就绪）
   logger.info('App', '应用启动，日志系统已初始化');
@@ -60,8 +62,7 @@ Future<void> main() async {
     print('⚠️  通知服务初始化失败（可能在不支持的平台上运行）: $e');
   }
 
-  // 恢复用户的记账提醒设置（关键修复：应用重启后自动恢复提醒）
-  await _restoreUserReminder();
+  // 记账提醒在 BeeApp 首帧根据当前账号 UserSettings 恢复（见 app.dart）
 
   // 启动提醒监控服务（监听应用生命周期，自动恢复丢失的提醒）
   try {
@@ -144,51 +145,6 @@ class _WidgetUpdateObserver extends ProviderObserver {
     } catch (e) {
       print('❌ 更新小组件失败（可能在不支持的平台上运行）: $e');
     }
-  }
-}
-
-/// 恢复用户之前设置的记账提醒
-///
-/// 问题场景：
-/// - 应用被系统杀死后，通知任务会丢失
-/// - 应用更新后，通知任务会被清除
-/// - 手机重启后，通知任务需要重新设置
-///
-/// 解决方案：
-/// - 在应用启动时检查用户是否开启了提醒
-/// - 如果开启了，重新设置通知任务
-Future<void> _restoreUserReminder() async {
-  try {
-    print('🔄 检查并恢复记账提醒...');
-    final prefs = await SharedPreferences.getInstance();
-    final isEnabled = prefs.getBool('reminder_enabled') ?? false;
-
-    if (isEnabled) {
-      final hour = prefs.getInt('reminder_hour') ?? 21;
-      final minute = prefs.getInt('reminder_minute') ?? 0;
-      print(
-          '✅ 发现用户已启用记账提醒: ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
-      print('🔔 正在重新设置提醒任务...');
-
-      try {
-        final notificationUtil = NotificationFactory.getInstance();
-        await notificationUtil.scheduleDailyReminder(
-          id: 1001,
-          title: '记账提醒',
-          body: '别忘了记录今天的收支哦 💰',
-          hour: hour,
-          minute: minute,
-        );
-        print('✅ 记账提醒已成功恢复');
-      } catch (e) {
-        print('❌ 记账提醒设置失败（可能在不支持的平台上运行）: $e');
-      }
-    } else {
-      print('ℹ️  用户未启用记账提醒，跳过恢复');
-    }
-  } catch (e) {
-    print('❌ 恢复记账提醒失败: $e');
-    // 不抛出异常，避免影响应用启动
   }
 }
 

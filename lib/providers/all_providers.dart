@@ -5,6 +5,7 @@ export 'theme_providers.dart';
 
 // 数据库相关  
 export 'database_providers.dart';
+export 'database_scope_provider.dart';
 
 // 统计相关
 export 'statistics_providers.dart';

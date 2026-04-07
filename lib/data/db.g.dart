@@ -5186,8 +5186,8 @@ class $ReceivablesTable extends Receivables
       const VerificationMeta('fromAccountId');
   @override
   late final GeneratedColumn<int> fromAccountId = GeneratedColumn<int>(
-      'from_account_id', aliasedName, false,
-      type: DriftSqlType.int, requiredDuringInsert: true);
+      'from_account_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _isReceivedMeta =
       const VerificationMeta('isReceived');
   @override
@@ -5291,8 +5291,6 @@ class $ReceivablesTable extends Receivables
           _fromAccountIdMeta,
           fromAccountId.isAcceptableOrUnknown(
               data['from_account_id']!, _fromAccountIdMeta));
-    } else if (isInserting) {
-      context.missing(_fromAccountIdMeta);
     }
     if (data.containsKey('is_received')) {
       context.handle(
@@ -5342,7 +5340,7 @@ class $ReceivablesTable extends Receivables
       note: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}note']),
       fromAccountId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}from_account_id'])!,
+          .read(DriftSqlType.int, data['${effectivePrefix}from_account_id']),
       isReceived: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_received'])!,
       receiveDate: attachedDatabase.typeMapping
@@ -5380,8 +5378,8 @@ class Receivable extends DataClass implements Insertable<Receivable> {
   /// 备注
   final String? note;
 
-  /// 借款账户ID（借款时扣款的账户）
-  final int fromAccountId;
+  /// 借款账户ID（借款时扣款的账户，可选：不选则仅记在应收账户上，由净资产公式补全）
+  final int? fromAccountId;
 
   /// 是否已收款
   final bool isReceived;
@@ -5404,7 +5402,7 @@ class Receivable extends DataClass implements Insertable<Receivable> {
       required this.amount,
       required this.borrowDate,
       this.note,
-      required this.fromAccountId,
+      this.fromAccountId,
       required this.isReceived,
       this.receiveDate,
       this.toAccountId,
@@ -5421,7 +5419,9 @@ class Receivable extends DataClass implements Insertable<Receivable> {
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
-    map['from_account_id'] = Variable<int>(fromAccountId);
+    if (!nullToAbsent || fromAccountId != null) {
+      map['from_account_id'] = Variable<int>(fromAccountId);
+    }
     map['is_received'] = Variable<bool>(isReceived);
     if (!nullToAbsent || receiveDate != null) {
       map['receive_date'] = Variable<DateTime>(receiveDate);
@@ -5442,7 +5442,9 @@ class Receivable extends DataClass implements Insertable<Receivable> {
       amount: Value(amount),
       borrowDate: Value(borrowDate),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
-      fromAccountId: Value(fromAccountId),
+      fromAccountId: fromAccountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fromAccountId),
       isReceived: Value(isReceived),
       receiveDate: receiveDate == null && nullToAbsent
           ? const Value.absent()
@@ -5465,7 +5467,7 @@ class Receivable extends DataClass implements Insertable<Receivable> {
       amount: serializer.fromJson<double>(json['amount']),
       borrowDate: serializer.fromJson<DateTime>(json['borrowDate']),
       note: serializer.fromJson<String?>(json['note']),
-      fromAccountId: serializer.fromJson<int>(json['fromAccountId']),
+      fromAccountId: serializer.fromJson<int?>(json['fromAccountId']),
       isReceived: serializer.fromJson<bool>(json['isReceived']),
       receiveDate: serializer.fromJson<DateTime?>(json['receiveDate']),
       toAccountId: serializer.fromJson<int?>(json['toAccountId']),
@@ -5483,7 +5485,7 @@ class Receivable extends DataClass implements Insertable<Receivable> {
       'amount': serializer.toJson<double>(amount),
       'borrowDate': serializer.toJson<DateTime>(borrowDate),
       'note': serializer.toJson<String?>(note),
-      'fromAccountId': serializer.toJson<int>(fromAccountId),
+      'fromAccountId': serializer.toJson<int?>(fromAccountId),
       'isReceived': serializer.toJson<bool>(isReceived),
       'receiveDate': serializer.toJson<DateTime?>(receiveDate),
       'toAccountId': serializer.toJson<int?>(toAccountId),
@@ -5499,7 +5501,7 @@ class Receivable extends DataClass implements Insertable<Receivable> {
           double? amount,
           DateTime? borrowDate,
           Value<String?> note = const Value.absent(),
-          int? fromAccountId,
+          Value<int?> fromAccountId = const Value.absent(),
           bool? isReceived,
           Value<DateTime?> receiveDate = const Value.absent(),
           Value<int?> toAccountId = const Value.absent(),
@@ -5512,7 +5514,8 @@ class Receivable extends DataClass implements Insertable<Receivable> {
         amount: amount ?? this.amount,
         borrowDate: borrowDate ?? this.borrowDate,
         note: note.present ? note.value : this.note,
-        fromAccountId: fromAccountId ?? this.fromAccountId,
+        fromAccountId:
+            fromAccountId.present ? fromAccountId.value : this.fromAccountId,
         isReceived: isReceived ?? this.isReceived,
         receiveDate: receiveDate.present ? receiveDate.value : this.receiveDate,
         toAccountId: toAccountId.present ? toAccountId.value : this.toAccountId,
@@ -5602,7 +5605,7 @@ class ReceivablesCompanion extends UpdateCompanion<Receivable> {
   final Value<double> amount;
   final Value<DateTime> borrowDate;
   final Value<String?> note;
-  final Value<int> fromAccountId;
+  final Value<int?> fromAccountId;
   final Value<bool> isReceived;
   final Value<DateTime?> receiveDate;
   final Value<int?> toAccountId;
@@ -5629,7 +5632,7 @@ class ReceivablesCompanion extends UpdateCompanion<Receivable> {
     required double amount,
     required DateTime borrowDate,
     this.note = const Value.absent(),
-    required int fromAccountId,
+    this.fromAccountId = const Value.absent(),
     this.isReceived = const Value.absent(),
     this.receiveDate = const Value.absent(),
     this.toAccountId = const Value.absent(),
@@ -5638,8 +5641,7 @@ class ReceivablesCompanion extends UpdateCompanion<Receivable> {
   })  : accountId = Value(accountId),
         borrowerName = Value(borrowerName),
         amount = Value(amount),
-        borrowDate = Value(borrowDate),
-        fromAccountId = Value(fromAccountId);
+        borrowDate = Value(borrowDate);
   static Insertable<Receivable> custom({
     Expression<int>? id,
     Expression<int>? accountId,
@@ -5677,7 +5679,7 @@ class ReceivablesCompanion extends UpdateCompanion<Receivable> {
       Value<double>? amount,
       Value<DateTime>? borrowDate,
       Value<String?>? note,
-      Value<int>? fromAccountId,
+      Value<int?>? fromAccountId,
       Value<bool>? isReceived,
       Value<DateTime?>? receiveDate,
       Value<int?>? toAccountId,
@@ -5807,8 +5809,8 @@ class $PayablesTable extends Payables with TableInfo<$PayablesTable, Payable> {
       const VerificationMeta('toAccountId');
   @override
   late final GeneratedColumn<int> toAccountId = GeneratedColumn<int>(
-      'to_account_id', aliasedName, false,
-      type: DriftSqlType.int, requiredDuringInsert: true);
+      'to_account_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _isPaidMeta = const VerificationMeta('isPaid');
   @override
   late final GeneratedColumn<bool> isPaid = GeneratedColumn<bool>(
@@ -5907,8 +5909,6 @@ class $PayablesTable extends Payables with TableInfo<$PayablesTable, Payable> {
           _toAccountIdMeta,
           toAccountId.isAcceptableOrUnknown(
               data['to_account_id']!, _toAccountIdMeta));
-    } else if (isInserting) {
-      context.missing(_toAccountIdMeta);
     }
     if (data.containsKey('is_paid')) {
       context.handle(_isPaidMeta,
@@ -5954,7 +5954,7 @@ class $PayablesTable extends Payables with TableInfo<$PayablesTable, Payable> {
       note: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}note']),
       toAccountId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}to_account_id'])!,
+          .read(DriftSqlType.int, data['${effectivePrefix}to_account_id']),
       isPaid: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_paid'])!,
       paidDate: attachedDatabase.typeMapping
@@ -5992,8 +5992,8 @@ class Payable extends DataClass implements Insertable<Payable> {
   /// 备注
   final String? note;
 
-  /// 入账账户ID（钱转入到了哪里）
-  final int toAccountId;
+  /// 入账账户ID（钱转入到了哪里，可选：不选则负债仅体现在应付款账户上，由净资产公式补全）
+  final int? toAccountId;
 
   /// 是否已还款
   final bool isPaid;
@@ -6016,7 +6016,7 @@ class Payable extends DataClass implements Insertable<Payable> {
       required this.amount,
       required this.payDate,
       this.note,
-      required this.toAccountId,
+      this.toAccountId,
       required this.isPaid,
       this.paidDate,
       this.fromAccountId,
@@ -6033,7 +6033,9 @@ class Payable extends DataClass implements Insertable<Payable> {
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
-    map['to_account_id'] = Variable<int>(toAccountId);
+    if (!nullToAbsent || toAccountId != null) {
+      map['to_account_id'] = Variable<int>(toAccountId);
+    }
     map['is_paid'] = Variable<bool>(isPaid);
     if (!nullToAbsent || paidDate != null) {
       map['paid_date'] = Variable<DateTime>(paidDate);
@@ -6054,7 +6056,9 @@ class Payable extends DataClass implements Insertable<Payable> {
       amount: Value(amount),
       payDate: Value(payDate),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
-      toAccountId: Value(toAccountId),
+      toAccountId: toAccountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(toAccountId),
       isPaid: Value(isPaid),
       paidDate: paidDate == null && nullToAbsent
           ? const Value.absent()
@@ -6077,7 +6081,7 @@ class Payable extends DataClass implements Insertable<Payable> {
       amount: serializer.fromJson<double>(json['amount']),
       payDate: serializer.fromJson<DateTime>(json['payDate']),
       note: serializer.fromJson<String?>(json['note']),
-      toAccountId: serializer.fromJson<int>(json['toAccountId']),
+      toAccountId: serializer.fromJson<int?>(json['toAccountId']),
       isPaid: serializer.fromJson<bool>(json['isPaid']),
       paidDate: serializer.fromJson<DateTime?>(json['paidDate']),
       fromAccountId: serializer.fromJson<int?>(json['fromAccountId']),
@@ -6095,7 +6099,7 @@ class Payable extends DataClass implements Insertable<Payable> {
       'amount': serializer.toJson<double>(amount),
       'payDate': serializer.toJson<DateTime>(payDate),
       'note': serializer.toJson<String?>(note),
-      'toAccountId': serializer.toJson<int>(toAccountId),
+      'toAccountId': serializer.toJson<int?>(toAccountId),
       'isPaid': serializer.toJson<bool>(isPaid),
       'paidDate': serializer.toJson<DateTime?>(paidDate),
       'fromAccountId': serializer.toJson<int?>(fromAccountId),
@@ -6111,7 +6115,7 @@ class Payable extends DataClass implements Insertable<Payable> {
           double? amount,
           DateTime? payDate,
           Value<String?> note = const Value.absent(),
-          int? toAccountId,
+          Value<int?> toAccountId = const Value.absent(),
           bool? isPaid,
           Value<DateTime?> paidDate = const Value.absent(),
           Value<int?> fromAccountId = const Value.absent(),
@@ -6124,7 +6128,7 @@ class Payable extends DataClass implements Insertable<Payable> {
         amount: amount ?? this.amount,
         payDate: payDate ?? this.payDate,
         note: note.present ? note.value : this.note,
-        toAccountId: toAccountId ?? this.toAccountId,
+        toAccountId: toAccountId.present ? toAccountId.value : this.toAccountId,
         isPaid: isPaid ?? this.isPaid,
         paidDate: paidDate.present ? paidDate.value : this.paidDate,
         fromAccountId:
@@ -6199,7 +6203,7 @@ class PayablesCompanion extends UpdateCompanion<Payable> {
   final Value<double> amount;
   final Value<DateTime> payDate;
   final Value<String?> note;
-  final Value<int> toAccountId;
+  final Value<int?> toAccountId;
   final Value<bool> isPaid;
   final Value<DateTime?> paidDate;
   final Value<int?> fromAccountId;
@@ -6226,7 +6230,7 @@ class PayablesCompanion extends UpdateCompanion<Payable> {
     required double amount,
     required DateTime payDate,
     this.note = const Value.absent(),
-    required int toAccountId,
+    this.toAccountId = const Value.absent(),
     this.isPaid = const Value.absent(),
     this.paidDate = const Value.absent(),
     this.fromAccountId = const Value.absent(),
@@ -6235,8 +6239,7 @@ class PayablesCompanion extends UpdateCompanion<Payable> {
   })  : accountId = Value(accountId),
         payeeName = Value(payeeName),
         amount = Value(amount),
-        payDate = Value(payDate),
-        toAccountId = Value(toAccountId);
+        payDate = Value(payDate);
   static Insertable<Payable> custom({
     Expression<int>? id,
     Expression<int>? accountId,
@@ -6274,7 +6277,7 @@ class PayablesCompanion extends UpdateCompanion<Payable> {
       Value<double>? amount,
       Value<DateTime>? payDate,
       Value<String?>? note,
-      Value<int>? toAccountId,
+      Value<int?>? toAccountId,
       Value<bool>? isPaid,
       Value<DateTime?>? paidDate,
       Value<int?>? fromAccountId,
@@ -9772,7 +9775,7 @@ typedef $$ReceivablesTableCreateCompanionBuilder = ReceivablesCompanion
   required double amount,
   required DateTime borrowDate,
   Value<String?> note,
-  required int fromAccountId,
+  Value<int?> fromAccountId,
   Value<bool> isReceived,
   Value<DateTime?> receiveDate,
   Value<int?> toAccountId,
@@ -9787,7 +9790,7 @@ typedef $$ReceivablesTableUpdateCompanionBuilder = ReceivablesCompanion
   Value<double> amount,
   Value<DateTime> borrowDate,
   Value<String?> note,
-  Value<int> fromAccountId,
+  Value<int?> fromAccountId,
   Value<bool> isReceived,
   Value<DateTime?> receiveDate,
   Value<int?> toAccountId,
@@ -9964,7 +9967,7 @@ class $$ReceivablesTableTableManager extends RootTableManager<
             Value<double> amount = const Value.absent(),
             Value<DateTime> borrowDate = const Value.absent(),
             Value<String?> note = const Value.absent(),
-            Value<int> fromAccountId = const Value.absent(),
+            Value<int?> fromAccountId = const Value.absent(),
             Value<bool> isReceived = const Value.absent(),
             Value<DateTime?> receiveDate = const Value.absent(),
             Value<int?> toAccountId = const Value.absent(),
@@ -9992,7 +9995,7 @@ class $$ReceivablesTableTableManager extends RootTableManager<
             required double amount,
             required DateTime borrowDate,
             Value<String?> note = const Value.absent(),
-            required int fromAccountId,
+            Value<int?> fromAccountId = const Value.absent(),
             Value<bool> isReceived = const Value.absent(),
             Value<DateTime?> receiveDate = const Value.absent(),
             Value<int?> toAccountId = const Value.absent(),
@@ -10039,7 +10042,7 @@ typedef $$PayablesTableCreateCompanionBuilder = PayablesCompanion Function({
   required double amount,
   required DateTime payDate,
   Value<String?> note,
-  required int toAccountId,
+  Value<int?> toAccountId,
   Value<bool> isPaid,
   Value<DateTime?> paidDate,
   Value<int?> fromAccountId,
@@ -10053,7 +10056,7 @@ typedef $$PayablesTableUpdateCompanionBuilder = PayablesCompanion Function({
   Value<double> amount,
   Value<DateTime> payDate,
   Value<String?> note,
-  Value<int> toAccountId,
+  Value<int?> toAccountId,
   Value<bool> isPaid,
   Value<DateTime?> paidDate,
   Value<int?> fromAccountId,
@@ -10229,7 +10232,7 @@ class $$PayablesTableTableManager extends RootTableManager<
             Value<double> amount = const Value.absent(),
             Value<DateTime> payDate = const Value.absent(),
             Value<String?> note = const Value.absent(),
-            Value<int> toAccountId = const Value.absent(),
+            Value<int?> toAccountId = const Value.absent(),
             Value<bool> isPaid = const Value.absent(),
             Value<DateTime?> paidDate = const Value.absent(),
             Value<int?> fromAccountId = const Value.absent(),
@@ -10257,7 +10260,7 @@ class $$PayablesTableTableManager extends RootTableManager<
             required double amount,
             required DateTime payDate,
             Value<String?> note = const Value.absent(),
-            required int toAccountId,
+            Value<int?> toAccountId = const Value.absent(),
             Value<bool> isPaid = const Value.absent(),
             Value<DateTime?> paidDate = const Value.absent(),
             Value<int?> fromAccountId = const Value.absent(),

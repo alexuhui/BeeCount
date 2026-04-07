@@ -28,9 +28,6 @@ final pendingAppLinkActionProvider =
 // 首页滚动到顶部触发器（每次改变值时触发滚动）
 final homeScrollToTopProvider = StateProvider<int>((ref) => 0);
 
-// 首页切换到 Stream 模式触发器（用户交互时触发）
-final homeSwitchToStreamProvider = StateProvider<int>((ref) => 0);
-
 // Currently selected month (first day), default to now
 final selectedMonthProvider = StateProvider<DateTime>((ref) {
   final now = DateTime.now();
@@ -149,25 +146,6 @@ class AccountFeatureSetter {
 final accountFeatureSetterProvider = Provider<AccountFeatureSetter>((ref) {
   return AccountFeatureSetter();
 });
-
-/// 完整的交易展示数据（含分类、标签、附件数量、账户名称）
-/// 用于首页列表一次性加载，避免二次查询闪烁
-typedef TransactionDisplayItem = ({
-  Transaction t,
-  Category? category,
-  List<Tag> tags,
-  int attachmentCount,
-  String? accountName,
-  String? toAccountName,
-});
-
-// 缓存的完整交易数据Provider（含标签、附件、账户，用于首屏快速展示）
-final cachedTransactionsProvider =
-    StateProvider<List<TransactionDisplayItem>?>((ref) => null);
-
-// 缓存的交易数据Provider（仅含分类，兼容旧版本）
-final cachedTransactionsWithCategoryProvider =
-    StateProvider<List<({Transaction t, Category? category})>?>((ref) => null);
 
 // 应用初始化Provider - 管理数据预加载
 final appSplashInitProvider = FutureProvider<void>((ref) async {

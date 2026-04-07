@@ -5,12 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../data/db.dart';
 import '../../providers/beecount_server_providers.dart';
 import '../../providers/database_providers.dart';
+import '../../providers/database_scope_provider.dart';
+import '../../services/database/database_file_utils.dart';
+import '../../services/database/database_scopes.dart';
+import '../../services/user_settings/user_setting_keys.dart';
+import '../../services/user_settings/user_settings_store.dart';
 import '../../providers/language_provider.dart';
 import '../../providers/ui_state_providers.dart';
 import '../../services/data/seed_service.dart';
@@ -378,13 +382,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (!mounted) return;
       await _saveCredentials(username, password);
 
+      final session = await ref.read(beecountSessionProvider.future);
+      if (session == null) {
+        throw StateError('登录成功但会话为空');
+      }
+      final userId = session.userId;
+
       if (wasOffline && hasLocalData) {
         final syncLocalData = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('数据同步'),
             content: const Text(
-                '检测到本地有数据，是否将本地数据同步到服务器？\n\n选择"同步"：本地数据将上传到服务器\n选择"不同步"：将清空本地数据并从服务器拉取数据'),
+                '检测到离线模式下的本地有数据，是否将本地数据同步到当前账号？\n\n选择「同步」：离线账本将复制到当前账号并上传服务器\n选择「不同步」：清空当前离线库，登录后从服务器拉取'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
@@ -400,22 +410,42 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
         if (syncLocalData == true) {
           logger.info('Login', '用户选择同步本地数据到服务器');
-          await _syncLocalDataToServer(db);
+          ref.invalidate(databaseProvider);
+          await Future<void>.delayed(const Duration(milliseconds: 120));
+          await DatabaseFileUtils.copyOfflineDatabaseToUser(userId);
+          ref.read(databaseScopeKeyProvider.notifier).state =
+              DatabaseScopes.forUserId(userId);
+          await Future<void>.delayed(const Duration(milliseconds: 80));
+          await _syncLocalDataToServer(ref.read(databaseProvider));
         } else {
-          logger.info('Login', '用户选择不同步，清空本地数据');
-          await db.delete(db.transactions).go();
-          await db.delete(db.accounts).go();
-          await db.delete(db.categories).go();
-          await db.delete(db.ledgers).go();
-          await db.delete(db.tags).go();
-          await db.delete(db.budgets).go();
-          await db.delete(db.recurringTransactions).go();
+          logger.info('Login', '用户选择不同步，清空离线库数据');
+          await db.delete(db.transactionAttachments).go();
           await db.delete(db.transactionTags).go();
+          await db.delete(db.transactions).go();
+          await db.delete(db.budgets).go();
+          await db.delete(db.accounts).go();
+          await db.delete(db.tags).go();
+          await db.delete(db.categories).go();
+          await db.delete(db.recurringTransactions).go();
+          await db.delete(db.receivablePayments).go();
+          await db.delete(db.payablePayments).go();
+          await db.delete(db.receivables).go();
+          await db.delete(db.payables).go();
+          await db.delete(db.ledgers).go();
+          await db.customStatement('DELETE FROM user_settings');
           await db.customStatement('DELETE FROM sync_id_maps');
           await db.customStatement('DELETE FROM local_change_log');
           await db.customStatement('DELETE FROM sync_queue_items');
+          ref.read(databaseScopeKeyProvider.notifier).state =
+              DatabaseScopes.forUserId(userId);
         }
+      } else {
+        ref.read(databaseScopeKeyProvider.notifier).state =
+            DatabaseScopes.forUserId(userId);
       }
+
+      ref.invalidate(databaseProvider);
+      resetInMemoryDataForAccountSwitch(ref);
 
       setState(() {
         _offlineSelected = false;
@@ -506,13 +536,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     setState(() => _isSubmitting = true);
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('welcome_shown', true);
-      await prefs.setString('selected_currency', 'CNY');
-      await prefs.setString('category_mode', 'hierarchical'); // 固定为二级分类模式
-      // await prefs.setString('app_mode', 'local');
-
       final db = ref.read(databaseProvider);
+      final settings = UserSettingsStore(db);
+      await settings.setBool(UserSettingKeys.welcomeShown, true);
+      await settings.setString(UserSettingKeys.selectedCurrency, 'CNY');
+      await settings.setString(UserSettingKeys.categoryMode, 'hierarchical');
 
       final offline = await ref.read(beecountOfflineModeProvider.future);
       LocalStorageUtils.setAppStatus(offline
@@ -617,10 +645,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       // 设置当前账本为第一个有效账本
       final ledgers = await db.select(db.ledgers).get();
       if (ledgers.isNotEmpty) {
+        ledgers.sort((a, b) => a.id.compareTo(b.id));
         final firstLedgerId = ledgers.first.id;
         ref.read(currentLedgerIdProvider.notifier).state = firstLedgerId;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('current_ledger_id', firstLedgerId);
+        await settings.setInt(UserSettingKeys.currentLedgerId, firstLedgerId);
         logger.info('Login', '设置当前账本 ID: $firstLedgerId');
       }
       ref.read(shouldShowLoginProvider.notifier).state = false;

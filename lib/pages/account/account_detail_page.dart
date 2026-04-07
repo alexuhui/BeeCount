@@ -972,7 +972,6 @@ class _ReceivableTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final primaryColor = ref.watch(primaryColorProvider);
-    final fromAccountAsync = ref.watch(accountByIdProvider(receivable.fromAccountId));
 
     return InkWell(
       onTap: onTap,
@@ -1041,13 +1040,21 @@ class _ReceivableTile extends ConsumerWidget {
                   ),
                   Padding(
                     padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
-                    child: Text(
-                      '借款账户: ${fromAccountAsync.value?.name ?? '-'}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: BeeTokens.textSecondary(context),
-                      ),
-                    ),
+                    child: receivable.fromAccountId == null
+                        ? Text(
+                            '借款账户: 未关联',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: BeeTokens.textSecondary(context),
+                            ),
+                          )
+                        : Text(
+                            '借款账户: ${ref.watch(accountByIdProvider(receivable.fromAccountId!)).value?.name ?? '-'}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: BeeTokens.textSecondary(context),
+                            ),
+                          ),
                   ),
                   Padding(
                     padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
@@ -1102,7 +1109,6 @@ class _PayableTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final primaryColor = ref.watch(primaryColorProvider);
-    final toAccountAsync = ref.watch(accountByIdProvider(payable.toAccountId));
 
     return InkWell(
       onTap: onTap,
@@ -1170,13 +1176,21 @@ class _PayableTile extends ConsumerWidget {
                   ),
                   Padding(
                     padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
-                    child: Text(
-                      '入账账户: ${toAccountAsync.value?.name ?? '-'}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: BeeTokens.textSecondary(context),
-                      ),
-                    ),
+                    child: payable.toAccountId == null
+                        ? Text(
+                            '入账账户: 未关联',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: BeeTokens.textSecondary(context),
+                            ),
+                          )
+                        : Text(
+                            '入账账户: ${ref.watch(accountByIdProvider(payable.toAccountId!)).value?.name ?? '-'}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: BeeTokens.textSecondary(context),
+                            ),
+                          ),
                   ),
                   Padding(
                     padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),

@@ -19,7 +19,7 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     required double amount,
     required DateTime borrowDate,
     String? note,
-    required int fromAccountId,
+    int? fromAccountId,
     bool isReceived = false,
     DateTime? receiveDate,
     int? toAccountId,
@@ -31,7 +31,7 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
             borrowerName: borrowerName,
             amount: amount,
             borrowDate: borrowDate,
-            fromAccountId: fromAccountId,
+            fromAccountId: fromAccountId != null ? d.Value(fromAccountId) : const d.Value.absent(),
             note: d.Value(note),
             isReceived: d.Value(isReceived),
             receiveDate: d.Value(receiveDate),
@@ -40,24 +40,23 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
             updatedAt: d.Value(now),
           ));
 
-      // 获取当前账本ID（从账户中获取）
-      final fromAccount = await (db.select(db.accounts)..where((a) => a.id.equals(fromAccountId))).getSingle();
-      final ledgerId = fromAccount.ledgerId;
+      if (fromAccountId != null) {
+        final fromAccount = await (db.select(db.accounts)..where((a) => a.id.equals(fromAccountId))).getSingle();
+        final ledgerId = fromAccount.ledgerId;
 
-      // 创建关联的“隐藏”交易：从借出账户转账到应收款账户
-      await db.into(db.transactions).insert(TransactionsCompanion.insert(
-            ledgerId: ledgerId,
-            type: 'transfer',
-            amount: amount,
-            accountId: d.Value(fromAccountId),
-            toAccountId: d.Value(accountId),
-            happenedAt: d.Value(borrowDate),
-            note: d.Value('借出给 $borrowerName${note != null ? ": $note" : ""}'),
-            excludeFromStats: const d.Value(true),
-            receivableId: d.Value(id),
-          ));
+        await db.into(db.transactions).insert(TransactionsCompanion.insert(
+              ledgerId: ledgerId,
+              type: 'transfer',
+              amount: amount,
+              accountId: d.Value(fromAccountId),
+              toAccountId: d.Value(accountId),
+              happenedAt: d.Value(borrowDate),
+              note: d.Value('借出给 $borrowerName${note != null ? ": $note" : ""}'),
+              excludeFromStats: const d.Value(true),
+              receivableId: d.Value(id),
+            ));
+      }
 
-      // 如果创建时就是已收状态，则再创建一笔还款交易
       if (isReceived && toAccountId != null) {
         await addReceivablePayment(
           receivableId: id,
@@ -83,6 +82,7 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     DateTime? borrowDate,
     String? note,
     int? fromAccountId,
+    bool applyFromAccountId = false,
     bool? isReceived,
     DateTime? receiveDate,
     int? toAccountId,
@@ -94,25 +94,15 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
         throw Exception('应收款记录不存在: $id');
       }
 
-      // 获取原有的关联交易
-      final oldTransactions = await (db.select(db.transactions)..where((t) => t.receivableId.equals(id))).get();
-
-      // 如果金额、日期或账户发生变化，或者备注变化，简单起见我们重新生成交易
-      // 但如果只是标记为已收，我们只添加新交易
-
-      final isAmountChanged = amount != null && amount != receivable.amount;
-      final isBorrowDateChanged = borrowDate != null && borrowDate != receivable.borrowDate;
-      final isFromAccountChanged = fromAccountId != null && fromAccountId != receivable.fromAccountId;
       final isStatusChanged = isReceived != null && isReceived != receivable.isReceived;
 
-      // 更新应收款记录
       await (db.update(db.receivables)..where((t) => t.id.equals(id))).write(
         ReceivablesCompanion(
           borrowerName: borrowerName != null ? d.Value(borrowerName) : d.Value.absent(),
           amount: amount != null ? d.Value(amount) : d.Value.absent(),
           borrowDate: borrowDate != null ? d.Value(borrowDate) : d.Value.absent(),
           note: note != null ? d.Value(note) : d.Value.absent(),
-          fromAccountId: fromAccountId != null ? d.Value(fromAccountId) : d.Value.absent(),
+          fromAccountId: applyFromAccountId ? d.Value(fromAccountId) : d.Value.absent(),
           isReceived: isReceived != null ? d.Value(isReceived) : d.Value.absent(),
           receiveDate: receiveDate != null ? d.Value(receiveDate) : d.Value.absent(),
           toAccountId: toAccountId != null ? d.Value(toAccountId) : d.Value.absent(),
@@ -122,33 +112,14 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
 
       final currentReceivable = await (db.select(db.receivables)..where((t) => t.id.equals(id))).getSingle();
 
-      // 重新生成借款交易（第一笔关联交易）
-      if (isAmountChanged || isBorrowDateChanged || isFromAccountChanged || borrowerName != null || note != null) {
-        final borrowTx = oldTransactions.isEmpty ? null : oldTransactions.first;
-        final fromAccId = fromAccountId ?? receivable.fromAccountId;
-        final fromAccount = await (db.select(db.accounts)..where((a) => a.id.equals(fromAccId))).getSingle();
+      await _syncReceivableBorrowHiddenTransfer(currentReceivable);
 
-        if (borrowTx != null) {
-          await (db.update(db.transactions)..where((t) => t.id.equals(borrowTx.id))).write(
-            TransactionsCompanion(
-              amount: d.Value(amount ?? receivable.amount),
-              happenedAt: d.Value(borrowDate ?? receivable.borrowDate),
-              accountId: d.Value(fromAccId),
-              toAccountId: d.Value(receivable.accountId),
-              note: d.Value('借出给 ${borrowerName ?? receivable.borrowerName}${note != null ? ": $note" : (receivable.note != null ? ": ${receivable.note}" : "")}'),
-            ),
-          );
-        }
-      }
-
-      // 处理还款交易
       if (isStatusChanged) {
         if (currentReceivable.isReceived) {
-          // 变为已收：创建还款记录（补全剩余金额）
           final allPayments = await (db.select(db.receivablePayments)..where((p) => p.receivableId.equals(id))).get();
           final totalPaid = allPayments.fold<double>(0, (sum, p) => sum + p.amount);
           final remaining = currentReceivable.amount - totalPaid;
-          
+
           if (remaining > 0) {
             await addReceivablePayment(
               receivableId: id,
@@ -158,20 +129,63 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
               note: '手动标记为已收',
             );
           }
-        } else {
-          // 变为未收：由于现在支持分次还款，手动取消“已收”状态通常意味着删除所有还款记录吗？
-          // 这里为了简单，如果用户手动取消“已收”，我们保持还款记录不变，只更新主表状态。
-          // 但实际上，Repository 应该保证一致性。
-          // 这里的 isReceived 字段现在更多是作为“是否结清”的标志。
         }
-      } else if (currentReceivable.isReceived && (receiveDate != null || toAccountId != null)) {
-        // 如果已经是已收状态且更新了日期或账户，我们不直接更新交易，
-        // 因为可能有多个 payment。这种情况下应该让用户去管理具体的 payments。
-        // 但为了兼容旧逻辑，我们暂时不做操作，或者打印警告。
       }
 
       logger.info('LocalReceivablePayableRepository', '更新应收款记录及其关联交易: id=$id');
     });
+  }
+
+  /// 同步「借出」隐藏转账：有借款账户时创建/更新，无则删除。
+  Future<void> _syncReceivableBorrowHiddenTransfer(Receivable r) async {
+    final borrowTx = await _findReceivableBorrowTransfer(r.id);
+
+    if (r.fromAccountId == null) {
+      if (borrowTx != null) {
+        await (db.delete(db.transactions)..where((t) => t.id.equals(borrowTx.id))).go();
+      }
+      return;
+    }
+
+    final fromAccount = await (db.select(db.accounts)..where((a) => a.id.equals(r.fromAccountId!))).getSingle();
+    final ledgerId = fromAccount.ledgerId;
+    final noteText =
+        '借出给 ${r.borrowerName}${r.note != null && r.note!.isNotEmpty ? ": ${r.note}" : ""}';
+
+    if (borrowTx != null) {
+      await (db.update(db.transactions)..where((t) => t.id.equals(borrowTx.id))).write(
+            TransactionsCompanion(
+              ledgerId: d.Value(ledgerId),
+              amount: d.Value(r.amount),
+              happenedAt: d.Value(r.borrowDate),
+              accountId: d.Value(r.fromAccountId!),
+              toAccountId: d.Value(r.accountId),
+              note: d.Value(noteText),
+            ),
+          );
+    } else {
+      await db.into(db.transactions).insert(TransactionsCompanion.insert(
+            ledgerId: ledgerId,
+            type: 'transfer',
+            amount: r.amount,
+            accountId: d.Value(r.fromAccountId!),
+            toAccountId: d.Value(r.accountId),
+            happenedAt: d.Value(r.borrowDate),
+            note: d.Value(noteText),
+            excludeFromStats: const d.Value(true),
+            receivableId: d.Value(r.id),
+          ));
+    }
+  }
+
+  Future<Transaction?> _findReceivableBorrowTransfer(int receivableId) async {
+    final rows = await (db.select(db.transactions)
+          ..where((t) =>
+              t.receivableId.equals(receivableId) &
+              t.receivablePaymentId.isNull() &
+              t.type.equals('transfer')))
+        .get();
+    return rows.isEmpty ? null : rows.first;
   }
 
   @override
@@ -259,7 +273,7 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     required double amount,
     required DateTime payDate,
     String? note,
-    required int toAccountId,
+    int? toAccountId,
     bool isPaid = false,
     DateTime? paidDate,
     int? fromAccountId,
@@ -271,7 +285,7 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
             payeeName: payeeName,
             amount: amount,
             payDate: payDate,
-            toAccountId: toAccountId,
+            toAccountId: toAccountId != null ? d.Value(toAccountId) : const d.Value.absent(),
             note: d.Value(note),
             isPaid: d.Value(isPaid),
             paidDate: d.Value(paidDate),
@@ -280,24 +294,23 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
             updatedAt: d.Value(now),
           ));
 
-      // 获取当前账本ID
-      final toAccount = await (db.select(db.accounts)..where((a) => a.id.equals(toAccountId))).getSingle();
-      final ledgerId = toAccount.ledgerId;
+      if (toAccountId != null) {
+        final toAccount = await (db.select(db.accounts)..where((a) => a.id.equals(toAccountId))).getSingle();
+        final ledgerId = toAccount.ledgerId;
 
-      // 创建关联的“隐藏”交易：从应付款账户转账到入账账户
-      await db.into(db.transactions).insert(TransactionsCompanion.insert(
-            ledgerId: ledgerId,
-            type: 'transfer',
-            amount: amount,
-            accountId: d.Value(accountId),
-            toAccountId: d.Value(toAccountId),
-            happenedAt: d.Value(payDate),
-            note: d.Value('向 $payeeName 借入${note != null ? ": $note" : ""}'),
-            excludeFromStats: const d.Value(true),
-            payableId: d.Value(id),
-          ));
+        await db.into(db.transactions).insert(TransactionsCompanion.insert(
+              ledgerId: ledgerId,
+              type: 'transfer',
+              amount: amount,
+              accountId: d.Value(accountId),
+              toAccountId: d.Value(toAccountId),
+              happenedAt: d.Value(payDate),
+              note: d.Value('向 $payeeName 借入${note != null ? ": $note" : ""}'),
+              excludeFromStats: const d.Value(true),
+              payableId: d.Value(id),
+            ));
+      }
 
-      // 如果创建时就是已还状态
       if (isPaid && fromAccountId != null) {
         await addPayablePayment(
           payableId: id,
@@ -323,6 +336,7 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     DateTime? payDate,
     String? note,
     int? toAccountId,
+    bool applyToAccountId = false,
     bool? isPaid,
     DateTime? paidDate,
     int? fromAccountId,
@@ -334,11 +348,6 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
         throw Exception('应付款记录不存在: $id');
       }
 
-      final oldTransactions = await (db.select(db.transactions)..where((t) => t.payableId.equals(id))).get();
-
-      final isAmountChanged = amount != null && amount != payable.amount;
-      final isPayDateChanged = payDate != null && payDate != payable.payDate;
-      final isToAccountChanged = toAccountId != null && toAccountId != payable.toAccountId;
       final isStatusChanged = isPaid != null && isPaid != payable.isPaid;
 
       await (db.update(db.payables)..where((t) => t.id.equals(id))).write(
@@ -347,7 +356,7 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
           amount: amount != null ? d.Value(amount) : d.Value.absent(),
           payDate: payDate != null ? d.Value(payDate) : d.Value.absent(),
           note: note != null ? d.Value(note) : d.Value.absent(),
-          toAccountId: toAccountId != null ? d.Value(toAccountId) : d.Value.absent(),
+          toAccountId: applyToAccountId ? d.Value(toAccountId) : d.Value.absent(),
           isPaid: isPaid != null ? d.Value(isPaid) : d.Value.absent(),
           paidDate: paidDate != null ? d.Value(paidDate) : d.Value.absent(),
           fromAccountId: fromAccountId != null ? d.Value(fromAccountId) : d.Value.absent(),
@@ -357,28 +366,10 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
 
       final currentPayable = await (db.select(db.payables)..where((t) => t.id.equals(id))).getSingle();
 
-      // 更新借入交易
-      if (isAmountChanged || isPayDateChanged || isToAccountChanged || payeeName != null || note != null) {
-        final borrowTx = oldTransactions.isEmpty ? null : oldTransactions.first;
-        final toAccId = toAccountId ?? payable.toAccountId;
+      await _syncPayableBorrowHiddenTransfer(currentPayable);
 
-        if (borrowTx != null) {
-          await (db.update(db.transactions)..where((t) => t.id.equals(borrowTx.id))).write(
-            TransactionsCompanion(
-              amount: d.Value(amount ?? payable.amount),
-              happenedAt: d.Value(payDate ?? payable.payDate),
-              accountId: d.Value(payable.accountId),
-              toAccountId: d.Value(toAccId),
-              note: d.Value('向 ${payeeName ?? payable.payeeName} 借入${note != null ? ": $note" : (payable.note != null ? ": ${payable.note}" : "")}'),
-            ),
-          );
-        }
-      }
-
-      // 处理还款交易
       if (isStatusChanged) {
         if (currentPayable.isPaid) {
-          // 变为已还：创建还款记录（补全剩余金额）
           final allPayments = await (db.select(db.payablePayments)..where((p) => p.payableId.equals(id))).get();
           final totalPaid = allPayments.fold<double>(0, (sum, p) => sum + p.amount);
           final remaining = currentPayable.amount - totalPaid;
@@ -392,15 +383,63 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
               note: '手动标记为已还',
             );
           }
-        } else {
-          // 变为未还：保持还款记录不变，只更新主表状态
         }
-      } else if (currentPayable.isPaid && (paidDate != null || fromAccountId != null)) {
-        // 同 receivable
       }
 
       logger.info('LocalReceivablePayableRepository', '更新应付款记录及其关联交易: id=$id');
     });
+  }
+
+  /// 同步「借入」隐藏转账：有入账账户时创建/更新，无则删除。
+  Future<void> _syncPayableBorrowHiddenTransfer(Payable p) async {
+    final borrowTx = await _findPayableBorrowTransfer(p.id);
+
+    if (p.toAccountId == null) {
+      if (borrowTx != null) {
+        await (db.delete(db.transactions)..where((t) => t.id.equals(borrowTx.id))).go();
+      }
+      return;
+    }
+
+    final toAccount = await (db.select(db.accounts)..where((a) => a.id.equals(p.toAccountId!))).getSingle();
+    final ledgerId = toAccount.ledgerId;
+    final noteText =
+        '向 ${p.payeeName} 借入${p.note != null && p.note!.isNotEmpty ? ": ${p.note}" : ""}';
+
+    if (borrowTx != null) {
+      await (db.update(db.transactions)..where((t) => t.id.equals(borrowTx.id))).write(
+            TransactionsCompanion(
+              ledgerId: d.Value(ledgerId),
+              amount: d.Value(p.amount),
+              happenedAt: d.Value(p.payDate),
+              accountId: d.Value(p.accountId),
+              toAccountId: d.Value(p.toAccountId!),
+              note: d.Value(noteText),
+            ),
+          );
+    } else {
+      await db.into(db.transactions).insert(TransactionsCompanion.insert(
+            ledgerId: ledgerId,
+            type: 'transfer',
+            amount: p.amount,
+            accountId: d.Value(p.accountId),
+            toAccountId: d.Value(p.toAccountId!),
+            happenedAt: d.Value(p.payDate),
+            note: d.Value(noteText),
+            excludeFromStats: const d.Value(true),
+            payableId: d.Value(p.id),
+          ));
+    }
+  }
+
+  Future<Transaction?> _findPayableBorrowTransfer(int payableId) async {
+    final rows = await (db.select(db.transactions)
+          ..where((t) =>
+              t.payableId.equals(payableId) &
+              t.payablePaymentId.isNull() &
+              t.type.equals('transfer')))
+        .get();
+    return rows.isEmpty ? null : rows.first;
   }
 
   @override

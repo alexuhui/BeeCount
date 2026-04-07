@@ -10,6 +10,7 @@ import '../../widgets/biz/biz.dart';
 import '../../styles/tokens.dart';
 import '../../utils/ui_scale_extensions.dart';
 import '../account/account_detail_page.dart' show receivableStatsProvider, receivableBalanceProvider;
+import '../../providers/statistics_providers.dart';
 
 /// 应收款记录编辑页面
 class ReceivableEditPage extends ConsumerStatefulWidget {
@@ -146,8 +147,9 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
                             accounts: otherAccounts,
                             selectedAccountId: _fromAccountId,
                             label: '借款账户',
-                            hint: '选择借款时扣款的账户',
+                            hint: '不选择则仅记在应收账户上',
                             icon: Icons.account_balance_wallet_outlined,
+                            allowClear: true,
                             onAccountSelected: (accountId) {
                               setState(() => _fromAccountId = accountId);
                             },
@@ -396,7 +398,8 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
     required String label,
     required String hint,
     required IconData icon,
-    required Function(int) onAccountSelected,
+    required void Function(int? accountId) onAccountSelected,
+    bool allowClear = false,
   }) {
     final selectedAccount = selectedAccountId != null
         ? accounts.cast<db.Account?>().firstWhere(
@@ -425,6 +428,15 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
                   ),
                 ),
                 const Divider(height: 1),
+                if (allowClear)
+                  ListTile(
+                    leading: Icon(Icons.remove_circle_outline, color: BeeTokens.textSecondary(context)),
+                    title: Text(
+                      '不关联账户',
+                      style: TextStyle(color: BeeTokens.textSecondary(context)),
+                    ),
+                    onTap: () => Navigator.pop(context, -1),
+                  ),
                 Flexible(
                   child: ListView.builder(
                     shrinkWrap: true,
@@ -450,9 +462,8 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
             ),
           ),
         );
-        if (result != null) {
-          onAccountSelected(result);
-        }
+        if (result == null) return;
+        onAccountSelected(result == -1 ? null : result);
       },
       child: Padding(
         padding: EdgeInsets.all(16.0.scaled(context, ref)),
@@ -578,10 +589,6 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
       showToast(context, '请输入有效金额');
       return;
     }
-    if (_fromAccountId == null) {
-      showToast(context, '请选择借款账户');
-      return;
-    }
     if (_isReceived && _toAccountId == null) {
       showToast(context, '请选择收款账户');
       return;
@@ -600,7 +607,8 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
           amount: _amount,
           borrowDate: _borrowDate,
           note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
-          fromAccountId: _fromAccountId!,
+          fromAccountId: _fromAccountId,
+          applyFromAccountId: true,
           isReceived: _isReceived,
           receiveDate: _isReceived ? _receiveDate : null,
           toAccountId: _isReceived ? _toAccountId : null,
@@ -613,7 +621,7 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
           amount: _amount,
           borrowDate: _borrowDate,
           note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
-          fromAccountId: _fromAccountId!,
+          fromAccountId: _fromAccountId,
           isReceived: _isReceived,
           receiveDate: _isReceived ? _receiveDate : null,
           toAccountId: _isReceived ? _toAccountId : null,
@@ -624,6 +632,7 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
       ref.invalidate(receivableBalanceProvider(widget.account.id));
       ref.invalidate(allAccountStatsProvider);
       ref.invalidate(allAccountsTotalStatsProvider);
+      ref.read(statsRefreshProvider.notifier).state++;
 
       if (mounted) {
         Navigator.of(context).pop(true);

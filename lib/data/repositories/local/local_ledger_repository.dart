@@ -122,6 +122,49 @@ class LocalLedgerRepository implements LedgerRepository {
       // transfer 不影响总余额
     }
 
+    // 账本维度：应收未收 − 应付未还（隐藏转账不计入上方收支，在此补全）
+    double receivableOutstanding = 0.0;
+    final recRows = await db.customSelect(
+      '''
+      SELECT r.amount AS amount, COALESCE(SUM(p.amount), 0) AS paid
+      FROM receivables r
+      INNER JOIN accounts a ON a.id = r.account_id
+      LEFT JOIN receivable_payments p ON p.receivable_id = r.id
+      WHERE a.ledger_id = ?1
+      GROUP BY r.id, r.amount
+      ''',
+      variables: [d.Variable.withInt(ledgerId)],
+      readsFrom: {db.receivables, db.accounts, db.receivablePayments},
+    ).get();
+    for (final row in recRows) {
+      final amount = (row.data['amount'] as num).toDouble();
+      final paid = (row.data['paid'] as num).toDouble();
+      final o = amount - paid;
+      if (o > 0) receivableOutstanding += o;
+    }
+
+    double payableOutstanding = 0.0;
+    final payRows = await db.customSelect(
+      '''
+      SELECT p.amount AS amount, COALESCE(SUM(pp.amount), 0) AS paid
+      FROM payables p
+      INNER JOIN accounts a ON a.id = p.account_id
+      LEFT JOIN payable_payments pp ON pp.payable_id = p.id
+      WHERE a.ledger_id = ?1
+      GROUP BY p.id, p.amount
+      ''',
+      variables: [d.Variable.withInt(ledgerId)],
+      readsFrom: {db.payables, db.accounts, db.payablePayments},
+    ).get();
+    for (final row in payRows) {
+      final amount = (row.data['amount'] as num).toDouble();
+      final paid = (row.data['paid'] as num).toDouble();
+      final o = amount - paid;
+      if (o > 0) payableOutstanding += o;
+    }
+
+    balance += receivableOutstanding - payableOutstanding;
+
     return (balance: balance, transactionCount: transactionCount);
   }
 

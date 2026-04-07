@@ -339,6 +339,45 @@ class LocalAccountRepository implements AccountRepository {
       totalBalance += balance;
     }
 
+    // 未关联借款/入账账户的应收应付：账户余额中未体现，在此补全净资产
+    double orphanReceivable = 0.0;
+    final orphanRecRows = await db.customSelect(
+      '''
+      SELECT r.amount AS amount, COALESCE(SUM(p.amount), 0) AS paid
+      FROM receivables r
+      LEFT JOIN receivable_payments p ON p.receivable_id = r.id
+      WHERE r.from_account_id IS NULL
+      GROUP BY r.id, r.amount
+      ''',
+      readsFrom: {db.receivables, db.receivablePayments},
+    ).get();
+    for (final row in orphanRecRows) {
+      final amount = (row.data['amount'] as num).toDouble();
+      final paid = (row.data['paid'] as num).toDouble();
+      final o = amount - paid;
+      if (o > 0) orphanReceivable += o;
+    }
+
+    double orphanPayable = 0.0;
+    final orphanPayRows = await db.customSelect(
+      '''
+      SELECT p.amount AS amount, COALESCE(SUM(pp.amount), 0) AS paid
+      FROM payables p
+      LEFT JOIN payable_payments pp ON pp.payable_id = p.id
+      WHERE p.to_account_id IS NULL
+      GROUP BY p.id, p.amount
+      ''',
+      readsFrom: {db.payables, db.payablePayments},
+    ).get();
+    for (final row in orphanPayRows) {
+      final amount = (row.data['amount'] as num).toDouble();
+      final paid = (row.data['paid'] as num).toDouble();
+      final o = amount - paid;
+      if (o > 0) orphanPayable += o;
+    }
+
+    totalBalance += orphanReceivable - orphanPayable;
+
     // 总收入/支出：直接从交易表查询，排除转账类型
     final accountIds = accounts.map((a) => a.id).toSet();
 

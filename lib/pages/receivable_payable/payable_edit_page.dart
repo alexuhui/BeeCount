@@ -9,6 +9,7 @@ import '../../widgets/biz/biz.dart';
 import '../../styles/tokens.dart';
 import '../../utils/ui_scale_extensions.dart';
 import '../account/account_detail_page.dart' show payableStatsProvider, payableBalanceProvider;
+import '../../providers/statistics_providers.dart';
 
 /// 应付款记录编辑页面
 class PayableEditPage extends ConsumerStatefulWidget {
@@ -145,8 +146,9 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
                             accounts: otherAccounts,
                             selectedAccountId: _toAccountId,
                             label: '入账账户',
-                            hint: '选择钱转入的账户',
+                            hint: '不选择则仅记在应付款账户上',
                             icon: Icons.account_balance_outlined,
+                            allowClear: true,
                             onAccountSelected: (accountId) {
                               setState(() => _toAccountId = accountId);
                             },
@@ -395,7 +397,8 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
     required String label,
     required String hint,
     required IconData icon,
-    required Function(int) onAccountSelected,
+    required void Function(int? accountId) onAccountSelected,
+    bool allowClear = false,
   }) {
     final selectedAccount = selectedAccountId != null
         ? accounts.cast<db.Account?>().firstWhere(
@@ -424,6 +427,15 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
                   ),
                 ),
                 const Divider(height: 1),
+                if (allowClear)
+                  ListTile(
+                    leading: Icon(Icons.remove_circle_outline, color: BeeTokens.textSecondary(context)),
+                    title: Text(
+                      '不关联账户',
+                      style: TextStyle(color: BeeTokens.textSecondary(context)),
+                    ),
+                    onTap: () => Navigator.pop(context, -1),
+                  ),
                 Flexible(
                   child: ListView.builder(
                     shrinkWrap: true,
@@ -449,9 +461,8 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
             ),
           ),
         );
-        if (result != null) {
-          onAccountSelected(result);
-        }
+        if (result == null) return;
+        onAccountSelected(result == -1 ? null : result);
       },
       child: Padding(
         padding: EdgeInsets.all(16.0.scaled(context, ref)),
@@ -577,10 +588,6 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
       showToast(context, '请输入有效金额');
       return;
     }
-    if (_toAccountId == null) {
-      showToast(context, '请选择入账账户');
-      return;
-    }
     if (_isPaid && _fromAccountId == null) {
       showToast(context, '请选择还款账户');
       return;
@@ -599,7 +606,8 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
           amount: _amount,
           payDate: _payDate,
           note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
-          toAccountId: _toAccountId!,
+          toAccountId: _toAccountId,
+          applyToAccountId: true,
           isPaid: _isPaid,
           paidDate: _isPaid ? _paidDate : null,
           fromAccountId: _isPaid ? _fromAccountId : null,
@@ -612,7 +620,7 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
           amount: _amount,
           payDate: _payDate,
           note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
-          toAccountId: _toAccountId!,
+          toAccountId: _toAccountId,
           isPaid: _isPaid,
           paidDate: _isPaid ? _paidDate : null,
           fromAccountId: _isPaid ? _fromAccountId : null,
@@ -623,6 +631,7 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
       ref.invalidate(payableBalanceProvider(widget.account.id));
       ref.invalidate(allAccountStatsProvider);
       ref.invalidate(allAccountsTotalStatsProvider);
+      ref.read(statsRefreshProvider.notifier).state++;
 
       if (mounted) {
         Navigator.of(context).pop(true);

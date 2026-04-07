@@ -218,8 +218,8 @@ class Receivables extends Table {
   /// 备注
   TextColumn get note => text().nullable()();
 
-  /// 借款账户ID（借款时扣款的账户）
-  IntColumn get fromAccountId => integer()();
+  /// 借款账户ID（借款时扣款的账户，可选：不选则仅记在应收账户上，由净资产公式补全）
+  IntColumn get fromAccountId => integer().nullable()();
 
   /// 是否已收款
   BoolColumn get isReceived => boolean().withDefault(const Constant(false))();
@@ -256,8 +256,8 @@ class Payables extends Table {
   /// 备注
   TextColumn get note => text().nullable()();
 
-  /// 入账账户ID（钱转入到了哪里）
-  IntColumn get toAccountId => integer()();
+  /// 入账账户ID（钱转入到了哪里，可选：不选则负债仅体现在应付款账户上，由净资产公式补全）
+  IntColumn get toAccountId => integer().nullable()();
 
   /// 是否已还款
   BoolColumn get isPaid => boolean().withDefault(const Constant(false))();
@@ -345,15 +345,22 @@ class PayablePayments extends Table {
   PayablePayments,
 ])
 class BeeDatabase extends _$BeeDatabase {
-  BeeDatabase() : super(_openConnection());
+  /// [scopeKey] 决定本地 sqlite 文件名（如 offline、signed_out、user_123）。
+  BeeDatabase({required String scopeKey}) : super(_openConnectionForScope(scopeKey));
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 21;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (migrator) async {
           await migrator.createAll();
+          await customStatement('''
+            CREATE TABLE IF NOT EXISTS user_settings (
+              "key" TEXT NOT NULL PRIMARY KEY,
+              "value" TEXT
+            );
+          ''');
           await customStatement('''
             CREATE TABLE IF NOT EXISTS sync_queue_items (
               entity TEXT NOT NULL,
@@ -764,6 +771,64 @@ class BeeDatabase extends _$BeeDatabase {
             
             logger.info('DB', 'v19 迁移完成: 应收应付分次还款记录表及关联字段已创建');
           }
+          if (from < 20) {
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS user_settings (
+                "key" TEXT NOT NULL PRIMARY KEY,
+                "value" TEXT
+              );
+            ''');
+            logger.info('DB', 'v20: user_settings 表已创建');
+          }
+          if (from < 21) {
+            // v21: 应收/应付的借款账户、入账账户可为空（不强制关联现金流账户）
+            print('[DB Migration] 开始迁移到 v21: receivables.from_account_id / payables.to_account_id 可空');
+            await customStatement('''
+              CREATE TABLE receivables_new (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER NOT NULL,
+                borrower_name TEXT NOT NULL,
+                amount REAL NOT NULL,
+                borrow_date INTEGER NOT NULL,
+                note TEXT,
+                from_account_id INTEGER,
+                is_received INTEGER NOT NULL DEFAULT 0,
+                receive_date INTEGER,
+                to_account_id INTEGER,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+              );
+            ''');
+            await customStatement(
+                'INSERT INTO receivables_new SELECT * FROM receivables;');
+            await customStatement('DROP TABLE receivables;');
+            await customStatement(
+                'ALTER TABLE receivables_new RENAME TO receivables;');
+
+            await customStatement('''
+              CREATE TABLE payables_new (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER NOT NULL,
+                payee_name TEXT NOT NULL,
+                amount REAL NOT NULL,
+                pay_date INTEGER NOT NULL,
+                note TEXT,
+                to_account_id INTEGER,
+                is_paid INTEGER NOT NULL DEFAULT 0,
+                paid_date INTEGER,
+                from_account_id INTEGER,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+              );
+            ''');
+            await customStatement(
+                'INSERT INTO payables_new SELECT * FROM payables;');
+            await customStatement('DROP TABLE payables;');
+            await customStatement(
+                'ALTER TABLE payables_new RENAME TO payables;');
+            logger.info('DB', 'v21: receivables/payables 可空字段迁移完成');
+            print('[DB Migration] v21 迁移完成');
+          }
         },
       );
 
@@ -800,19 +865,19 @@ class BeeDatabase extends _$BeeDatabase {
   }
 }
 
-LazyDatabase _openConnection() {
+LazyDatabase _openConnectionForScope(String scopeKey) {
   return LazyDatabase(() async {
     final dir = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dir.path, 'beecount.sqlite'));
+    final safe = scopeKey.replaceAll(RegExp(r'[^a-zA-Z0-9_.@-]'), '_');
+    final fileName = 'beecount_scope_$safe.sqlite';
+    final file = File(p.join(dir.path, fileName));
+    logger.info('db', '打开数据库 scope=$scopeKey -> $fileName');
 
-    // 开发环境：如果检测到锁文件，尝试删除（仅用于调试）
     try {
-      final shmFile = File(p.join(dir.path, 'beecount.sqlite-shm'));
-      final walFile = File(p.join(dir.path, 'beecount.sqlite-wal'));
-
+      final shmFile = File(p.join(dir.path, '$fileName-shm'));
+      final walFile = File(p.join(dir.path, '$fileName-wal'));
       if (shmFile.existsSync() || walFile.existsSync()) {
         logger.warning('db', '检测到 SQLite 临时文件，可能存在锁定');
-        // 注意：只在开发环境中记录，不自动删除，因为可能正在使用
       }
     } catch (e) {
       logger.debug('db', '检查锁文件时出错: $e');

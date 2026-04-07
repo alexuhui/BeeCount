@@ -1267,13 +1267,16 @@ class LocalRepository extends BaseRepository {
       await (db.delete(db.ledgers)).go();
       logger.info('LocalRepository', '已删除所有账本');
 
-      // 12. 清空同步ID映射
+      // 12. 用户设置（键值）
+      await db.customStatement('DELETE FROM user_settings');
+      logger.info('LocalRepository', '已删除 user_settings');
+      // 13. 清空同步ID映射
       await db.customStatement('DELETE FROM sync_id_maps');
       logger.info('LocalRepository', '已清空同步ID映射');
-      // 13. 清空本地变更日志
+      // 14. 清空本地变更日志
       await db.customStatement('DELETE FROM local_change_log');
       logger.info('LocalRepository', '已清空本地变更日志');
-      // 14. 清空同步队列
+      // 15. 清空同步队列
       await db.customStatement('DELETE FROM sync_queue_items');
       logger.info('LocalRepository', '已清空同步队列');
     });
@@ -1290,7 +1293,7 @@ class LocalRepository extends BaseRepository {
     required double amount,
     required DateTime borrowDate,
     String? note,
-    required int fromAccountId,
+    int? fromAccountId,
     bool isReceived = false,
     DateTime? receiveDate,
     int? toAccountId,
@@ -1315,6 +1318,7 @@ class LocalRepository extends BaseRepository {
     DateTime? borrowDate,
     String? note,
     int? fromAccountId,
+    bool applyFromAccountId = false,
     bool? isReceived,
     DateTime? receiveDate,
     int? toAccountId,
@@ -1327,6 +1331,7 @@ class LocalRepository extends BaseRepository {
         borrowDate: borrowDate,
         note: note,
         fromAccountId: fromAccountId,
+        applyFromAccountId: applyFromAccountId,
         isReceived: isReceived,
         receiveDate: receiveDate,
         toAccountId: toAccountId,
@@ -1364,7 +1369,7 @@ class LocalRepository extends BaseRepository {
     required double amount,
     required DateTime payDate,
     String? note,
-    required int toAccountId,
+    int? toAccountId,
     bool isPaid = false,
     DateTime? paidDate,
     int? fromAccountId,
@@ -1389,6 +1394,7 @@ class LocalRepository extends BaseRepository {
     DateTime? payDate,
     String? note,
     int? toAccountId,
+    bool applyToAccountId = false,
     bool? isPaid,
     DateTime? paidDate,
     int? fromAccountId,
@@ -1401,6 +1407,7 @@ class LocalRepository extends BaseRepository {
         payDate: payDate,
         note: note,
         toAccountId: toAccountId,
+        applyToAccountId: applyToAccountId,
         isPaid: isPaid,
         paidDate: paidDate,
         fromAccountId: fromAccountId,

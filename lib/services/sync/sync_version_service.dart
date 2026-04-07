@@ -2,8 +2,9 @@ import 'dart:async';
 import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 import 'package:flutter_cloud_sync_beecount/flutter_cloud_sync_beecount.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../system/logger_service.dart';
+import '../user_settings/user_setting_keys.dart';
+import '../user_settings/user_settings_store.dart';
 import '../../providers/beecount_server_providers.dart';
 import '../../providers/budget_providers.dart';
 import '../../providers/calendar_providers.dart';
@@ -23,8 +24,8 @@ class SyncVersionService {
   SyncVersionService(this._ref);
 
   Future<void> start() async {
-    final prefs = await SharedPreferences.getInstance();
-    _localVersion = prefs.getInt('sync_version') ?? 0;
+    final store = UserSettingsStore(_ref.read(databaseProvider));
+    _localVersion = await store.getInt(UserSettingKeys.syncVersion) ?? 0;
     logger.info('SyncVersion', '启动版本号同步服务，本地版本: $_localVersion');
 
     // 启动时立即检查一次版本
@@ -84,9 +85,8 @@ class SyncVersionService {
           await _doSync(syncEngine, provider);
           
           _localVersion = serverVersion;
-          
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setInt('sync_version', serverVersion);
+          final store = UserSettingsStore(_ref.read(databaseProvider));
+          await store.setInt(UserSettingKeys.syncVersion, serverVersion);
           logger.info('SyncVersion', '本地版本已更新: $_localVersion');
         }
       } else {
@@ -117,6 +117,7 @@ class SyncVersionService {
 
       final ledgers = await db.select(db.ledgers).get();
       if (ledgers.isNotEmpty) {
+        ledgers.sort((a, b) => a.id.compareTo(b.id));
         final firstLedgerId = ledgers.first.id;
         final currentId = _ref.read(currentLedgerIdProvider);
         if (currentId != firstLedgerId) {
@@ -157,8 +158,8 @@ class SyncVersionService {
 
   Future<void> updateLocalVersion(int version) async {
     _localVersion = version;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('sync_version', version);
+    final store = UserSettingsStore(_ref.read(databaseProvider));
+    await store.setInt(UserSettingKeys.syncVersion, version);
     logger.info('SyncVersion', '本地版本已更新: $_localVersion');
   }
 
@@ -176,9 +177,8 @@ class SyncVersionService {
         final serverVersion = await beecountDb.getSyncVersion();
         if (serverVersion != null) {
           _localVersion = serverVersion;
-          
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setInt('sync_version', serverVersion);
+          final store = UserSettingsStore(_ref.read(databaseProvider));
+          await store.setInt(UserSettingKeys.syncVersion, serverVersion);
           logger.info('SyncVersion', '从服务器同步版本号: $_localVersion');
         }
       }

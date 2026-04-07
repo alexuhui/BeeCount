@@ -2,7 +2,6 @@ import 'package:beecount/pages/auth/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/all_providers.dart';
@@ -99,9 +98,9 @@ class _BeeCountServerPageState extends ConsumerState<BeeCountServerPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('本地数据清除'),
+        title: const Text('退出登录'),
         content: const Text(
-            '你当前是在线模式，退出操作将删除设备本地的所有账本、交易、分类等数据（不影响已上传服务器的数据）。确定要继续吗？'),
+            '退出后当前账号的本地数据仍保留在本机（按账号隔离）。下次用同一账号登录可继续使用。确定退出？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -119,15 +118,7 @@ class _BeeCountServerPageState extends ConsumerState<BeeCountServerPage> {
 
     try {
       await ref.read(beecountAuthControllerProvider).signOut();
-      logger.info('BeeCountServerPage', '已退出登录');
-
-      final repository = ref.read(repositoryProvider);
-      await repository.clearAllData();
-      logger.info('BeeCountServerPage', '所有数据已清空');
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-      logger.info('BeeCountServerPage', '已清除所有 SharedPreferences 数据');
+      logger.info('BeeCountServerPage', '已退出登录（本地库未删除）');
 
       LocalStorageUtils.setAppStatus(LocalStorageUtils.appStatusNone);
 

@@ -5,14 +5,31 @@ import '../data/repositories/local/local_repository.dart';
 import '../data/repositories/base_repository.dart';
 import '../data/repositories/sync/beecount_syncing_repository.dart';
 import '../services/system/logger_service.dart';
+import '../services/user_settings/user_setting_keys.dart';
+import '../services/user_settings/user_settings_store.dart';
 import 'sync_providers.dart';
 import 'beecount_server_providers.dart';
+import 'database_scope_provider.dart';
+import '../services/database/database_scopes.dart';
 
-// 数据库Provider
+// 数据库Provider（按 [databaseScopeKeyProvider] 隔离多账号本地数据）
 final databaseProvider = Provider<BeeDatabase>((ref) {
-  final db = BeeDatabase();
+  final scope = ref.watch(databaseScopeKeyProvider);
+  final db = BeeDatabase(scopeKey: scope);
+  Future.microtask(() async {
+    final prefs = await SharedPreferences.getInstance();
+    await UserSettingsStore.importIfPending(db, scope, prefs);
+  });
   ref.onDispose(() => db.close());
   return db;
+});
+
+final userSettingsStoreProvider = Provider<UserSettingsStore>((ref) {
+  final scope = ref.watch(databaseScopeKeyProvider);
+  return UserSettingsStore(
+    ref.watch(databaseProvider),
+    allowPrefsFallback: scope != DatabaseScopes.signedOut,
+  );
 });
 
 // 仓储Provider - 根据 AppMode 自动切换实现
@@ -47,6 +64,38 @@ final dynamicRepositoryProvider = Provider<Object>((ref) {
 // 记住当前账本：启动时加载，切换时持久化
 final currentLedgerIdProvider = StateProvider<int>((ref) => 1);
 
+// 首页切换到 Stream 模式触发器（用户交互时触发）
+final homeSwitchToStreamProvider = StateProvider<int>((ref) => 0);
+
+/// 完整的交易展示数据（含分类、标签、附件数量、账户名称）
+/// 用于首页列表一次性加载，避免二次查询闪烁
+typedef TransactionDisplayItem = ({
+  Transaction t,
+  Category? category,
+  List<Tag> tags,
+  int attachmentCount,
+  String? accountName,
+  String? toAccountName,
+});
+
+// 缓存的完整交易数据Provider（含标签、附件、账户，用于首屏快速展示）
+final cachedTransactionsProvider =
+    StateProvider<List<TransactionDisplayItem>?>((ref) => null);
+
+// 缓存的交易数据Provider（仅含分类，兼容旧版本）
+final cachedTransactionsWithCategoryProvider =
+    StateProvider<List<({Transaction t, Category? category})>?>((ref) => null);
+
+/// 换账号 / 登出 / 切换本地库 scope 后调用：清空首页交易缓存与账本选择，避免仍显示上一账号数据。
+/// 参数为 [Ref] 或 [WidgetRef]（二者均提供 `read`）。
+void resetInMemoryDataForAccountSwitch(dynamic ref) {
+  ref.read(cachedTransactionsProvider.notifier).state = null;
+  ref.read(cachedTransactionsWithCategoryProvider.notifier).state = null;
+  ref.read(currentLedgerIdProvider.notifier).state = 1;
+  ref.read(homeSwitchToStreamProvider.notifier).state =
+      ref.read(homeSwitchToStreamProvider) + 1;
+}
+
 // 获取当前账本的详细信息
 final currentLedgerProvider = FutureProvider<Ledger?>((ref) async {
   final ledgerId = ref.watch(currentLedgerIdProvider);
@@ -69,11 +118,10 @@ final ledgersStreamProvider = StreamProvider<List<Ledger>>((ref) {
 });
 
 final _currentLedgerPersist = Provider<void>((ref) {
-  // load on first read
   () async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getInt('current_ledger_id');
+      final store = ref.read(userSettingsStoreProvider);
+      final saved = await store.getInt(UserSettingKeys.currentLedgerId);
       if (saved != null) {
         final st = ref.read(currentLedgerIdProvider);
         if (st != saved) {
@@ -82,11 +130,10 @@ final _currentLedgerPersist = Provider<void>((ref) {
       }
     } catch (_) {}
   }();
-  // persist on change
   ref.listen<int>(currentLedgerIdProvider, (prev, next) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('current_ledger_id', next);
+      final store = ref.read(userSettingsStoreProvider);
+      await store.setInt(UserSettingKeys.currentLedgerId, next);
     } catch (_) {}
   });
 });

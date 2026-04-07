@@ -3,6 +3,8 @@ import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 import 'package:flutter_cloud_sync_beecount/flutter_cloud_sync_beecount.dart';
 
 import 'database_providers.dart';
+import 'database_scope_provider.dart';
+import '../services/database/database_scopes.dart';
 import '../services/sync/beecount_session_store.dart';
 import '../services/sync/beecount_initial_sync_service.dart';
 import '../services/sync/beecount_sync_engine.dart';
@@ -25,6 +27,11 @@ class BeeCountOfflineModeSetter {
   Future<void> set(bool v) async {
     final store = _ref.read(beeCountSessionStoreProvider);
     await store.setOfflineMode(v);
+    if (v) {
+      _ref.read(databaseScopeKeyProvider.notifier).state = DatabaseScopes.offline;
+      _ref.invalidate(databaseProvider);
+      resetInMemoryDataForAccountSwitch(_ref);
+    }
     _ref.invalidate(beecountOfflineModeProvider);
     _ref.invalidate(beecountSessionProvider);
     _ref.invalidate(beecountProviderProvider);
@@ -188,6 +195,9 @@ class BeeCountAuthController {
     final store = _ref.read(beeCountSessionStoreProvider);
     await store.clearSession();
     await store.setOfflineMode(false);
+    _ref.read(databaseScopeKeyProvider.notifier).state = DatabaseScopes.signedOut;
+    _ref.invalidate(databaseProvider);
+    resetInMemoryDataForAccountSwitch(_ref);
     _ref.invalidate(beecountProviderProvider);
     _ref.invalidate(beecountOfflineModeProvider);
     _ref.invalidate(beecountSyncEngineProvider);
@@ -199,6 +209,9 @@ class BeeCountAuthController {
     final store = _ref.read(beeCountSessionStoreProvider);
     await store.setOfflineMode(true);
     await store.clearSession();
+    _ref.read(databaseScopeKeyProvider.notifier).state = DatabaseScopes.offline;
+    _ref.invalidate(databaseProvider);
+    resetInMemoryDataForAccountSwitch(_ref);
     _ref.invalidate(beecountOfflineModeProvider);
     _ref.invalidate(beecountSessionProvider);
     _ref.invalidate(beecountProviderProvider);

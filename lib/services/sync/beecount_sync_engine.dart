@@ -518,7 +518,7 @@ class BeeCountSyncEngine {
         final row = await (db.select(db.receivables)..where((t) => t.id.equals(localId))).getSingleOrNull();
         if (row == null) return null;
         final remoteAccountId = await _requireRemoteId('accounts', row.accountId);
-        final remoteFromAccountId = await _requireRemoteId('accounts', row.fromAccountId);
+        final remoteFromAccountId = row.fromAccountId == null ? null : await _requireRemoteId('accounts', row.fromAccountId!);
         final remoteToAccountId = row.toAccountId == null ? null : await _requireRemoteId('accounts', row.toAccountId!);
         return {
           'account_id': remoteAccountId,
@@ -539,7 +539,7 @@ class BeeCountSyncEngine {
         final row = await (db.select(db.payables)..where((t) => t.id.equals(localId))).getSingleOrNull();
         if (row == null) return null;
         final remoteAccountId = await _requireRemoteId('accounts', row.accountId);
-        final remoteToAccountId = await _requireRemoteId('accounts', row.toAccountId);
+        final remoteToAccountId = row.toAccountId == null ? null : await _requireRemoteId('accounts', row.toAccountId!);
         final remoteFromAccountId = row.fromAccountId == null ? null : await _requireRemoteId('accounts', row.fromAccountId!);
         return {
           'account_id': remoteAccountId,

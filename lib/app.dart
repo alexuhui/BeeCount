@@ -24,6 +24,10 @@ import 'services/platform/app_link_service.dart';
 import 'services/platform/quick_actions_service.dart';
 import 'services/system/logger_service.dart';
 import 'services/sync/sync_version_service.dart';
+import 'services/user_settings/user_setting_keys.dart';
+import 'services/user_settings/user_settings_store.dart';
+import 'providers/database_providers.dart';
+import 'utils/notification_factory.dart';
 import 'cloud/sync_service.dart';
 
 class BeeApp extends ConsumerStatefulWidget {
@@ -91,7 +95,32 @@ class _BeeAppState extends ConsumerState<BeeApp>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupAppLinkListener();
       _setupQuickActions();
+      _restoreDailyReminderFromUserSettings();
     });
+  }
+
+  Future<void> _restoreDailyReminderFromUserSettings() async {
+    if (!mounted) return;
+    try {
+      final store = ref.read(userSettingsStoreProvider);
+      final enabled =
+          await store.getBool(UserSettingKeys.reminderEnabled) ?? false;
+      if (!enabled) return;
+      final hour =
+          await store.getInt(UserSettingKeys.reminderHour) ?? 21;
+      final minute =
+          await store.getInt(UserSettingKeys.reminderMinute) ?? 0;
+      final notificationUtil = NotificationFactory.getInstance();
+      await notificationUtil.scheduleDailyReminder(
+        id: 1001,
+        title: '记账提醒',
+        body: '别忘了记录今天的收支哦 💰',
+        hour: hour,
+        minute: minute,
+      );
+    } catch (e) {
+      logger.debug('BeeApp', '恢复记账提醒跳过: $e');
+    }
   }
 
   /// 设置快捷操作

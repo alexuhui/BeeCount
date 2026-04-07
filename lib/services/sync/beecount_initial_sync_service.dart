@@ -486,12 +486,21 @@ class BeeCountInitialSyncService {
           final remoteAccountId = row['account_id'];
           final remoteFromAccountId = row['from_account_id'];
           final accId = remoteAccountId is int ? remoteAccountId : int.tryParse(remoteAccountId.toString());
-          final fromAccId = remoteFromAccountId is int ? remoteFromAccountId : int.tryParse(remoteFromAccountId.toString());
-          if (accId == null || fromAccId == null) return null;
+          if (accId == null) return null;
+
+          int? fromAccId;
+          if (remoteFromAccountId != null) {
+            fromAccId = remoteFromAccountId is int ? remoteFromAccountId : int.tryParse(remoteFromAccountId.toString());
+          }
 
           final localAccountId = await _localIdByRemoteId('accounts', accId);
-          final localFromAccountId = await _localIdByRemoteId('accounts', fromAccId);
-          if (localAccountId == null || localFromAccountId == null) return null;
+          if (localAccountId == null) return null;
+
+          int? localFromAccountId;
+          if (fromAccId != null) {
+            localFromAccountId = await _localIdByRemoteId('accounts', fromAccId);
+            if (localFromAccountId == null) return null;
+          }
 
           int? localToAccountId;
           final remoteToAccountId = row['to_account_id'];
@@ -512,7 +521,7 @@ class BeeCountInitialSyncService {
                   borrowerName: (row['borrower_name'] ?? '').toString(),
                   amount: ((row['amount'] ?? 0) as num).toDouble(),
                   borrowDate: borrowDate,
-                  fromAccountId: localFromAccountId,
+                  fromAccountId: d.Value(localFromAccountId),
                   note: d.Value(row['note']?.toString()),
                   isReceived: d.Value((row['is_received'] as bool?) ?? false),
                   receiveDate: d.Value(receiveDate),
@@ -525,12 +534,21 @@ class BeeCountInitialSyncService {
           final remoteAccountId = row['account_id'];
           final remoteToAccountId = row['to_account_id'];
           final accId = remoteAccountId is int ? remoteAccountId : int.tryParse(remoteAccountId.toString());
-          final toAccId = remoteToAccountId is int ? remoteToAccountId : int.tryParse(remoteToAccountId.toString());
-          if (accId == null || toAccId == null) return null;
+          if (accId == null) return null;
+
+          int? toAccId;
+          if (remoteToAccountId != null) {
+            toAccId = remoteToAccountId is int ? remoteToAccountId : int.tryParse(remoteToAccountId.toString());
+          }
 
           final localAccountId = await _localIdByRemoteId('accounts', accId);
-          final localToAccountId = await _localIdByRemoteId('accounts', toAccId);
-          if (localAccountId == null || localToAccountId == null) return null;
+          if (localAccountId == null) return null;
+
+          int? localToAccountId;
+          if (toAccId != null) {
+            localToAccountId = await _localIdByRemoteId('accounts', toAccId);
+            if (localToAccountId == null) return null;
+          }
 
           int? localFromAccountId;
           final remoteFromAccountId = row['from_account_id'];
@@ -551,7 +569,7 @@ class BeeCountInitialSyncService {
                   payeeName: (row['payee_name'] ?? '').toString(),
                   amount: ((row['amount'] ?? 0) as num).toDouble(),
                   payDate: payDate,
-                  toAccountId: localToAccountId,
+                  toAccountId: d.Value(localToAccountId),
                   note: d.Value(row['note']?.toString()),
                   isPaid: d.Value((row['is_paid'] as bool?) ?? false),
                   paidDate: d.Value(paidDate),
@@ -810,12 +828,21 @@ class BeeCountInitialSyncService {
           final remoteAccountId = row['account_id'];
           final remoteFromAccountId = row['from_account_id'];
           final accId = remoteAccountId is int ? remoteAccountId : int.tryParse(remoteAccountId.toString());
-          final fromAccId = remoteFromAccountId is int ? remoteFromAccountId : int.tryParse(remoteFromAccountId.toString());
-          if (accId == null || fromAccId == null) return false;
+          if (accId == null) return false;
+
+          int? fromAccId;
+          if (remoteFromAccountId != null) {
+            fromAccId = remoteFromAccountId is int ? remoteFromAccountId : int.tryParse(remoteFromAccountId.toString());
+          }
 
           final localAccountId = await _localIdByRemoteId('accounts', accId);
-          final localFromAccountId = await _localIdByRemoteId('accounts', fromAccId);
-          if (localAccountId == null || localFromAccountId == null) return false;
+          if (localAccountId == null) return false;
+
+          int? localFromAccountId;
+          if (fromAccId != null) {
+            localFromAccountId = await _localIdByRemoteId('accounts', fromAccId);
+            if (localFromAccountId == null) return false;
+          }
 
           int? localToAccountId;
           final remoteToAccountId = row['to_account_id'];
@@ -849,12 +876,21 @@ class BeeCountInitialSyncService {
           final remoteAccountId = row['account_id'];
           final remoteToAccountId = row['to_account_id'];
           final accId = remoteAccountId is int ? remoteAccountId : int.tryParse(remoteAccountId.toString());
-          final toAccId = remoteToAccountId is int ? remoteToAccountId : int.tryParse(remoteToAccountId.toString());
-          if (accId == null || toAccId == null) return false;
+          if (accId == null) return false;
+
+          int? toAccId;
+          if (remoteToAccountId != null) {
+            toAccId = remoteToAccountId is int ? remoteToAccountId : int.tryParse(remoteToAccountId.toString());
+          }
 
           final localAccountId = await _localIdByRemoteId('accounts', accId);
-          final localToAccountId = await _localIdByRemoteId('accounts', toAccId);
-          if (localAccountId == null || localToAccountId == null) return false;
+          if (localAccountId == null) return false;
+
+          int? localToAccountId;
+          if (toAccId != null) {
+            localToAccountId = await _localIdByRemoteId('accounts', toAccId);
+            if (localToAccountId == null) return false;
+          }
 
           int? localFromAccountId;
           final remoteFromAccountId = row['from_account_id'];

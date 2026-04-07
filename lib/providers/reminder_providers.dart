@@ -1,12 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/notification_factory.dart';
+import '../services/user_settings/user_setting_keys.dart';
+import '../services/user_settings/user_settings_store.dart';
+import 'database_providers.dart';
 
 /// 记账提醒设置
 class ReminderSettings {
   final bool isEnabled;
-  final int hour;  // 0-23
-  final int minute; // 0-59
+  final int hour;
+  final int minute;
 
   const ReminderSettings({
     required this.isEnabled,
@@ -17,7 +19,7 @@ class ReminderSettings {
   factory ReminderSettings.defaultSettings() {
     return const ReminderSettings(
       isEnabled: false,
-      hour: 21, // 默认晚上9点
+      hour: 21,
       minute: 0,
     );
   }
@@ -53,47 +55,41 @@ class ReminderSettings {
   int get hashCode => isEnabled.hashCode ^ hour.hashCode ^ minute.hashCode;
 }
 
-/// 记账提醒设置的StateNotifier
 class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
-  ReminderSettingsNotifier() : super(ReminderSettings.defaultSettings()) {
+  ReminderSettingsNotifier(this._ref) : super(ReminderSettings.defaultSettings()) {
     _loadSettings();
   }
 
-  static const String _keyEnabled = 'reminder_enabled';
-  static const String _keyHour = 'reminder_hour';
-  static const String _keyMinute = 'reminder_minute';
+  final Ref _ref;
 
-  /// 加载设置
   Future<void> _loadSettings() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final isEnabled = prefs.getBool(_keyEnabled) ?? false;
-      final hour = prefs.getInt(_keyHour) ?? 21;
-      final minute = prefs.getInt(_keyMinute) ?? 0;
-
+      final store = _ref.read(userSettingsStoreProvider);
+      final isEnabled =
+          await store.getBool(UserSettingKeys.reminderEnabled) ?? false;
+      final hour = await store.getInt(UserSettingKeys.reminderHour) ?? 21;
+      final minute = await store.getInt(UserSettingKeys.reminderMinute) ?? 0;
       state = ReminderSettings(
         isEnabled: isEnabled,
         hour: hour,
         minute: minute,
       );
     } catch (e) {
-      // 保持默认设置
+      // 保持默认
     }
   }
 
-  /// 保存设置
   Future<void> _saveSettings() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_keyEnabled, state.isEnabled);
-      await prefs.setInt(_keyHour, state.hour);
-      await prefs.setInt(_keyMinute, state.minute);
+      final store = _ref.read(userSettingsStoreProvider);
+      await store.setBool(UserSettingKeys.reminderEnabled, state.isEnabled);
+      await store.setInt(UserSettingKeys.reminderHour, state.hour);
+      await store.setInt(UserSettingKeys.reminderMinute, state.minute);
     } catch (e) {
-      // 忽略保存错误
+      // 忽略
     }
   }
 
-  /// 更新启用状态
   Future<void> updateEnabled(bool enabled) async {
     state = state.copyWith(isEnabled: enabled);
     await _saveSettings();
@@ -112,12 +108,10 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
     }
   }
 
-  /// 更新提醒时间
   Future<void> updateTime(int hour, int minute) async {
     state = state.copyWith(hour: hour, minute: minute);
     await _saveSettings();
 
-    // 如果提醒已启用，重新设置通知
     if (state.isEnabled) {
       final notificationUtil = NotificationFactory.getInstance();
       await notificationUtil.scheduleDailyReminder(
@@ -130,7 +124,6 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
     }
   }
 
-  /// 更新完整设置
   Future<void> updateSettings(ReminderSettings settings) async {
     state = settings;
     await _saveSettings();
@@ -150,7 +143,7 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
   }
 }
 
-/// 记账提醒设置Provider
-final reminderSettingsProvider = StateNotifierProvider<ReminderSettingsNotifier, ReminderSettings>((ref) {
-  return ReminderSettingsNotifier();
+final reminderSettingsProvider =
+    StateNotifierProvider<ReminderSettingsNotifier, ReminderSettings>((ref) {
+  return ReminderSettingsNotifier(ref);
 });

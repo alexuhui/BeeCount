@@ -11,13 +11,14 @@ abstract class ReceivablePayableRepository {
     required double amount,
     required DateTime borrowDate,
     String? note,
-    required int fromAccountId,
+    int? fromAccountId,
     bool isReceived = false,
     DateTime? receiveDate,
     int? toAccountId,
   });
 
   /// 更新应收款记录
+  /// [applyFromAccountId] 为 true 时写入 [fromAccountId]（可为 null，表示清除借款账户关联）
   Future<void> updateReceivable({
     required int id,
     String? borrowerName,
@@ -25,6 +26,7 @@ abstract class ReceivablePayableRepository {
     DateTime? borrowDate,
     String? note,
     int? fromAccountId,
+    bool applyFromAccountId = false,
     bool? isReceived,
     DateTime? receiveDate,
     int? toAccountId,
@@ -58,13 +60,14 @@ abstract class ReceivablePayableRepository {
     required double amount,
     required DateTime payDate,
     String? note,
-    required int toAccountId,
+    int? toAccountId,
     bool isPaid = false,
     DateTime? paidDate,
     int? fromAccountId,
   });
 
   /// 更新应付款记录
+  /// [applyToAccountId] 为 true 时写入 [toAccountId]（可为 null）
   Future<void> updatePayable({
     required int id,
     String? payeeName,
@@ -72,6 +75,7 @@ abstract class ReceivablePayableRepository {
     DateTime? payDate,
     String? note,
     int? toAccountId,
+    bool applyToAccountId = false,
     bool? isPaid,
     DateTime? paidDate,
     int? fromAccountId,

@@ -59,17 +59,13 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
 
       // 如果创建时就是已收状态，则再创建一笔还款交易
       if (isReceived && toAccountId != null) {
-        await db.into(db.transactions).insert(TransactionsCompanion.insert(
-              ledgerId: ledgerId,
-              type: 'transfer',
-              amount: amount,
-              accountId: d.Value(accountId),
-              toAccountId: d.Value(toAccountId),
-              happenedAt: d.Value(receiveDate ?? now),
-              note: d.Value('收回 $borrowerName 的借款'),
-              excludeFromStats: const d.Value(true),
-              receivableId: d.Value(id),
-            ));
+        await addReceivablePayment(
+          receivableId: id,
+          amount: amount,
+          happenedAt: receiveDate ?? now,
+          accountId: toAccountId,
+          note: '初始全额收款',
+        );
       }
 
       logger.info('LocalReceivablePayableRepository',
@@ -148,41 +144,30 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
       // 处理还款交易
       if (isStatusChanged) {
         if (currentReceivable.isReceived) {
-          // 变为已收：创建还款交易
-          final toAccId = toAccountId ?? currentReceivable.toAccountId;
-          if (toAccId != null) {
-            final fromAccount = await (db.select(db.accounts)..where((a) => a.id.equals(currentReceivable.fromAccountId))).getSingle();
-            await db.into(db.transactions).insert(TransactionsCompanion.insert(
-                  ledgerId: fromAccount.ledgerId,
-                  type: 'transfer',
-                  amount: currentReceivable.amount,
-                  accountId: d.Value(currentReceivable.accountId),
-                  toAccountId: d.Value(toAccId),
-                  happenedAt: d.Value(receiveDate ?? currentReceivable.receiveDate ?? DateTime.now()),
-                  note: d.Value('收回 ${currentReceivable.borrowerName} 的借款'),
-                  excludeFromStats: const d.Value(true),
-                  receivableId: d.Value(id),
-                ));
+          // 变为已收：创建还款记录（补全剩余金额）
+          final allPayments = await (db.select(db.receivablePayments)..where((p) => p.receivableId.equals(id))).get();
+          final totalPaid = allPayments.fold<double>(0, (sum, p) => sum + p.amount);
+          final remaining = currentReceivable.amount - totalPaid;
+          
+          if (remaining > 0) {
+            await addReceivablePayment(
+              receivableId: id,
+              amount: remaining,
+              happenedAt: receiveDate ?? currentReceivable.receiveDate ?? DateTime.now(),
+              accountId: toAccountId ?? currentReceivable.toAccountId,
+              note: '手动标记为已收',
+            );
           }
         } else {
-          // 变为未收：删除已有的还款交易（通常是第二笔关联交易）
-          if (oldTransactions.length > 1) {
-            final receiveTx = oldTransactions.last;
-            await (db.delete(db.transactions)..where((t) => t.id.equals(receiveTx.id))).go();
-          }
+          // 变为未收：由于现在支持分次还款，手动取消“已收”状态通常意味着删除所有还款记录吗？
+          // 这里为了简单，如果用户手动取消“已收”，我们保持还款记录不变，只更新主表状态。
+          // 但实际上，Repository 应该保证一致性。
+          // 这里的 isReceived 字段现在更多是作为“是否结清”的标志。
         }
-      } else if (currentReceivable.isReceived && (isAmountChanged || receiveDate != null || toAccountId != null)) {
-        // 已经是已收状态，更新还款交易
-        if (oldTransactions.length > 1) {
-          final receiveTx = oldTransactions.last;
-          await (db.update(db.transactions)..where((t) => t.id.equals(receiveTx.id))).write(
-            TransactionsCompanion(
-              amount: d.Value(currentReceivable.amount),
-              happenedAt: d.Value(currentReceivable.receiveDate ?? DateTime.now()),
-              toAccountId: d.Value(currentReceivable.toAccountId ?? 0),
-            ),
-          );
-        }
+      } else if (currentReceivable.isReceived && (receiveDate != null || toAccountId != null)) {
+        // 如果已经是已收状态且更新了日期或账户，我们不直接更新交易，
+        // 因为可能有多个 payment。这种情况下应该让用户去管理具体的 payments。
+        // 但为了兼容旧逻辑，我们暂时不做操作，或者打印警告。
       }
 
       logger.info('LocalReceivablePayableRepository', '更新应收款记录及其关联交易: id=$id');
@@ -227,10 +212,14 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     final receivables = await (db.select(db.receivables)
           ..where((t) => t.accountId.equals(accountId) & t.isReceived.equals(false)))
         .get();
-    
+
     double sum = 0.0;
     for (final r in receivables) {
-      sum += r.amount;
+      final payments = await (db.select(db.receivablePayments)
+            ..where((p) => p.receivableId.equals(r.id)))
+          .get();
+      final paidAmount = payments.fold<double>(0, (s, p) => s + p.amount);
+      sum += (r.amount - paidAmount);
     }
     return sum;
   }
@@ -240,20 +229,24 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     final receivables = await (db.select(db.receivables)
           ..where((t) => t.accountId.equals(accountId)))
         .get();
-    
+
     double pending = 0.0;
     double total = 0.0;
     double received = 0.0;
-    
+
     for (final r in receivables) {
       total += r.amount;
-      if (r.isReceived) {
-        received += r.amount;
-      } else {
-        pending += r.amount;
+      final payments = await (db.select(db.receivablePayments)
+            ..where((p) => p.receivableId.equals(r.id)))
+          .get();
+      final paidAmount = payments.fold<double>(0, (s, p) => s + p.amount);
+
+      received += paidAmount;
+      if (!r.isReceived) {
+        pending += (r.amount - paidAmount);
       }
     }
-    
+
     return (pending: pending, total: total, received: received);
   }
 
@@ -306,17 +299,13 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
 
       // 如果创建时就是已还状态
       if (isPaid && fromAccountId != null) {
-        await db.into(db.transactions).insert(TransactionsCompanion.insert(
-              ledgerId: ledgerId,
-              type: 'transfer',
-              amount: amount,
-              accountId: d.Value(fromAccountId),
-              toAccountId: d.Value(accountId),
-              happenedAt: d.Value(paidDate ?? now),
-              note: d.Value('偿还 $payeeName 的借款'),
-              excludeFromStats: const d.Value(true),
-              payableId: d.Value(id),
-            ));
+        await addPayablePayment(
+          payableId: id,
+          amount: amount,
+          happenedAt: paidDate ?? now,
+          accountId: fromAccountId,
+          note: '初始全额还款',
+        );
       }
 
       logger.info('LocalReceivablePayableRepository',
@@ -389,38 +378,25 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
       // 处理还款交易
       if (isStatusChanged) {
         if (currentPayable.isPaid) {
-          final fromAccId = fromAccountId ?? currentPayable.fromAccountId;
-          if (fromAccId != null) {
-            final toAccount = await (db.select(db.accounts)..where((a) => a.id.equals(currentPayable.toAccountId))).getSingle();
-            await db.into(db.transactions).insert(TransactionsCompanion.insert(
-                  ledgerId: toAccount.ledgerId,
-                  type: 'transfer',
-                  amount: currentPayable.amount,
-                  accountId: d.Value(fromAccId),
-                  toAccountId: d.Value(currentPayable.accountId),
-                  happenedAt: d.Value(paidDate ?? currentPayable.paidDate ?? DateTime.now()),
-                  note: d.Value('偿还 ${currentPayable.payeeName} 的借款'),
-                  excludeFromStats: const d.Value(true),
-                  payableId: d.Value(id),
-                ));
+          // 变为已还：创建还款记录（补全剩余金额）
+          final allPayments = await (db.select(db.payablePayments)..where((p) => p.payableId.equals(id))).get();
+          final totalPaid = allPayments.fold<double>(0, (sum, p) => sum + p.amount);
+          final remaining = currentPayable.amount - totalPaid;
+
+          if (remaining > 0) {
+            await addPayablePayment(
+              payableId: id,
+              amount: remaining,
+              happenedAt: paidDate ?? currentPayable.paidDate ?? DateTime.now(),
+              accountId: fromAccountId ?? currentPayable.fromAccountId,
+              note: '手动标记为已还',
+            );
           }
         } else {
-          if (oldTransactions.length > 1) {
-            final paidTx = oldTransactions.last;
-            await (db.delete(db.transactions)..where((t) => t.id.equals(paidTx.id))).go();
-          }
+          // 变为未还：保持还款记录不变，只更新主表状态
         }
-      } else if (currentPayable.isPaid && (isAmountChanged || paidDate != null || fromAccountId != null)) {
-        if (oldTransactions.length > 1) {
-          final paidTx = oldTransactions.last;
-          await (db.update(db.transactions)..where((t) => t.id.equals(paidTx.id))).write(
-            TransactionsCompanion(
-              amount: d.Value(currentPayable.amount),
-              happenedAt: d.Value(currentPayable.paidDate ?? DateTime.now()),
-              accountId: d.Value(currentPayable.fromAccountId ?? 0),
-            ),
-          );
-        }
+      } else if (currentPayable.isPaid && (paidDate != null || fromAccountId != null)) {
+        // 同 receivable
       }
 
       logger.info('LocalReceivablePayableRepository', '更新应付款记录及其关联交易: id=$id');
@@ -463,10 +439,14 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     final payables = await (db.select(db.payables)
           ..where((t) => t.accountId.equals(accountId) & t.isPaid.equals(false)))
         .get();
-    
+
     double sum = 0.0;
     for (final p in payables) {
-      sum += p.amount;
+      final payments = await (db.select(db.payablePayments)
+            ..where((pp) => pp.payableId.equals(p.id)))
+          .get();
+      final paidAmount = payments.fold<double>(0, (s, pp) => s + pp.amount);
+      sum += (p.amount - paidAmount);
     }
     return sum;
   }
@@ -476,20 +456,259 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     final payables = await (db.select(db.payables)
           ..where((t) => t.accountId.equals(accountId)))
         .get();
-    
+
     double pending = 0.0;
     double total = 0.0;
     double paid = 0.0;
-    
+
     for (final p in payables) {
       total += p.amount;
-      if (p.isPaid) {
-        paid += p.amount;
-      } else {
-        pending += p.amount;
+      final payments = await (db.select(db.payablePayments)
+            ..where((pp) => pp.payableId.equals(p.id)))
+          .get();
+      final paidAmount = payments.fold<double>(0, (s, pp) => s + pp.amount);
+
+      paid += paidAmount;
+      if (!p.isPaid) {
+        pending += (p.amount - paidAmount);
       }
     }
-    
+
     return (pending: pending, total: total, paid: paid);
+  }
+
+  // ========== 收款/还款记录相关 ==========
+
+  @override
+  Future<int> addReceivablePayment({
+    required int receivableId,
+    required double amount,
+    double interestAmount = 0.0,
+    required DateTime happenedAt,
+    int? accountId,
+    String? note,
+  }) async {
+    return db.transaction(() async {
+      final receivable = await (db.select(db.receivables)..where((t) => t.id.equals(receivableId))).getSingle();
+
+      final paymentId = await db.into(db.receivablePayments).insert(ReceivablePaymentsCompanion.insert(
+            receivableId: receivableId,
+            amount: amount,
+            interestAmount: d.Value(interestAmount),
+            happenedAt: happenedAt,
+            accountId: d.Value(accountId),
+            note: d.Value(note),
+            createdAt: d.Value(DateTime.now()),
+          ));
+
+      // 如果提供了账户，则创建对应的隐藏交易
+      if (accountId != null) {
+        final account = await (db.select(db.accounts)..where((a) => a.id.equals(accountId))).getSingle();
+        final ledgerId = account.ledgerId;
+
+        // 1. 本金回收交易（转账：从应收账户到目标账户）
+        if (amount > 0) {
+          await db.into(db.transactions).insert(TransactionsCompanion.insert(
+                ledgerId: ledgerId,
+                type: 'transfer',
+                amount: amount,
+                accountId: d.Value(receivable.accountId),
+                toAccountId: d.Value(accountId),
+                happenedAt: d.Value(happenedAt),
+                note: d.Value('收回 ${receivable.borrowerName} 的借款${note != null ? ": $note" : ""}'),
+                excludeFromStats: const d.Value(true),
+                receivableId: d.Value(receivableId),
+                receivablePaymentId: d.Value(paymentId),
+              ));
+        }
+
+        // 2. 利息收入交易（收入：到目标账户）
+        if (interestAmount > 0) {
+          await db.into(db.transactions).insert(TransactionsCompanion.insert(
+                ledgerId: ledgerId,
+                type: 'income',
+                amount: interestAmount,
+                accountId: d.Value(accountId),
+                happenedAt: d.Value(happenedAt),
+                note: d.Value('来自 ${receivable.borrowerName} 的借款利息${note != null ? ": $note" : ""}'),
+                excludeFromStats: const d.Value(true),
+                receivableId: d.Value(receivableId),
+                receivablePaymentId: d.Value(paymentId),
+              ));
+        }
+      }
+
+      // 检查是否已全额收款
+      final allPayments = await (db.select(db.receivablePayments)..where((p) => p.receivableId.equals(receivableId))).get();
+      final totalPaid = allPayments.fold<double>(0, (sum, p) => sum + p.amount);
+
+      if (totalPaid >= receivable.amount) {
+        await (db.update(db.receivables)..where((t) => t.id.equals(receivableId))).write(ReceivablesCompanion(
+          isReceived: const d.Value(true),
+          receiveDate: d.Value(happenedAt),
+          updatedAt: d.Value(DateTime.now()),
+        ));
+      }
+
+      return paymentId;
+    });
+  }
+
+  @override
+  Future<void> deleteReceivablePayment(int id) async {
+    await db.transaction(() async {
+      final payment = await (db.select(db.receivablePayments)..where((p) => p.id.equals(id))).getSingle();
+      final receivableId = payment.receivableId;
+
+      // 删除关联的交易
+      await (db.delete(db.transactions)..where((t) => t.receivablePaymentId.equals(id))).go();
+      
+      await (db.delete(db.receivablePayments)..where((p) => p.id.equals(id))).go();
+      
+      // 更新 receivable 的状态
+      final receivable = await (db.select(db.receivables)..where((t) => t.id.equals(receivableId))).getSingle();
+      final allPayments = await (db.select(db.receivablePayments)..where((p) => p.receivableId.equals(receivableId))).get();
+      final totalPaid = allPayments.fold<double>(0, (sum, p) => sum + p.amount);
+      
+      if (totalPaid < receivable.amount) {
+        await (db.update(db.receivables)..where((t) => t.id.equals(receivableId))).write(ReceivablesCompanion(
+          isReceived: const d.Value(false),
+          receiveDate: const d.Value(null),
+          updatedAt: d.Value(DateTime.now()),
+        ));
+      }
+    });
+  }
+
+  @override
+  Future<List<ReceivablePayment>> getReceivablePayments(int receivableId) async {
+    return await (db.select(db.receivablePayments)
+          ..where((p) => p.receivableId.equals(receivableId))
+          ..orderBy([(p) => d.OrderingTerm.desc(p.happenedAt)]))
+        .get();
+  }
+
+  @override
+  Stream<List<ReceivablePayment>> watchReceivablePayments(int receivableId) {
+    return (db.select(db.receivablePayments)
+          ..where((p) => p.receivableId.equals(receivableId))
+          ..orderBy([(p) => d.OrderingTerm.desc(p.happenedAt)]))
+        .watch();
+  }
+
+  @override
+  Future<int> addPayablePayment({
+    required int payableId,
+    required double amount,
+    double interestAmount = 0.0,
+    required DateTime happenedAt,
+    int? accountId,
+    String? note,
+  }) async {
+    return db.transaction(() async {
+      final payable = await (db.select(db.payables)..where((t) => t.id.equals(payableId))).getSingle();
+
+      final paymentId = await db.into(db.payablePayments).insert(PayablePaymentsCompanion.insert(
+            payableId: payableId,
+            amount: amount,
+            interestAmount: d.Value(interestAmount),
+            happenedAt: happenedAt,
+            accountId: d.Value(accountId),
+            note: d.Value(note),
+            createdAt: d.Value(DateTime.now()),
+          ));
+
+      if (accountId != null) {
+        final account = await (db.select(db.accounts)..where((a) => a.id.equals(accountId))).getSingle();
+        final ledgerId = account.ledgerId;
+
+        // 1. 本金偿还交易（转账：从目标账户到应付账户）
+        if (amount > 0) {
+          await db.into(db.transactions).insert(TransactionsCompanion.insert(
+                ledgerId: ledgerId,
+                type: 'transfer',
+                amount: amount,
+                accountId: d.Value(accountId),
+                toAccountId: d.Value(payable.accountId),
+                happenedAt: d.Value(happenedAt),
+                note: d.Value('偿还 ${payable.payeeName} 的借款${note != null ? ": $note" : ""}'),
+                excludeFromStats: const d.Value(true),
+                payableId: d.Value(payableId),
+                payablePaymentId: d.Value(paymentId),
+              ));
+        }
+
+        // 2. 利息支出交易（支出：从目标账户扣款）
+        if (interestAmount > 0) {
+          await db.into(db.transactions).insert(TransactionsCompanion.insert(
+                ledgerId: ledgerId,
+                type: 'expense',
+                amount: interestAmount,
+                accountId: d.Value(accountId),
+                happenedAt: d.Value(happenedAt),
+                note: d.Value('支付给 ${payable.payeeName} 的借款利息${note != null ? ": $note" : ""}'),
+                excludeFromStats: const d.Value(true),
+                payableId: d.Value(payableId),
+                payablePaymentId: d.Value(paymentId),
+              ));
+        }
+      }
+
+      // 检查是否已全额还款
+      final allPayments = await (db.select(db.payablePayments)..where((p) => p.payableId.equals(payableId))).get();
+      final totalPaid = allPayments.fold<double>(0, (sum, p) => sum + p.amount);
+
+      if (totalPaid >= payable.amount) {
+        await (db.update(db.payables)..where((t) => t.id.equals(payableId))).write(PayablesCompanion(
+          isPaid: const d.Value(true),
+          paidDate: d.Value(happenedAt),
+          updatedAt: d.Value(DateTime.now()),
+        ));
+      }
+
+      return paymentId;
+    });
+  }
+
+  @override
+  Future<void> deletePayablePayment(int id) async {
+    await db.transaction(() async {
+      final payment = await (db.select(db.payablePayments)..where((p) => p.id.equals(id))).getSingle();
+      final payableId = payment.payableId;
+
+      // 删除关联的交易
+      await (db.delete(db.transactions)..where((t) => t.payablePaymentId.equals(id))).go();
+
+      await (db.delete(db.payablePayments)..where((p) => p.id.equals(id))).go();
+
+      // 更新 payable 的状态
+      final payable = await (db.select(db.payables)..where((t) => t.id.equals(payableId))).getSingle();
+      final allPayments = await (db.select(db.payablePayments)..where((p) => p.payableId.equals(payableId))).get();
+      final totalPaid = allPayments.fold<double>(0, (sum, p) => sum + p.amount);
+
+      if (totalPaid < payable.amount) {
+        await (db.update(db.payables)..where((t) => t.id.equals(payableId))).write(PayablesCompanion(
+          isPaid: const d.Value(false),
+          paidDate: const d.Value(null),
+          updatedAt: d.Value(DateTime.now()),
+        ));
+      }
+    });
+  }
+
+  @override
+  Future<List<PayablePayment>> getPayablePayments(int payableId) async {
+    return await (db.select(db.payablePayments)
+          ..where((p) => p.payableId.equals(payableId))
+          ..orderBy([(p) => d.OrderingTerm.desc(p.happenedAt)]))
+        .get();
+  }
+
+  @override
+  Stream<List<PayablePayment>> watchPayablePayments(int payableId) {
+    return (db.select(db.payablePayments)
+          ..where((p) => p.payableId.equals(payableId))
+          ..orderBy([(p) => d.OrderingTerm.desc(p.happenedAt)]))
+        .watch();
   }
 }

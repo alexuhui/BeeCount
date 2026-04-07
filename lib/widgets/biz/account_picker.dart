@@ -43,7 +43,7 @@ class AccountPicker extends ConsumerStatefulWidget {
   }) async {
     return showModalBottomSheet<int?>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -60,7 +60,8 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
   FixedExtentScrollController? _controller;
   int _selectedIndex = 0;
   List<AccountOption> _options = [];
-  bool _initialized = false;
+  /// 账户列表变化时需重建选项与滚轮控制器（不能只做一次初始化，否则流稍后推数据时列表不全）。
+  String? _lastOptionsSignature;
 
   IconData _getIconForType(String type) {
     switch (type) {
@@ -101,8 +102,20 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
     }
   }
 
-  void _buildOptions(List<Account> accounts) {
-    if (_initialized) return;
+  String _optionsSignature(List<Account> accounts) {
+    final parts = <String>[];
+    for (final a in accounts) {
+      if (a.type == 'receivable' || a.type == 'payable') continue;
+      parts.add('${a.id}:${a.name}:${a.type}:${a.currency}');
+    }
+    parts.sort();
+    return '${widget.allowNull}|${parts.join(";")}';
+  }
+
+  void _syncOptions(List<Account> accounts) {
+    final sig = _optionsSignature(accounts);
+    if (sig == _lastOptionsSignature && _controller != null) return;
+    _lastOptionsSignature = sig;
 
     _options = [];
 
@@ -127,15 +140,22 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
       ));
     }
 
-    // 查找选中项的索引
     _selectedIndex = _options.indexWhere(
       (option) => option.id == widget.selectedAccountId,
     );
     if (_selectedIndex < 0) _selectedIndex = 0;
+    if (_options.isNotEmpty) {
+      _selectedIndex = _selectedIndex.clamp(0, _options.length - 1);
+    }
 
-    // 初始化滚动控制器
-    _controller = FixedExtentScrollController(initialItem: _selectedIndex);
-    _initialized = true;
+    final previous = _controller;
+    _controller =
+        _options.isEmpty ? null : FixedExtentScrollController(initialItem: _selectedIndex);
+    if (previous != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        previous.dispose();
+      });
+    }
   }
 
   @override
@@ -153,7 +173,9 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
 
     // v1.15.0: 获取所有账户并按币种筛选
     final allAccountsAsync = ref.watch(allAccountsStreamProvider);
-    final primaryColor = Theme.of(context).primaryColor;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final primaryColor = theme.primaryColor;
 
     return allAccountsAsync.when(
       data: (allAccounts) {
@@ -162,7 +184,7 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
           account.currency == currentCurrency
         ).toList();
 
-        _buildOptions(accounts);
+        _syncOptions(accounts);
 
         return SafeArea(
           top: false,
@@ -174,10 +196,10 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
                 height: 52,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorScheme.surface,
                   border: Border(
                     bottom: BorderSide(
-                      color: Colors.grey[200]!,
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
                       width: 1,
                     ),
                   ),
@@ -188,28 +210,36 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
                       onPressed: () => Navigator.pop(context),
                       child: Text(
                         l10n.commonCancel,
-                        style: const TextStyle(fontSize: 16),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: colorScheme.onSurface,
+                        ),
                       ),
                     ),
                     const Spacer(),
                     Text(
                       l10n.accountSelectTitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const Spacer(),
                     TextButton(
-                      onPressed: () {
-                        final selected = _options[_selectedIndex];
-                        Navigator.pop(context, selected.id);
-                      },
+                      onPressed: _options.isEmpty
+                          ? null
+                          : () {
+                              final selected = _options[_selectedIndex];
+                              Navigator.pop(context, selected.id);
+                            },
                       child: Text(
                         l10n.commonOk,
                         style: TextStyle(
                           fontSize: 16,
-                          color: primaryColor,
+                          color: _options.isEmpty
+                              ? colorScheme.onSurface.withValues(alpha: 0.38)
+                              : primaryColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -221,6 +251,7 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
               // 滚轮选择器
               if (_controller != null)
                 SizedBox(
+                  key: ValueKey(_lastOptionsSignature),
                   height: 216,
                   child: CupertinoPicker(
                     itemExtent: 72,
@@ -245,8 +276,26 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
                       });
                     },
                     children: _options.map((option) {
-                      return _buildAccountItem(option, primaryColor);
+                      return _buildAccountItem(
+                        option,
+                        primaryColor,
+                        colorScheme,
+                      );
                     }).toList(),
+                  ),
+                )
+              else
+                SizedBox(
+                  height: 120,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        l10n.accountsEmptyMessage,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: colorScheme.onSurfaceVariant),
+                      ),
+                    ),
                   ),
                 ),
             ],
@@ -266,32 +315,35 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
     );
   }
 
-  Widget _buildAccountItem(AccountOption option, Color primaryColor) {
+  Widget _buildAccountItem(
+    AccountOption option,
+    Color primaryColor,
+    ColorScheme colorScheme,
+  ) {
     final isNone = option.id == null;
+    final onSurface = colorScheme.onSurface;
+    final onSurfaceVariant = colorScheme.onSurfaceVariant;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         children: [
-          // 图标
           Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
               color: isNone
-                  ? Colors.grey[300]
+                  ? colorScheme.surfaceContainerHighest
                   : primaryColor.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(
               option.icon,
-              color: isNone ? Colors.grey[600] : primaryColor,
+              color: isNone ? onSurfaceVariant : primaryColor,
               size: 24,
             ),
           ),
           const SizedBox(width: 16),
-
-          // 账户名称和类型
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,9 +351,10 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
               children: [
                 Text(
                   option.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
+                    color: onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -312,7 +365,7 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
                     _getTypeLabel(context, option.type),
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[600],
+                      color: onSurfaceVariant,
                     ),
                   ),
                 ],

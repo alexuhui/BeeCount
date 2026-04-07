@@ -622,6 +622,8 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
 
       ref.invalidate(receivableStatsProvider(widget.account.id));
       ref.invalidate(receivableBalanceProvider(widget.account.id));
+      ref.invalidate(allAccountStatsProvider);
+      ref.invalidate(allAccountsTotalStatsProvider);
 
       if (mounted) {
         Navigator.of(context).pop(true);

@@ -39,7 +39,11 @@ class BeeCountDatabaseService implements CloudDatabaseService {
     if (response.statusCode == 201 || response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw CloudDatabaseException('Failed to insert into $table: ${response.body}');
+      throw CloudDatabaseException(
+        'Failed to insert into $table: ${response.body}',
+        response.body,
+        response.statusCode,
+      );
     }
   }
 
@@ -66,7 +70,11 @@ class BeeCountDatabaseService implements CloudDatabaseService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw CloudDatabaseException('Failed to update $table: ${response.body}');
+      throw CloudDatabaseException(
+        'Failed to update $table: ${response.body}',
+        response.body,
+        response.statusCode,
+      );
     }
   }
 
@@ -88,7 +96,11 @@ class BeeCountDatabaseService implements CloudDatabaseService {
     print('📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
 
     if (response.statusCode != 204 && response.statusCode != 200) {
-      throw CloudDatabaseException('Failed to delete from $table: ${response.body}');
+      throw CloudDatabaseException(
+        'Failed to delete from $table: ${response.body}',
+        response.body,
+        response.statusCode,
+      );
     }
   }
 
@@ -158,7 +170,11 @@ class BeeCountDatabaseService implements CloudDatabaseService {
 
       return results;
     } else {
-      throw CloudDatabaseException('Failed to query $table: ${response.body}');
+      throw CloudDatabaseException(
+        'Failed to query $table: ${response.body}',
+        response.body,
+        response.statusCode,
+      );
     }
   }
 

@@ -621,6 +621,8 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
 
       ref.invalidate(payableStatsProvider(widget.account.id));
       ref.invalidate(payableBalanceProvider(widget.account.id));
+      ref.invalidate(allAccountStatsProvider);
+      ref.invalidate(allAccountsTotalStatsProvider);
 
       if (mounted) {
         Navigator.of(context).pop(true);

@@ -95,4 +95,44 @@ abstract class ReceivablePayableRepository {
 
   /// 获取应付款账户的统计信息（待付金额、总额、已付金额）
   Future<({double pending, double total, double paid})> getPayableStats(int accountId);
+
+  // ========== 收款/还款记录相关 ==========
+
+  /// 添加收款记录
+  Future<int> addReceivablePayment({
+    required int receivableId,
+    required double amount,
+    double interestAmount = 0.0,
+    required DateTime happenedAt,
+    int? accountId,
+    String? note,
+  });
+
+  /// 删除收款记录
+  Future<void> deleteReceivablePayment(int id);
+
+  /// 获取指定应收款的所有收款记录
+  Future<List<ReceivablePayment>> getReceivablePayments(int receivableId);
+
+  /// 监听指定应收款的所有收款记录
+  Stream<List<ReceivablePayment>> watchReceivablePayments(int receivableId);
+
+  /// 添加还款记录
+  Future<int> addPayablePayment({
+    required int payableId,
+    required double amount,
+    double interestAmount = 0.0,
+    required DateTime happenedAt,
+    int? accountId,
+    String? note,
+  });
+
+  /// 删除还款记录
+  Future<void> deletePayablePayment(int id);
+
+  /// 获取指定应付款的所有还款记录
+  Future<List<PayablePayment>> getPayablePayments(int payableId);
+
+  /// 监听指定应付款的所有还款记录
+  Stream<List<PayablePayment>> watchPayablePayments(int payableId);
 }

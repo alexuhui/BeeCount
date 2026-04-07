@@ -39,5 +39,9 @@ class CloudAuthException extends CloudSyncException {
 
 /// Thrown when database operations fail
 class CloudDatabaseException extends CloudSyncException {
-  CloudDatabaseException(String message, [dynamic error]) : super(message, error);
+  /// HTTP status code when the failure came from a REST provider (e.g. BeeCount).
+  final int? statusCode;
+
+  CloudDatabaseException(String message, [dynamic error, this.statusCode])
+      : super(message, error);
 }

@@ -94,6 +94,10 @@ class ImportTransaction {
   final int? categoryId; // 预解析的分类ID（优先于categoryName）
   final List<ImportAttachment>? attachments; // 附件元数据列表
   final bool excludeFromStats; // 是否排除在统计之外
+  final int? receivableId;
+  final int? payableId;
+  final int? receivablePaymentId;
+  final int? payablePaymentId;
 
   const ImportTransaction({
     required this.type,
@@ -109,6 +113,106 @@ class ImportTransaction {
     this.categoryId,
     this.attachments,
     this.excludeFromStats = false,
+    this.receivableId,
+    this.payableId,
+    this.receivablePaymentId,
+    this.payablePaymentId,
+  });
+}
+
+/// 导入应收款数据
+class ImportReceivable {
+  final int id;
+  final int accountId;
+  final String borrowerName;
+  final double amount;
+  final DateTime borrowDate;
+  final String? note;
+  final int fromAccountId;
+  final bool isReceived;
+  final DateTime? receiveDate;
+  final int? toAccountId;
+
+  const ImportReceivable({
+    required this.id,
+    required this.accountId,
+    required this.borrowerName,
+    required this.amount,
+    required this.borrowDate,
+    this.note,
+    required this.fromAccountId,
+    this.isReceived = false,
+    this.receiveDate,
+    this.toAccountId,
+  });
+}
+
+/// 导入应收款收款记录数据
+class ImportReceivablePayment {
+  final int id;
+  final int receivableId;
+  final double amount;
+  final double interestAmount;
+  final DateTime happenedAt;
+  final int? accountId;
+  final String? note;
+
+  const ImportReceivablePayment({
+    required this.id,
+    required this.receivableId,
+    required this.amount,
+    this.interestAmount = 0.0,
+    required this.happenedAt,
+    this.accountId,
+    this.note,
+  });
+}
+
+/// 导入应付款数据
+class ImportPayable {
+  final int id;
+  final int accountId;
+  final String payeeName;
+  final double amount;
+  final DateTime payDate;
+  final String? note;
+  final int toAccountId;
+  final bool isPaid;
+  final DateTime? paidDate;
+  final int? fromAccountId;
+
+  const ImportPayable({
+    required this.id,
+    required this.accountId,
+    required this.payeeName,
+    required this.amount,
+    required this.payDate,
+    this.note,
+    required this.toAccountId,
+    this.isPaid = false,
+    this.paidDate,
+    this.fromAccountId,
+  });
+}
+
+/// 导入应付款还款记录数据
+class ImportPayablePayment {
+  final int id;
+  final int payableId;
+  final double amount;
+  final double interestAmount;
+  final DateTime happenedAt;
+  final int? accountId;
+  final String? note;
+
+  const ImportPayablePayment({
+    required this.id,
+    required this.payableId,
+    required this.amount,
+    this.interestAmount = 0.0,
+    required this.happenedAt,
+    this.accountId,
+    this.note,
   });
 }
 
@@ -118,6 +222,10 @@ class ImportData {
   final List<ImportCategory> categories;
   final List<ImportTag> tags;
   final List<ImportTransaction> transactions;
+  final List<ImportReceivable> receivables;
+  final List<ImportReceivablePayment> receivablePayments;
+  final List<ImportPayable> payables;
+  final List<ImportPayablePayment> payablePayments;
 
   /// 账本名称（可选，用于更新账本信息）
   final String? ledgerName;
@@ -129,6 +237,10 @@ class ImportData {
     this.categories = const [],
     this.tags = const [],
     this.transactions = const [],
+    this.receivables = const [],
+    this.receivablePayments = const [],
+    this.payables = const [],
+    this.payablePayments = const [],
     this.ledgerName,
     this.currency,
   });
@@ -497,7 +609,11 @@ class DataImportService {
         happenedAt: d.Value(tx.happenedAt),
         note: d.Value(tx.note),
         excludeFromStats: d.Value(tx.excludeFromStats),
-      );
+    receivableId: d.Value(tx.receivableId),
+    payableId: d.Value(tx.payableId),
+    receivablePaymentId: d.Value(tx.receivablePaymentId),
+    payablePaymentId: d.Value(tx.payablePaymentId),
+  );
 
       // 如果有标签或附件，单独插入并关联
       final hasAttachments = tx.attachments != null && tx.attachments!.isNotEmpty;

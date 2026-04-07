@@ -301,7 +301,16 @@ class BeeCountSyncEngine {
       return true;
     }
 
-    await provider.databaseService!.delete(table: entity, id: remoteId.toString());
+    try {
+      await provider.databaseService!.delete(table: entity, id: remoteId.toString());
+    } on CloudDatabaseException catch (e) {
+      if (e.statusCode == 404) {
+        await _removeIdMap(entity, localId);
+        await _removeQueueItem(entity, localId);
+        return true;
+      }
+      rethrow;
+    }
     await _removeIdMap(entity, localId);
     await _removeQueueItem(entity, localId);
     return true;
@@ -317,21 +326,40 @@ class BeeCountSyncEngine {
     final remoteId = await _remoteIdOf(entity, localId);
     if (remoteId == null) {
       final result = await provider.databaseService!.insert(table: entity, data: payload);
-      final newRemoteId = result['id'];
-      if (newRemoteId is int) {
-        await _saveIdMap(entity, localId, newRemoteId);
-      } else if (newRemoteId is String) {
-        await _saveIdMap(entity, localId, int.parse(newRemoteId));
-      } else {
-        throw Exception('Insert returned invalid id: $newRemoteId');
-      }
+      await _saveRemoteIdFromInsertResponse(entity, localId, result);
       await _removeQueueItem(entity, localId);
       return true;
     }
 
-    await provider.databaseService!.update(table: entity, id: remoteId.toString(), data: payload);
+    try {
+      await provider.databaseService!.update(table: entity, id: remoteId.toString(), data: payload);
+    } on CloudDatabaseException catch (e) {
+      if (e.statusCode == 404) {
+        await _removeIdMap(entity, localId);
+        final result = await provider.databaseService!.insert(table: entity, data: payload);
+        await _saveRemoteIdFromInsertResponse(entity, localId, result);
+        await _removeQueueItem(entity, localId);
+        return true;
+      }
+      rethrow;
+    }
     await _removeQueueItem(entity, localId);
     return true;
+  }
+
+  Future<void> _saveRemoteIdFromInsertResponse(
+    String entity,
+    int localId,
+    Map<String, dynamic> result,
+  ) async {
+    final newRemoteId = result['id'];
+    if (newRemoteId is int) {
+      await _saveIdMap(entity, localId, newRemoteId);
+    } else if (newRemoteId is String) {
+      await _saveIdMap(entity, localId, int.parse(newRemoteId));
+    } else {
+      throw Exception('Insert returned invalid id: $newRemoteId');
+    }
   }
 
   Future<int> _requireRemoteId(String entity, int localId) async {

@@ -14,6 +14,8 @@ import '../../services/data/category_service.dart';
 import '../../widgets/category_icon.dart';
 import '../receivable_payable/receivable_edit_page.dart';
 import '../receivable_payable/payable_edit_page.dart';
+import '../receivable_payable/receivable_record_detail_page.dart';
+import '../receivable_payable/payable_record_detail_page.dart';
 import '../transaction/transaction_editor_page.dart';
 
 /// 账户详情页面
@@ -562,7 +564,7 @@ class _ReceivableAccountContentState extends ConsumerState<_ReceivableAccountCon
                                   child: _ReceivableTile(
                                     receivable: r,
                                     currencyCode: currencyCode,
-                                    onTap: () => _editReceivable(context, ref, r),
+                                    onTap: () => _viewReceivableDetail(context, ref, r, currencyCode),
                                   ),
                                 ),
                               ],
@@ -621,16 +623,20 @@ class _ReceivableAccountContentState extends ConsumerState<_ReceivableAccountCon
     );
   }
 
-  Future<void> _editReceivable(
-      BuildContext context, WidgetRef ref, db.Receivable r) async {
+  Future<void> _viewReceivableDetail(
+      BuildContext context, WidgetRef ref, db.Receivable r, String currencyCode) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ReceivableEditPage(account: widget.account, receivable: r),
+        builder: (context) => ReceivableRecordDetailPage(
+          receivable: r,
+          currencyCode: currencyCode,
+        ),
       ),
     );
     ref.invalidate(receivablesByAccountProvider(widget.account.id));
     ref.invalidate(receivableBalanceProvider(widget.account.id));
+    ref.invalidate(receivableStatsProvider(widget.account.id));
   }
 }
 
@@ -875,7 +881,7 @@ class _PayableAccountContentState extends ConsumerState<_PayableAccountContent> 
                                   child: _PayableTile(
                                     payable: p,
                                     currencyCode: currencyCode,
-                                    onTap: () => _editPayable(context, ref, p),
+                                    onTap: () => _viewPayableDetail(context, ref, p, currencyCode),
                                   ),
                                 ),
                               ],
@@ -934,16 +940,20 @@ class _PayableAccountContentState extends ConsumerState<_PayableAccountContent> 
     );
   }
 
-  Future<void> _editPayable(
-      BuildContext context, WidgetRef ref, db.Payable p) async {
+  Future<void> _viewPayableDetail(
+      BuildContext context, WidgetRef ref, db.Payable p, String currencyCode) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PayableEditPage(account: widget.account, payable: p),
+        builder: (context) => PayableRecordDetailPage(
+          payable: p,
+          currencyCode: currencyCode,
+        ),
       ),
     );
     ref.invalidate(payablesByAccountProvider(widget.account.id));
     ref.invalidate(payableBalanceProvider(widget.account.id));
+    ref.invalidate(payableStatsProvider(widget.account.id));
   }
 }
 
@@ -1516,4 +1526,18 @@ final payableStatsProvider = FutureProvider.family
     .autoDispose<({double pending, double total, double paid}), int>((ref, accountId) {
   final repo = ref.watch(repositoryProvider);
   return repo.getPayableStats(accountId);
+});
+
+// Provider: 收款记录
+final receivablePaymentsProvider = StreamProvider.family
+    .autoDispose<List<db.ReceivablePayment>, int>((ref, receivableId) {
+  final repo = ref.watch(repositoryProvider);
+  return repo.watchReceivablePayments(receivableId);
+});
+
+// Provider: 还款记录
+final payablePaymentsProvider = StreamProvider.family
+    .autoDispose<List<db.PayablePayment>, int>((ref, payableId) {
+  final repo = ref.watch(repositoryProvider);
+  return repo.watchPayablePayments(payableId);
 });

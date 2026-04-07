@@ -643,4 +643,116 @@ class BeeCountSyncingRepository extends LocalRepository {
     await super.deletePayable(id);
     await sync.enqueueDelete('payables', id);
   }
+
+  // ========== 收款/还款记录相关 ==========
+
+  @override
+  Future<int> addReceivablePayment({
+    required int receivableId,
+    required double amount,
+    double interestAmount = 0.0,
+    required DateTime happenedAt,
+    int? accountId,
+    String? note,
+  }) async {
+    final id = await super.addReceivablePayment(
+      receivableId: receivableId,
+      amount: amount,
+      interestAmount: interestAmount,
+      happenedAt: happenedAt,
+      accountId: accountId,
+      note: note,
+    );
+    await sync.enqueueUpsert('receivable_payments', id);
+    // 同时同步关联的交易
+    final txs = await (super.db.select(super.db.transactions)
+          ..where((t) => t.receivablePaymentId.equals(id)))
+        .get();
+    for (final tx in txs) {
+      await sync.enqueueUpsert('transactions', tx.id);
+    }
+    // 同时也需要同步应收款记录的状态（因为 isReceived 可能会更新）
+    await sync.enqueueUpsert('receivables', receivableId);
+    return id;
+  }
+
+  @override
+  Future<void> deleteReceivablePayment(int id) async {
+    // 在删除之前先找到关联的交易，以便后续同步删除
+    final txs = await (super.db.select(super.db.transactions)
+          ..where((t) => t.receivablePaymentId.equals(id)))
+        .get();
+    
+    // 获取 receivableId 以便后续更新
+    final payment = await (super.db.select(super.db.receivablePayments)
+          ..where((p) => p.id.equals(id)))
+        .getSingle();
+    final receivableId = payment.receivableId;
+
+    await super.deleteReceivablePayment(id);
+    await sync.enqueueDelete('receivable_payments', id);
+    
+    // 同步删除关联的交易
+    for (final tx in txs) {
+      await sync.enqueueDelete('transactions', tx.id);
+    }
+    
+    // 同步更新应收款状态
+    await sync.enqueueUpsert('receivables', receivableId);
+  }
+
+  @override
+  Future<int> addPayablePayment({
+    required int payableId,
+    required double amount,
+    double interestAmount = 0.0,
+    required DateTime happenedAt,
+    int? accountId,
+    String? note,
+  }) async {
+    final id = await super.addPayablePayment(
+      payableId: payableId,
+      amount: amount,
+      interestAmount: interestAmount,
+      happenedAt: happenedAt,
+      accountId: accountId,
+      note: note,
+    );
+    await sync.enqueueUpsert('payable_payments', id);
+    // 同时同步关联的交易
+    final txs = await (super.db.select(super.db.transactions)
+          ..where((t) => t.payablePaymentId.equals(id)))
+        .get();
+    for (final tx in txs) {
+      await sync.enqueueUpsert('transactions', tx.id);
+    }
+    // 同时也需要同步应付款记录的状态（因为 isPaid 可能会更新）
+    await sync.enqueueUpsert('payables', payableId);
+    return id;
+  }
+
+  @override
+  Future<void> deletePayablePayment(int id) async {
+    // 在删除之前先找到关联的交易，以便后续同步删除
+    final txs = await (super.db.select(super.db.transactions)
+          ..where((t) => t.payablePaymentId.equals(id)))
+        .get();
+    
+    // 获取 payableId 以便后续更新
+    final payment = await (super.db.select(super.db.payablePayments)
+          ..where((p) => p.id.equals(id)))
+        .getSingle();
+    final payableId = payment.payableId;
+
+    await super.deletePayablePayment(id);
+    await sync.enqueueDelete('payable_payments', id);
+    
+    // 同步删除关联的交易
+    for (final tx in txs) {
+      await sync.enqueueDelete('transactions', tx.id);
+    }
+    
+    // 同步更新应付款状态
+    await sync.enqueueUpsert('payables', payableId);
+  }
 }

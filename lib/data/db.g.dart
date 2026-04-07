@@ -1305,6 +1305,18 @@ class $TransactionsTable extends Transactions
   late final GeneratedColumn<int> payableId = GeneratedColumn<int>(
       'payable_id', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _receivablePaymentIdMeta =
+      const VerificationMeta('receivablePaymentId');
+  @override
+  late final GeneratedColumn<int> receivablePaymentId = GeneratedColumn<int>(
+      'receivable_payment_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _payablePaymentIdMeta =
+      const VerificationMeta('payablePaymentId');
+  @override
+  late final GeneratedColumn<int> payablePaymentId = GeneratedColumn<int>(
+      'payable_payment_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -1319,7 +1331,9 @@ class $TransactionsTable extends Transactions
         recurringId,
         excludeFromStats,
         receivableId,
-        payableId
+        payableId,
+        receivablePaymentId,
+        payablePaymentId
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1400,6 +1414,18 @@ class $TransactionsTable extends Transactions
       context.handle(_payableIdMeta,
           payableId.isAcceptableOrUnknown(data['payable_id']!, _payableIdMeta));
     }
+    if (data.containsKey('receivable_payment_id')) {
+      context.handle(
+          _receivablePaymentIdMeta,
+          receivablePaymentId.isAcceptableOrUnknown(
+              data['receivable_payment_id']!, _receivablePaymentIdMeta));
+    }
+    if (data.containsKey('payable_payment_id')) {
+      context.handle(
+          _payablePaymentIdMeta,
+          payablePaymentId.isAcceptableOrUnknown(
+              data['payable_payment_id']!, _payablePaymentIdMeta));
+    }
     return context;
   }
 
@@ -1435,6 +1461,10 @@ class $TransactionsTable extends Transactions
           .read(DriftSqlType.int, data['${effectivePrefix}receivable_id']),
       payableId: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}payable_id']),
+      receivablePaymentId: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}receivable_payment_id']),
+      payablePaymentId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}payable_payment_id']),
     );
   }
 
@@ -1458,6 +1488,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
   final bool excludeFromStats;
   final int? receivableId;
   final int? payableId;
+  final int? receivablePaymentId;
+  final int? payablePaymentId;
   const Transaction(
       {required this.id,
       required this.ledgerId,
@@ -1471,7 +1503,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       this.recurringId,
       required this.excludeFromStats,
       this.receivableId,
-      this.payableId});
+      this.payableId,
+      this.receivablePaymentId,
+      this.payablePaymentId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1501,6 +1535,12 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     }
     if (!nullToAbsent || payableId != null) {
       map['payable_id'] = Variable<int>(payableId);
+    }
+    if (!nullToAbsent || receivablePaymentId != null) {
+      map['receivable_payment_id'] = Variable<int>(receivablePaymentId);
+    }
+    if (!nullToAbsent || payablePaymentId != null) {
+      map['payable_payment_id'] = Variable<int>(payablePaymentId);
     }
     return map;
   }
@@ -1532,6 +1572,12 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       payableId: payableId == null && nullToAbsent
           ? const Value.absent()
           : Value(payableId),
+      receivablePaymentId: receivablePaymentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(receivablePaymentId),
+      payablePaymentId: payablePaymentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payablePaymentId),
     );
   }
 
@@ -1552,6 +1598,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       excludeFromStats: serializer.fromJson<bool>(json['excludeFromStats']),
       receivableId: serializer.fromJson<int?>(json['receivableId']),
       payableId: serializer.fromJson<int?>(json['payableId']),
+      receivablePaymentId:
+          serializer.fromJson<int?>(json['receivablePaymentId']),
+      payablePaymentId: serializer.fromJson<int?>(json['payablePaymentId']),
     );
   }
   @override
@@ -1571,6 +1620,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       'excludeFromStats': serializer.toJson<bool>(excludeFromStats),
       'receivableId': serializer.toJson<int?>(receivableId),
       'payableId': serializer.toJson<int?>(payableId),
+      'receivablePaymentId': serializer.toJson<int?>(receivablePaymentId),
+      'payablePaymentId': serializer.toJson<int?>(payablePaymentId),
     };
   }
 
@@ -1587,7 +1638,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           Value<int?> recurringId = const Value.absent(),
           bool? excludeFromStats,
           Value<int?> receivableId = const Value.absent(),
-          Value<int?> payableId = const Value.absent()}) =>
+          Value<int?> payableId = const Value.absent(),
+          Value<int?> receivablePaymentId = const Value.absent(),
+          Value<int?> payablePaymentId = const Value.absent()}) =>
       Transaction(
         id: id ?? this.id,
         ledgerId: ledgerId ?? this.ledgerId,
@@ -1603,6 +1656,12 @@ class Transaction extends DataClass implements Insertable<Transaction> {
         receivableId:
             receivableId.present ? receivableId.value : this.receivableId,
         payableId: payableId.present ? payableId.value : this.payableId,
+        receivablePaymentId: receivablePaymentId.present
+            ? receivablePaymentId.value
+            : this.receivablePaymentId,
+        payablePaymentId: payablePaymentId.present
+            ? payablePaymentId.value
+            : this.payablePaymentId,
       );
   Transaction copyWithCompanion(TransactionsCompanion data) {
     return Transaction(
@@ -1627,6 +1686,12 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           ? data.receivableId.value
           : this.receivableId,
       payableId: data.payableId.present ? data.payableId.value : this.payableId,
+      receivablePaymentId: data.receivablePaymentId.present
+          ? data.receivablePaymentId.value
+          : this.receivablePaymentId,
+      payablePaymentId: data.payablePaymentId.present
+          ? data.payablePaymentId.value
+          : this.payablePaymentId,
     );
   }
 
@@ -1645,7 +1710,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           ..write('recurringId: $recurringId, ')
           ..write('excludeFromStats: $excludeFromStats, ')
           ..write('receivableId: $receivableId, ')
-          ..write('payableId: $payableId')
+          ..write('payableId: $payableId, ')
+          ..write('receivablePaymentId: $receivablePaymentId, ')
+          ..write('payablePaymentId: $payablePaymentId')
           ..write(')'))
         .toString();
   }
@@ -1664,7 +1731,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       recurringId,
       excludeFromStats,
       receivableId,
-      payableId);
+      payableId,
+      receivablePaymentId,
+      payablePaymentId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1681,7 +1750,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           other.recurringId == this.recurringId &&
           other.excludeFromStats == this.excludeFromStats &&
           other.receivableId == this.receivableId &&
-          other.payableId == this.payableId);
+          other.payableId == this.payableId &&
+          other.receivablePaymentId == this.receivablePaymentId &&
+          other.payablePaymentId == this.payablePaymentId);
 }
 
 class TransactionsCompanion extends UpdateCompanion<Transaction> {
@@ -1698,6 +1769,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
   final Value<bool> excludeFromStats;
   final Value<int?> receivableId;
   final Value<int?> payableId;
+  final Value<int?> receivablePaymentId;
+  final Value<int?> payablePaymentId;
   const TransactionsCompanion({
     this.id = const Value.absent(),
     this.ledgerId = const Value.absent(),
@@ -1712,6 +1785,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.excludeFromStats = const Value.absent(),
     this.receivableId = const Value.absent(),
     this.payableId = const Value.absent(),
+    this.receivablePaymentId = const Value.absent(),
+    this.payablePaymentId = const Value.absent(),
   });
   TransactionsCompanion.insert({
     this.id = const Value.absent(),
@@ -1727,6 +1802,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.excludeFromStats = const Value.absent(),
     this.receivableId = const Value.absent(),
     this.payableId = const Value.absent(),
+    this.receivablePaymentId = const Value.absent(),
+    this.payablePaymentId = const Value.absent(),
   })  : ledgerId = Value(ledgerId),
         type = Value(type),
         amount = Value(amount);
@@ -1744,6 +1821,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Expression<bool>? excludeFromStats,
     Expression<int>? receivableId,
     Expression<int>? payableId,
+    Expression<int>? receivablePaymentId,
+    Expression<int>? payablePaymentId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1759,6 +1838,9 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       if (excludeFromStats != null) 'exclude_from_stats': excludeFromStats,
       if (receivableId != null) 'receivable_id': receivableId,
       if (payableId != null) 'payable_id': payableId,
+      if (receivablePaymentId != null)
+        'receivable_payment_id': receivablePaymentId,
+      if (payablePaymentId != null) 'payable_payment_id': payablePaymentId,
     });
   }
 
@@ -1775,7 +1857,9 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       Value<int?>? recurringId,
       Value<bool>? excludeFromStats,
       Value<int?>? receivableId,
-      Value<int?>? payableId}) {
+      Value<int?>? payableId,
+      Value<int?>? receivablePaymentId,
+      Value<int?>? payablePaymentId}) {
     return TransactionsCompanion(
       id: id ?? this.id,
       ledgerId: ledgerId ?? this.ledgerId,
@@ -1790,6 +1874,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       excludeFromStats: excludeFromStats ?? this.excludeFromStats,
       receivableId: receivableId ?? this.receivableId,
       payableId: payableId ?? this.payableId,
+      receivablePaymentId: receivablePaymentId ?? this.receivablePaymentId,
+      payablePaymentId: payablePaymentId ?? this.payablePaymentId,
     );
   }
 
@@ -1835,6 +1921,12 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     if (payableId.present) {
       map['payable_id'] = Variable<int>(payableId.value);
     }
+    if (receivablePaymentId.present) {
+      map['receivable_payment_id'] = Variable<int>(receivablePaymentId.value);
+    }
+    if (payablePaymentId.present) {
+      map['payable_payment_id'] = Variable<int>(payablePaymentId.value);
+    }
     return map;
   }
 
@@ -1853,7 +1945,9 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
           ..write('recurringId: $recurringId, ')
           ..write('excludeFromStats: $excludeFromStats, ')
           ..write('receivableId: $receivableId, ')
-          ..write('payableId: $payableId')
+          ..write('payableId: $payableId, ')
+          ..write('receivablePaymentId: $receivablePaymentId, ')
+          ..write('payablePaymentId: $payablePaymentId')
           ..write(')'))
         .toString();
   }
@@ -6264,6 +6358,883 @@ class PayablesCompanion extends UpdateCompanion<Payable> {
   }
 }
 
+class $ReceivablePaymentsTable extends ReceivablePayments
+    with TableInfo<$ReceivablePaymentsTable, ReceivablePayment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReceivablePaymentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _receivableIdMeta =
+      const VerificationMeta('receivableId');
+  @override
+  late final GeneratedColumn<int> receivableId = GeneratedColumn<int>(
+      'receivable_id', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+      'amount', aliasedName, false,
+      type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _interestAmountMeta =
+      const VerificationMeta('interestAmount');
+  @override
+  late final GeneratedColumn<double> interestAmount = GeneratedColumn<double>(
+      'interest_amount', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0.0));
+  static const VerificationMeta _happenedAtMeta =
+      const VerificationMeta('happenedAt');
+  @override
+  late final GeneratedColumn<DateTime> happenedAt = GeneratedColumn<DateTime>(
+      'happened_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _accountIdMeta =
+      const VerificationMeta('accountId');
+  @override
+  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
+      'account_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        receivableId,
+        amount,
+        interestAmount,
+        happenedAt,
+        accountId,
+        note,
+        createdAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'receivable_payments';
+  @override
+  VerificationContext validateIntegrity(Insertable<ReceivablePayment> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('receivable_id')) {
+      context.handle(
+          _receivableIdMeta,
+          receivableId.isAcceptableOrUnknown(
+              data['receivable_id']!, _receivableIdMeta));
+    } else if (isInserting) {
+      context.missing(_receivableIdMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(_amountMeta,
+          amount.isAcceptableOrUnknown(data['amount']!, _amountMeta));
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('interest_amount')) {
+      context.handle(
+          _interestAmountMeta,
+          interestAmount.isAcceptableOrUnknown(
+              data['interest_amount']!, _interestAmountMeta));
+    }
+    if (data.containsKey('happened_at')) {
+      context.handle(
+          _happenedAtMeta,
+          happenedAt.isAcceptableOrUnknown(
+              data['happened_at']!, _happenedAtMeta));
+    } else if (isInserting) {
+      context.missing(_happenedAtMeta);
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(_accountIdMeta,
+          accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta));
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReceivablePayment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReceivablePayment(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      receivableId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}receivable_id'])!,
+      amount: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}amount'])!,
+      interestAmount: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}interest_amount'])!,
+      happenedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}happened_at'])!,
+      accountId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}account_id']),
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $ReceivablePaymentsTable createAlias(String alias) {
+    return $ReceivablePaymentsTable(attachedDatabase, alias);
+  }
+}
+
+class ReceivablePayment extends DataClass
+    implements Insertable<ReceivablePayment> {
+  final int id;
+
+  /// 关联应收款ID
+  final int receivableId;
+
+  /// 本金金额
+  final double amount;
+
+  /// 利息金额
+  final double interestAmount;
+
+  /// 收款日期
+  final DateTime happenedAt;
+
+  /// 收款账户ID（入账账户，可为空表示仅记录不入账）
+  final int? accountId;
+
+  /// 备注
+  final String? note;
+
+  /// 创建时间
+  final DateTime createdAt;
+  const ReceivablePayment(
+      {required this.id,
+      required this.receivableId,
+      required this.amount,
+      required this.interestAmount,
+      required this.happenedAt,
+      this.accountId,
+      this.note,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['receivable_id'] = Variable<int>(receivableId);
+    map['amount'] = Variable<double>(amount);
+    map['interest_amount'] = Variable<double>(interestAmount);
+    map['happened_at'] = Variable<DateTime>(happenedAt);
+    if (!nullToAbsent || accountId != null) {
+      map['account_id'] = Variable<int>(accountId);
+    }
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ReceivablePaymentsCompanion toCompanion(bool nullToAbsent) {
+    return ReceivablePaymentsCompanion(
+      id: Value(id),
+      receivableId: Value(receivableId),
+      amount: Value(amount),
+      interestAmount: Value(interestAmount),
+      happenedAt: Value(happenedAt),
+      accountId: accountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(accountId),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ReceivablePayment.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReceivablePayment(
+      id: serializer.fromJson<int>(json['id']),
+      receivableId: serializer.fromJson<int>(json['receivableId']),
+      amount: serializer.fromJson<double>(json['amount']),
+      interestAmount: serializer.fromJson<double>(json['interestAmount']),
+      happenedAt: serializer.fromJson<DateTime>(json['happenedAt']),
+      accountId: serializer.fromJson<int?>(json['accountId']),
+      note: serializer.fromJson<String?>(json['note']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'receivableId': serializer.toJson<int>(receivableId),
+      'amount': serializer.toJson<double>(amount),
+      'interestAmount': serializer.toJson<double>(interestAmount),
+      'happenedAt': serializer.toJson<DateTime>(happenedAt),
+      'accountId': serializer.toJson<int?>(accountId),
+      'note': serializer.toJson<String?>(note),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ReceivablePayment copyWith(
+          {int? id,
+          int? receivableId,
+          double? amount,
+          double? interestAmount,
+          DateTime? happenedAt,
+          Value<int?> accountId = const Value.absent(),
+          Value<String?> note = const Value.absent(),
+          DateTime? createdAt}) =>
+      ReceivablePayment(
+        id: id ?? this.id,
+        receivableId: receivableId ?? this.receivableId,
+        amount: amount ?? this.amount,
+        interestAmount: interestAmount ?? this.interestAmount,
+        happenedAt: happenedAt ?? this.happenedAt,
+        accountId: accountId.present ? accountId.value : this.accountId,
+        note: note.present ? note.value : this.note,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  ReceivablePayment copyWithCompanion(ReceivablePaymentsCompanion data) {
+    return ReceivablePayment(
+      id: data.id.present ? data.id.value : this.id,
+      receivableId: data.receivableId.present
+          ? data.receivableId.value
+          : this.receivableId,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      interestAmount: data.interestAmount.present
+          ? data.interestAmount.value
+          : this.interestAmount,
+      happenedAt:
+          data.happenedAt.present ? data.happenedAt.value : this.happenedAt,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReceivablePayment(')
+          ..write('id: $id, ')
+          ..write('receivableId: $receivableId, ')
+          ..write('amount: $amount, ')
+          ..write('interestAmount: $interestAmount, ')
+          ..write('happenedAt: $happenedAt, ')
+          ..write('accountId: $accountId, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, receivableId, amount, interestAmount,
+      happenedAt, accountId, note, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReceivablePayment &&
+          other.id == this.id &&
+          other.receivableId == this.receivableId &&
+          other.amount == this.amount &&
+          other.interestAmount == this.interestAmount &&
+          other.happenedAt == this.happenedAt &&
+          other.accountId == this.accountId &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt);
+}
+
+class ReceivablePaymentsCompanion extends UpdateCompanion<ReceivablePayment> {
+  final Value<int> id;
+  final Value<int> receivableId;
+  final Value<double> amount;
+  final Value<double> interestAmount;
+  final Value<DateTime> happenedAt;
+  final Value<int?> accountId;
+  final Value<String?> note;
+  final Value<DateTime> createdAt;
+  const ReceivablePaymentsCompanion({
+    this.id = const Value.absent(),
+    this.receivableId = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.interestAmount = const Value.absent(),
+    this.happenedAt = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  ReceivablePaymentsCompanion.insert({
+    this.id = const Value.absent(),
+    required int receivableId,
+    required double amount,
+    this.interestAmount = const Value.absent(),
+    required DateTime happenedAt,
+    this.accountId = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  })  : receivableId = Value(receivableId),
+        amount = Value(amount),
+        happenedAt = Value(happenedAt);
+  static Insertable<ReceivablePayment> custom({
+    Expression<int>? id,
+    Expression<int>? receivableId,
+    Expression<double>? amount,
+    Expression<double>? interestAmount,
+    Expression<DateTime>? happenedAt,
+    Expression<int>? accountId,
+    Expression<String>? note,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (receivableId != null) 'receivable_id': receivableId,
+      if (amount != null) 'amount': amount,
+      if (interestAmount != null) 'interest_amount': interestAmount,
+      if (happenedAt != null) 'happened_at': happenedAt,
+      if (accountId != null) 'account_id': accountId,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  ReceivablePaymentsCompanion copyWith(
+      {Value<int>? id,
+      Value<int>? receivableId,
+      Value<double>? amount,
+      Value<double>? interestAmount,
+      Value<DateTime>? happenedAt,
+      Value<int?>? accountId,
+      Value<String?>? note,
+      Value<DateTime>? createdAt}) {
+    return ReceivablePaymentsCompanion(
+      id: id ?? this.id,
+      receivableId: receivableId ?? this.receivableId,
+      amount: amount ?? this.amount,
+      interestAmount: interestAmount ?? this.interestAmount,
+      happenedAt: happenedAt ?? this.happenedAt,
+      accountId: accountId ?? this.accountId,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (receivableId.present) {
+      map['receivable_id'] = Variable<int>(receivableId.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (interestAmount.present) {
+      map['interest_amount'] = Variable<double>(interestAmount.value);
+    }
+    if (happenedAt.present) {
+      map['happened_at'] = Variable<DateTime>(happenedAt.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<int>(accountId.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReceivablePaymentsCompanion(')
+          ..write('id: $id, ')
+          ..write('receivableId: $receivableId, ')
+          ..write('amount: $amount, ')
+          ..write('interestAmount: $interestAmount, ')
+          ..write('happenedAt: $happenedAt, ')
+          ..write('accountId: $accountId, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PayablePaymentsTable extends PayablePayments
+    with TableInfo<$PayablePaymentsTable, PayablePayment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PayablePaymentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _payableIdMeta =
+      const VerificationMeta('payableId');
+  @override
+  late final GeneratedColumn<int> payableId = GeneratedColumn<int>(
+      'payable_id', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+      'amount', aliasedName, false,
+      type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _interestAmountMeta =
+      const VerificationMeta('interestAmount');
+  @override
+  late final GeneratedColumn<double> interestAmount = GeneratedColumn<double>(
+      'interest_amount', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0.0));
+  static const VerificationMeta _happenedAtMeta =
+      const VerificationMeta('happenedAt');
+  @override
+  late final GeneratedColumn<DateTime> happenedAt = GeneratedColumn<DateTime>(
+      'happened_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _accountIdMeta =
+      const VerificationMeta('accountId');
+  @override
+  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
+      'account_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        payableId,
+        amount,
+        interestAmount,
+        happenedAt,
+        accountId,
+        note,
+        createdAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'payable_payments';
+  @override
+  VerificationContext validateIntegrity(Insertable<PayablePayment> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('payable_id')) {
+      context.handle(_payableIdMeta,
+          payableId.isAcceptableOrUnknown(data['payable_id']!, _payableIdMeta));
+    } else if (isInserting) {
+      context.missing(_payableIdMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(_amountMeta,
+          amount.isAcceptableOrUnknown(data['amount']!, _amountMeta));
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('interest_amount')) {
+      context.handle(
+          _interestAmountMeta,
+          interestAmount.isAcceptableOrUnknown(
+              data['interest_amount']!, _interestAmountMeta));
+    }
+    if (data.containsKey('happened_at')) {
+      context.handle(
+          _happenedAtMeta,
+          happenedAt.isAcceptableOrUnknown(
+              data['happened_at']!, _happenedAtMeta));
+    } else if (isInserting) {
+      context.missing(_happenedAtMeta);
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(_accountIdMeta,
+          accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta));
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PayablePayment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PayablePayment(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      payableId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}payable_id'])!,
+      amount: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}amount'])!,
+      interestAmount: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}interest_amount'])!,
+      happenedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}happened_at'])!,
+      accountId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}account_id']),
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $PayablePaymentsTable createAlias(String alias) {
+    return $PayablePaymentsTable(attachedDatabase, alias);
+  }
+}
+
+class PayablePayment extends DataClass implements Insertable<PayablePayment> {
+  final int id;
+
+  /// 关联应付款ID
+  final int payableId;
+
+  /// 本金金额
+  final double amount;
+
+  /// 利息金额
+  final double interestAmount;
+
+  /// 还款日期
+  final DateTime happenedAt;
+
+  /// 还款账户ID（扣款账户，可为空表示仅记录不入账）
+  final int? accountId;
+
+  /// 备注
+  final String? note;
+
+  /// 创建时间
+  final DateTime createdAt;
+  const PayablePayment(
+      {required this.id,
+      required this.payableId,
+      required this.amount,
+      required this.interestAmount,
+      required this.happenedAt,
+      this.accountId,
+      this.note,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['payable_id'] = Variable<int>(payableId);
+    map['amount'] = Variable<double>(amount);
+    map['interest_amount'] = Variable<double>(interestAmount);
+    map['happened_at'] = Variable<DateTime>(happenedAt);
+    if (!nullToAbsent || accountId != null) {
+      map['account_id'] = Variable<int>(accountId);
+    }
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  PayablePaymentsCompanion toCompanion(bool nullToAbsent) {
+    return PayablePaymentsCompanion(
+      id: Value(id),
+      payableId: Value(payableId),
+      amount: Value(amount),
+      interestAmount: Value(interestAmount),
+      happenedAt: Value(happenedAt),
+      accountId: accountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(accountId),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory PayablePayment.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PayablePayment(
+      id: serializer.fromJson<int>(json['id']),
+      payableId: serializer.fromJson<int>(json['payableId']),
+      amount: serializer.fromJson<double>(json['amount']),
+      interestAmount: serializer.fromJson<double>(json['interestAmount']),
+      happenedAt: serializer.fromJson<DateTime>(json['happenedAt']),
+      accountId: serializer.fromJson<int?>(json['accountId']),
+      note: serializer.fromJson<String?>(json['note']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'payableId': serializer.toJson<int>(payableId),
+      'amount': serializer.toJson<double>(amount),
+      'interestAmount': serializer.toJson<double>(interestAmount),
+      'happenedAt': serializer.toJson<DateTime>(happenedAt),
+      'accountId': serializer.toJson<int?>(accountId),
+      'note': serializer.toJson<String?>(note),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  PayablePayment copyWith(
+          {int? id,
+          int? payableId,
+          double? amount,
+          double? interestAmount,
+          DateTime? happenedAt,
+          Value<int?> accountId = const Value.absent(),
+          Value<String?> note = const Value.absent(),
+          DateTime? createdAt}) =>
+      PayablePayment(
+        id: id ?? this.id,
+        payableId: payableId ?? this.payableId,
+        amount: amount ?? this.amount,
+        interestAmount: interestAmount ?? this.interestAmount,
+        happenedAt: happenedAt ?? this.happenedAt,
+        accountId: accountId.present ? accountId.value : this.accountId,
+        note: note.present ? note.value : this.note,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  PayablePayment copyWithCompanion(PayablePaymentsCompanion data) {
+    return PayablePayment(
+      id: data.id.present ? data.id.value : this.id,
+      payableId: data.payableId.present ? data.payableId.value : this.payableId,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      interestAmount: data.interestAmount.present
+          ? data.interestAmount.value
+          : this.interestAmount,
+      happenedAt:
+          data.happenedAt.present ? data.happenedAt.value : this.happenedAt,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PayablePayment(')
+          ..write('id: $id, ')
+          ..write('payableId: $payableId, ')
+          ..write('amount: $amount, ')
+          ..write('interestAmount: $interestAmount, ')
+          ..write('happenedAt: $happenedAt, ')
+          ..write('accountId: $accountId, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, payableId, amount, interestAmount,
+      happenedAt, accountId, note, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PayablePayment &&
+          other.id == this.id &&
+          other.payableId == this.payableId &&
+          other.amount == this.amount &&
+          other.interestAmount == this.interestAmount &&
+          other.happenedAt == this.happenedAt &&
+          other.accountId == this.accountId &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt);
+}
+
+class PayablePaymentsCompanion extends UpdateCompanion<PayablePayment> {
+  final Value<int> id;
+  final Value<int> payableId;
+  final Value<double> amount;
+  final Value<double> interestAmount;
+  final Value<DateTime> happenedAt;
+  final Value<int?> accountId;
+  final Value<String?> note;
+  final Value<DateTime> createdAt;
+  const PayablePaymentsCompanion({
+    this.id = const Value.absent(),
+    this.payableId = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.interestAmount = const Value.absent(),
+    this.happenedAt = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  PayablePaymentsCompanion.insert({
+    this.id = const Value.absent(),
+    required int payableId,
+    required double amount,
+    this.interestAmount = const Value.absent(),
+    required DateTime happenedAt,
+    this.accountId = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  })  : payableId = Value(payableId),
+        amount = Value(amount),
+        happenedAt = Value(happenedAt);
+  static Insertable<PayablePayment> custom({
+    Expression<int>? id,
+    Expression<int>? payableId,
+    Expression<double>? amount,
+    Expression<double>? interestAmount,
+    Expression<DateTime>? happenedAt,
+    Expression<int>? accountId,
+    Expression<String>? note,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (payableId != null) 'payable_id': payableId,
+      if (amount != null) 'amount': amount,
+      if (interestAmount != null) 'interest_amount': interestAmount,
+      if (happenedAt != null) 'happened_at': happenedAt,
+      if (accountId != null) 'account_id': accountId,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  PayablePaymentsCompanion copyWith(
+      {Value<int>? id,
+      Value<int>? payableId,
+      Value<double>? amount,
+      Value<double>? interestAmount,
+      Value<DateTime>? happenedAt,
+      Value<int?>? accountId,
+      Value<String?>? note,
+      Value<DateTime>? createdAt}) {
+    return PayablePaymentsCompanion(
+      id: id ?? this.id,
+      payableId: payableId ?? this.payableId,
+      amount: amount ?? this.amount,
+      interestAmount: interestAmount ?? this.interestAmount,
+      happenedAt: happenedAt ?? this.happenedAt,
+      accountId: accountId ?? this.accountId,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (payableId.present) {
+      map['payable_id'] = Variable<int>(payableId.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (interestAmount.present) {
+      map['interest_amount'] = Variable<double>(interestAmount.value);
+    }
+    if (happenedAt.present) {
+      map['happened_at'] = Variable<DateTime>(happenedAt.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<int>(accountId.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PayablePaymentsCompanion(')
+          ..write('id: $id, ')
+          ..write('payableId: $payableId, ')
+          ..write('amount: $amount, ')
+          ..write('interestAmount: $interestAmount, ')
+          ..write('happenedAt: $happenedAt, ')
+          ..write('accountId: $accountId, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$BeeDatabase extends GeneratedDatabase {
   _$BeeDatabase(QueryExecutor e) : super(e);
   $BeeDatabaseManager get managers => $BeeDatabaseManager(this);
@@ -6283,6 +7254,10 @@ abstract class _$BeeDatabase extends GeneratedDatabase {
       $TransactionAttachmentsTable(this);
   late final $ReceivablesTable receivables = $ReceivablesTable(this);
   late final $PayablesTable payables = $PayablesTable(this);
+  late final $ReceivablePaymentsTable receivablePayments =
+      $ReceivablePaymentsTable(this);
+  late final $PayablePaymentsTable payablePayments =
+      $PayablePaymentsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6300,7 +7275,9 @@ abstract class _$BeeDatabase extends GeneratedDatabase {
         budgets,
         transactionAttachments,
         receivables,
-        payables
+        payables,
+        receivablePayments,
+        payablePayments
       ];
 }
 
@@ -6922,6 +7899,8 @@ typedef $$TransactionsTableCreateCompanionBuilder = TransactionsCompanion
   Value<bool> excludeFromStats,
   Value<int?> receivableId,
   Value<int?> payableId,
+  Value<int?> receivablePaymentId,
+  Value<int?> payablePaymentId,
 });
 typedef $$TransactionsTableUpdateCompanionBuilder = TransactionsCompanion
     Function({
@@ -6938,6 +7917,8 @@ typedef $$TransactionsTableUpdateCompanionBuilder = TransactionsCompanion
   Value<bool> excludeFromStats,
   Value<int?> receivableId,
   Value<int?> payableId,
+  Value<int?> receivablePaymentId,
+  Value<int?> payablePaymentId,
 });
 
 class $$TransactionsTableFilterComposer
@@ -6988,6 +7969,14 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<int> get payableId => $composableBuilder(
       column: $table.payableId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get receivablePaymentId => $composableBuilder(
+      column: $table.receivablePaymentId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get payablePaymentId => $composableBuilder(
+      column: $table.payablePaymentId,
+      builder: (column) => ColumnFilters(column));
 }
 
 class $$TransactionsTableOrderingComposer
@@ -7039,6 +8028,14 @@ class $$TransactionsTableOrderingComposer
 
   ColumnOrderings<int> get payableId => $composableBuilder(
       column: $table.payableId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get receivablePaymentId => $composableBuilder(
+      column: $table.receivablePaymentId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get payablePaymentId => $composableBuilder(
+      column: $table.payablePaymentId,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$TransactionsTableAnnotationComposer
@@ -7088,6 +8085,12 @@ class $$TransactionsTableAnnotationComposer
 
   GeneratedColumn<int> get payableId =>
       $composableBuilder(column: $table.payableId, builder: (column) => column);
+
+  GeneratedColumn<int> get receivablePaymentId => $composableBuilder(
+      column: $table.receivablePaymentId, builder: (column) => column);
+
+  GeneratedColumn<int> get payablePaymentId => $composableBuilder(
+      column: $table.payablePaymentId, builder: (column) => column);
 }
 
 class $$TransactionsTableTableManager extends RootTableManager<
@@ -7129,6 +8132,8 @@ class $$TransactionsTableTableManager extends RootTableManager<
             Value<bool> excludeFromStats = const Value.absent(),
             Value<int?> receivableId = const Value.absent(),
             Value<int?> payableId = const Value.absent(),
+            Value<int?> receivablePaymentId = const Value.absent(),
+            Value<int?> payablePaymentId = const Value.absent(),
           }) =>
               TransactionsCompanion(
             id: id,
@@ -7144,6 +8149,8 @@ class $$TransactionsTableTableManager extends RootTableManager<
             excludeFromStats: excludeFromStats,
             receivableId: receivableId,
             payableId: payableId,
+            receivablePaymentId: receivablePaymentId,
+            payablePaymentId: payablePaymentId,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -7159,6 +8166,8 @@ class $$TransactionsTableTableManager extends RootTableManager<
             Value<bool> excludeFromStats = const Value.absent(),
             Value<int?> receivableId = const Value.absent(),
             Value<int?> payableId = const Value.absent(),
+            Value<int?> receivablePaymentId = const Value.absent(),
+            Value<int?> payablePaymentId = const Value.absent(),
           }) =>
               TransactionsCompanion.insert(
             id: id,
@@ -7174,6 +8183,8 @@ class $$TransactionsTableTableManager extends RootTableManager<
             excludeFromStats: excludeFromStats,
             receivableId: receivableId,
             payableId: payableId,
+            receivablePaymentId: receivablePaymentId,
+            payablePaymentId: payablePaymentId,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -9286,6 +10297,438 @@ typedef $$PayablesTableProcessedTableManager = ProcessedTableManager<
     (Payable, BaseReferences<_$BeeDatabase, $PayablesTable, Payable>),
     Payable,
     PrefetchHooks Function()>;
+typedef $$ReceivablePaymentsTableCreateCompanionBuilder
+    = ReceivablePaymentsCompanion Function({
+  Value<int> id,
+  required int receivableId,
+  required double amount,
+  Value<double> interestAmount,
+  required DateTime happenedAt,
+  Value<int?> accountId,
+  Value<String?> note,
+  Value<DateTime> createdAt,
+});
+typedef $$ReceivablePaymentsTableUpdateCompanionBuilder
+    = ReceivablePaymentsCompanion Function({
+  Value<int> id,
+  Value<int> receivableId,
+  Value<double> amount,
+  Value<double> interestAmount,
+  Value<DateTime> happenedAt,
+  Value<int?> accountId,
+  Value<String?> note,
+  Value<DateTime> createdAt,
+});
+
+class $$ReceivablePaymentsTableFilterComposer
+    extends Composer<_$BeeDatabase, $ReceivablePaymentsTable> {
+  $$ReceivablePaymentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get receivableId => $composableBuilder(
+      column: $table.receivableId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get amount => $composableBuilder(
+      column: $table.amount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get interestAmount => $composableBuilder(
+      column: $table.interestAmount,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get happenedAt => $composableBuilder(
+      column: $table.happenedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get accountId => $composableBuilder(
+      column: $table.accountId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$ReceivablePaymentsTableOrderingComposer
+    extends Composer<_$BeeDatabase, $ReceivablePaymentsTable> {
+  $$ReceivablePaymentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get receivableId => $composableBuilder(
+      column: $table.receivableId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+      column: $table.amount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get interestAmount => $composableBuilder(
+      column: $table.interestAmount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get happenedAt => $composableBuilder(
+      column: $table.happenedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get accountId => $composableBuilder(
+      column: $table.accountId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ReceivablePaymentsTableAnnotationComposer
+    extends Composer<_$BeeDatabase, $ReceivablePaymentsTable> {
+  $$ReceivablePaymentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get receivableId => $composableBuilder(
+      column: $table.receivableId, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<double> get interestAmount => $composableBuilder(
+      column: $table.interestAmount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get happenedAt => $composableBuilder(
+      column: $table.happenedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ReceivablePaymentsTableTableManager extends RootTableManager<
+    _$BeeDatabase,
+    $ReceivablePaymentsTable,
+    ReceivablePayment,
+    $$ReceivablePaymentsTableFilterComposer,
+    $$ReceivablePaymentsTableOrderingComposer,
+    $$ReceivablePaymentsTableAnnotationComposer,
+    $$ReceivablePaymentsTableCreateCompanionBuilder,
+    $$ReceivablePaymentsTableUpdateCompanionBuilder,
+    (
+      ReceivablePayment,
+      BaseReferences<_$BeeDatabase, $ReceivablePaymentsTable, ReceivablePayment>
+    ),
+    ReceivablePayment,
+    PrefetchHooks Function()> {
+  $$ReceivablePaymentsTableTableManager(
+      _$BeeDatabase db, $ReceivablePaymentsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReceivablePaymentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReceivablePaymentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReceivablePaymentsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<int> receivableId = const Value.absent(),
+            Value<double> amount = const Value.absent(),
+            Value<double> interestAmount = const Value.absent(),
+            Value<DateTime> happenedAt = const Value.absent(),
+            Value<int?> accountId = const Value.absent(),
+            Value<String?> note = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+          }) =>
+              ReceivablePaymentsCompanion(
+            id: id,
+            receivableId: receivableId,
+            amount: amount,
+            interestAmount: interestAmount,
+            happenedAt: happenedAt,
+            accountId: accountId,
+            note: note,
+            createdAt: createdAt,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required int receivableId,
+            required double amount,
+            Value<double> interestAmount = const Value.absent(),
+            required DateTime happenedAt,
+            Value<int?> accountId = const Value.absent(),
+            Value<String?> note = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+          }) =>
+              ReceivablePaymentsCompanion.insert(
+            id: id,
+            receivableId: receivableId,
+            amount: amount,
+            interestAmount: interestAmount,
+            happenedAt: happenedAt,
+            accountId: accountId,
+            note: note,
+            createdAt: createdAt,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$ReceivablePaymentsTableProcessedTableManager = ProcessedTableManager<
+    _$BeeDatabase,
+    $ReceivablePaymentsTable,
+    ReceivablePayment,
+    $$ReceivablePaymentsTableFilterComposer,
+    $$ReceivablePaymentsTableOrderingComposer,
+    $$ReceivablePaymentsTableAnnotationComposer,
+    $$ReceivablePaymentsTableCreateCompanionBuilder,
+    $$ReceivablePaymentsTableUpdateCompanionBuilder,
+    (
+      ReceivablePayment,
+      BaseReferences<_$BeeDatabase, $ReceivablePaymentsTable, ReceivablePayment>
+    ),
+    ReceivablePayment,
+    PrefetchHooks Function()>;
+typedef $$PayablePaymentsTableCreateCompanionBuilder = PayablePaymentsCompanion
+    Function({
+  Value<int> id,
+  required int payableId,
+  required double amount,
+  Value<double> interestAmount,
+  required DateTime happenedAt,
+  Value<int?> accountId,
+  Value<String?> note,
+  Value<DateTime> createdAt,
+});
+typedef $$PayablePaymentsTableUpdateCompanionBuilder = PayablePaymentsCompanion
+    Function({
+  Value<int> id,
+  Value<int> payableId,
+  Value<double> amount,
+  Value<double> interestAmount,
+  Value<DateTime> happenedAt,
+  Value<int?> accountId,
+  Value<String?> note,
+  Value<DateTime> createdAt,
+});
+
+class $$PayablePaymentsTableFilterComposer
+    extends Composer<_$BeeDatabase, $PayablePaymentsTable> {
+  $$PayablePaymentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get payableId => $composableBuilder(
+      column: $table.payableId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get amount => $composableBuilder(
+      column: $table.amount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get interestAmount => $composableBuilder(
+      column: $table.interestAmount,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get happenedAt => $composableBuilder(
+      column: $table.happenedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get accountId => $composableBuilder(
+      column: $table.accountId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$PayablePaymentsTableOrderingComposer
+    extends Composer<_$BeeDatabase, $PayablePaymentsTable> {
+  $$PayablePaymentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get payableId => $composableBuilder(
+      column: $table.payableId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+      column: $table.amount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get interestAmount => $composableBuilder(
+      column: $table.interestAmount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get happenedAt => $composableBuilder(
+      column: $table.happenedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get accountId => $composableBuilder(
+      column: $table.accountId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$PayablePaymentsTableAnnotationComposer
+    extends Composer<_$BeeDatabase, $PayablePaymentsTable> {
+  $$PayablePaymentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get payableId =>
+      $composableBuilder(column: $table.payableId, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<double> get interestAmount => $composableBuilder(
+      column: $table.interestAmount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get happenedAt => $composableBuilder(
+      column: $table.happenedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$PayablePaymentsTableTableManager extends RootTableManager<
+    _$BeeDatabase,
+    $PayablePaymentsTable,
+    PayablePayment,
+    $$PayablePaymentsTableFilterComposer,
+    $$PayablePaymentsTableOrderingComposer,
+    $$PayablePaymentsTableAnnotationComposer,
+    $$PayablePaymentsTableCreateCompanionBuilder,
+    $$PayablePaymentsTableUpdateCompanionBuilder,
+    (
+      PayablePayment,
+      BaseReferences<_$BeeDatabase, $PayablePaymentsTable, PayablePayment>
+    ),
+    PayablePayment,
+    PrefetchHooks Function()> {
+  $$PayablePaymentsTableTableManager(
+      _$BeeDatabase db, $PayablePaymentsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PayablePaymentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PayablePaymentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PayablePaymentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<int> payableId = const Value.absent(),
+            Value<double> amount = const Value.absent(),
+            Value<double> interestAmount = const Value.absent(),
+            Value<DateTime> happenedAt = const Value.absent(),
+            Value<int?> accountId = const Value.absent(),
+            Value<String?> note = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+          }) =>
+              PayablePaymentsCompanion(
+            id: id,
+            payableId: payableId,
+            amount: amount,
+            interestAmount: interestAmount,
+            happenedAt: happenedAt,
+            accountId: accountId,
+            note: note,
+            createdAt: createdAt,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required int payableId,
+            required double amount,
+            Value<double> interestAmount = const Value.absent(),
+            required DateTime happenedAt,
+            Value<int?> accountId = const Value.absent(),
+            Value<String?> note = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+          }) =>
+              PayablePaymentsCompanion.insert(
+            id: id,
+            payableId: payableId,
+            amount: amount,
+            interestAmount: interestAmount,
+            happenedAt: happenedAt,
+            accountId: accountId,
+            note: note,
+            createdAt: createdAt,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$PayablePaymentsTableProcessedTableManager = ProcessedTableManager<
+    _$BeeDatabase,
+    $PayablePaymentsTable,
+    PayablePayment,
+    $$PayablePaymentsTableFilterComposer,
+    $$PayablePaymentsTableOrderingComposer,
+    $$PayablePaymentsTableAnnotationComposer,
+    $$PayablePaymentsTableCreateCompanionBuilder,
+    $$PayablePaymentsTableUpdateCompanionBuilder,
+    (
+      PayablePayment,
+      BaseReferences<_$BeeDatabase, $PayablePaymentsTable, PayablePayment>
+    ),
+    PayablePayment,
+    PrefetchHooks Function()>;
 
 class $BeeDatabaseManager {
   final _$BeeDatabase _db;
@@ -9316,4 +10759,8 @@ class $BeeDatabaseManager {
       $$ReceivablesTableTableManager(_db, _db.receivables);
   $$PayablesTableTableManager get payables =>
       $$PayablesTableTableManager(_db, _db.payables);
+  $$ReceivablePaymentsTableTableManager get receivablePayments =>
+      $$ReceivablePaymentsTableTableManager(_db, _db.receivablePayments);
+  $$PayablePaymentsTableTableManager get payablePayments =>
+      $$PayablePaymentsTableTableManager(_db, _db.payablePayments);
 }

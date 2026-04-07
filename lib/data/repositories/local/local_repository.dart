@@ -1430,4 +1430,66 @@ class LocalRepository extends BaseRepository {
   @override
   Future<({double pending, double total, double paid})> getPayableStats(int accountId) =>
       _receivablePayableRepo.getPayableStats(accountId);
+
+  // ========== 收款/还款记录相关 ==========
+
+  @override
+  Future<int> addReceivablePayment({
+    required int receivableId,
+    required double amount,
+    double interestAmount = 0.0,
+    required DateTime happenedAt,
+    int? accountId,
+    String? note,
+  }) =>
+      _receivablePayableRepo.addReceivablePayment(
+        receivableId: receivableId,
+        amount: amount,
+        interestAmount: interestAmount,
+        happenedAt: happenedAt,
+        accountId: accountId,
+        note: note,
+      );
+
+  @override
+  Future<void> deleteReceivablePayment(int id) =>
+      _receivablePayableRepo.deleteReceivablePayment(id);
+
+  @override
+  Future<List<ReceivablePayment>> getReceivablePayments(int receivableId) =>
+      _receivablePayableRepo.getReceivablePayments(receivableId);
+
+  @override
+  Stream<List<ReceivablePayment>> watchReceivablePayments(int receivableId) =>
+      _receivablePayableRepo.watchReceivablePayments(receivableId);
+
+  @override
+  Future<int> addPayablePayment({
+    required int payableId,
+    required double amount,
+    double interestAmount = 0.0,
+    required DateTime happenedAt,
+    int? accountId,
+    String? note,
+  }) =>
+      _receivablePayableRepo.addPayablePayment(
+        payableId: payableId,
+        amount: amount,
+        interestAmount: interestAmount,
+        happenedAt: happenedAt,
+        accountId: accountId,
+        note: note,
+      );
+
+  @override
+  Future<void> deletePayablePayment(int id) =>
+      _receivablePayableRepo.deletePayablePayment(id);
+
+  @override
+  Future<List<PayablePayment>> getPayablePayments(int payableId) =>
+      _receivablePayableRepo.getPayablePayments(payableId);
+
+  @override
+  Stream<List<PayablePayment>> watchPayablePayments(int payableId) =>
+      _receivablePayableRepo.watchPayablePayments(payableId);
 }

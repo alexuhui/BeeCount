@@ -66,6 +66,8 @@ class Transactions extends Table {
       boolean().withDefault(const Constant(false))(); // v1.17.1: 是否排除在统计之外
   IntColumn get receivableId => integer().nullable()(); // v1.17.1: 关联的应收款ID
   IntColumn get payableId => integer().nullable()(); // v1.17.1: 关联的应付款ID
+  IntColumn get receivablePaymentId => integer().nullable()(); // v1.19.0: 关联的应收款收款记录ID
+  IntColumn get payablePaymentId => integer().nullable()(); // v1.19.0: 关联的应付款还款记录ID
 }
 
 class RecurringTransactions extends Table {
@@ -273,6 +275,58 @@ class Payables extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
+/// 应收款收款记录表
+class ReceivablePayments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// 关联应收款ID
+  IntColumn get receivableId => integer()();
+
+  /// 本金金额
+  RealColumn get amount => real()();
+
+  /// 利息金额
+  RealColumn get interestAmount => real().withDefault(const Constant(0.0))();
+
+  /// 收款日期
+  DateTimeColumn get happenedAt => dateTime()();
+
+  /// 收款账户ID（入账账户，可为空表示仅记录不入账）
+  IntColumn get accountId => integer().nullable()();
+
+  /// 备注
+  TextColumn get note => text().nullable()();
+
+  /// 创建时间
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+/// 应付款还款记录表
+class PayablePayments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// 关联应付款ID
+  IntColumn get payableId => integer()();
+
+  /// 本金金额
+  RealColumn get amount => real()();
+
+  /// 利息金额
+  RealColumn get interestAmount => real().withDefault(const Constant(0.0))();
+
+  /// 还款日期
+  DateTimeColumn get happenedAt => dateTime()();
+
+  /// 还款账户ID（扣款账户，可为空表示仅记录不入账）
+  IntColumn get accountId => integer().nullable()();
+
+  /// 备注
+  TextColumn get note => text().nullable()();
+
+  /// 创建时间
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 @DriftDatabase(tables: [
   Ledgers,
   Accounts,
@@ -287,12 +341,14 @@ class Payables extends Table {
   TransactionAttachments,
   Receivables,
   Payables,
+  ReceivablePayments,
+  PayablePayments,
 ])
 class BeeDatabase extends _$BeeDatabase {
   BeeDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -688,6 +744,25 @@ class BeeDatabase extends _$BeeDatabase {
               await customStatement('ALTER TABLE transactions ADD COLUMN payable_id INTEGER;');
             }
             logger.info('DB', 'v18 迁移完成: transactions 扩展字段已添加');
+          }
+          if (from < 19) {
+            // v19: 添加应收应付的分次还款记录
+            print('[DB Migration] 开始迁移到 v19: 添加 ReceivablePayments 和 PayablePayments 表');
+            await migrator.createTable(receivablePayments);
+            await migrator.createTable(payablePayments);
+            
+            // 为 transactions 表添加关联 payment 的字段
+            final tableInfo = await customSelect('PRAGMA table_info(transactions)').get();
+            final hasReceivablePaymentId = tableInfo.any((row) => row.data['name'] == 'receivable_payment_id');
+            if (!hasReceivablePaymentId) {
+              await customStatement('ALTER TABLE transactions ADD COLUMN receivable_payment_id INTEGER;');
+            }
+            final hasPayablePaymentId = tableInfo.any((row) => row.data['name'] == 'payable_payment_id');
+            if (!hasPayablePaymentId) {
+              await customStatement('ALTER TABLE transactions ADD COLUMN payable_payment_id INTEGER;');
+            }
+            
+            logger.info('DB', 'v19 迁移完成: 应收应付分次还款记录表及关联字段已创建');
           }
         },
       );

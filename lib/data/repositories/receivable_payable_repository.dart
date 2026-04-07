@@ -51,6 +51,12 @@ abstract class ReceivablePayableRepository {
   /// 获取应收款账户的统计信息（待收金额、总额、已收金额）
   Future<({double pending, double total, double received})> getReceivableStats(int accountId);
 
+  /// 每笔应收款的剩余未收本金（本金 − 已收本金，已结清为 0）
+  Future<Map<int, double>> getReceivableOutstandingMapForAccount(int accountId);
+
+  /// 当应收款或收款记录变化时更新 [getReceivableOutstandingMapForAccount]
+  Stream<Map<int, double>> watchReceivableOutstandingMapForAccount(int accountId);
+
   // ========== 应付款相关 ==========
 
   /// 创建应付款记录
@@ -99,6 +105,12 @@ abstract class ReceivablePayableRepository {
 
   /// 获取应付款账户的统计信息（待付金额、总额、已付金额）
   Future<({double pending, double total, double paid})> getPayableStats(int accountId);
+
+  /// 每笔应付款的剩余未付本金（本金 − 已付本金，已结清为 0）
+  Future<Map<int, double>> getPayableOutstandingMapForAccount(int accountId);
+
+  /// 当应付款或还款记录变化时更新 [getPayableOutstandingMapForAccount]
+  Stream<Map<int, double>> watchPayableOutstandingMapForAccount(int accountId);
 
   // ========== 收款/还款记录相关 ==========
 

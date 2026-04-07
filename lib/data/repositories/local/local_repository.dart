@@ -1363,6 +1363,14 @@ class LocalRepository extends BaseRepository {
       _receivablePayableRepo.getReceivableStats(accountId);
 
   @override
+  Future<Map<int, double>> getReceivableOutstandingMapForAccount(int accountId) =>
+      _receivablePayableRepo.getReceivableOutstandingMapForAccount(accountId);
+
+  @override
+  Stream<Map<int, double>> watchReceivableOutstandingMapForAccount(int accountId) =>
+      _receivablePayableRepo.watchReceivableOutstandingMapForAccount(accountId);
+
+  @override
   Future<int> createPayable({
     required int accountId,
     required String payeeName,
@@ -1437,6 +1445,14 @@ class LocalRepository extends BaseRepository {
   @override
   Future<({double pending, double total, double paid})> getPayableStats(int accountId) =>
       _receivablePayableRepo.getPayableStats(accountId);
+
+  @override
+  Future<Map<int, double>> getPayableOutstandingMapForAccount(int accountId) =>
+      _receivablePayableRepo.getPayableOutstandingMapForAccount(accountId);
+
+  @override
+  Stream<Map<int, double>> watchPayableOutstandingMapForAccount(int accountId) =>
+      _receivablePayableRepo.watchPayableOutstandingMapForAccount(accountId);
 
   // ========== 收款/还款记录相关 ==========
 

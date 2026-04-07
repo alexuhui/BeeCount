@@ -18,6 +18,9 @@ import '../receivable_payable/receivable_record_detail_page.dart';
 import '../receivable_payable/payable_record_detail_page.dart';
 import '../transaction/transaction_editor_page.dart';
 
+/// 与 [ReceivablePayableRepository.getReceivableOutstandingMapForAccount] 中剩余未收/未付比较
+const double _kReceivablePayableOutstandingEps = 1e-6;
+
 /// 账户详情页面
 /// 显示账户的统计信息和相关交易
 class AccountDetailPage extends ConsumerWidget {
@@ -341,6 +344,7 @@ class _ReceivableAccountContentState extends ConsumerState<_ReceivableAccountCon
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final receivablesAsync = ref.watch(receivablesByAccountProvider(widget.account.id));
+    final outstandingAsync = ref.watch(receivableOutstandingMapProvider(widget.account.id));
     final balanceAsync = ref.watch(receivableBalanceProvider(widget.account.id));
     final currentLedgerAsync = ref.watch(currentLedgerProvider);
     final currencyCode = currentLedgerAsync.asData?.value?.currency ?? 'CNY';
@@ -386,12 +390,14 @@ class _ReceivableAccountContentState extends ConsumerState<_ReceivableAccountCon
         SizedBox(height: 8.0.scaled(context, ref)),
         SectionCard(
           child: receivablesAsync.when(
-            data: (receivables) {
-              // 过滤应收款
+            data: (receivables) => outstandingAsync.when(
+              data: (outstandingMap) {
+              // 过滤应收款（未收/已收按剩余本金，与统计、分批还款一致）
               final filteredReceivables = receivables.where((r) {
                 if (_filter == 'all') return true;
-                if (_filter == 'received') return r.isReceived;
-                if (_filter == 'pending') return !r.isReceived;
+                final o = outstandingMap[r.id] ?? 0;
+                if (_filter == 'received') return o <= _kReceivablePayableOutstandingEps;
+                if (_filter == 'pending') return o > _kReceivablePayableOutstandingEps;
                 return true;
               }).toList();
 
@@ -474,9 +480,7 @@ class _ReceivableAccountContentState extends ConsumerState<_ReceivableAccountCon
                     double pendingAmount = 0;
                     for (final r in borrowerReceivables) {
                       totalAmount += r.amount;
-                      if (!r.isReceived) {
-                        pendingAmount += r.amount;
-                      }
+                      pendingAmount += outstandingMap[r.id] ?? 0;
                     }
 
                     return Column(
@@ -563,6 +567,7 @@ class _ReceivableAccountContentState extends ConsumerState<_ReceivableAccountCon
                                   padding: EdgeInsets.only(left: 44.0.scaled(context, ref)),
                                   child: _ReceivableTile(
                                     receivable: r,
+                                    outstanding: outstandingMap[r.id] ?? 0,
                                     currencyCode: currencyCode,
                                     onTap: () => _viewReceivableDetail(context, ref, r, currencyCode),
                                   ),
@@ -575,7 +580,21 @@ class _ReceivableAccountContentState extends ConsumerState<_ReceivableAccountCon
                   }),
                 ],
               );
-            },
+              },
+              loading: () => Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24.0.scaled(context, ref)),
+                  child: const CircularProgressIndicator(),
+                ),
+              ),
+              error: (err, stack) => Padding(
+                padding: EdgeInsets.all(16.0.scaled(context, ref)),
+                child: Text(
+                  '${l10n.commonError}: $err',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            ),
             loading: () => Center(
               child: Padding(
                 padding: EdgeInsets.all(24.0.scaled(context, ref)),
@@ -658,6 +677,7 @@ class _PayableAccountContentState extends ConsumerState<_PayableAccountContent> 
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final payablesAsync = ref.watch(payablesByAccountProvider(widget.account.id));
+    final outstandingAsync = ref.watch(payableOutstandingMapProvider(widget.account.id));
     final balanceAsync = ref.watch(payableBalanceProvider(widget.account.id));
     final currentLedgerAsync = ref.watch(currentLedgerProvider);
     final currencyCode = currentLedgerAsync.asData?.value?.currency ?? 'CNY';
@@ -703,12 +723,14 @@ class _PayableAccountContentState extends ConsumerState<_PayableAccountContent> 
         SizedBox(height: 8.0.scaled(context, ref)),
         SectionCard(
           child: payablesAsync.when(
-            data: (payables) {
-              // 过滤应付款
+            data: (payables) => outstandingAsync.when(
+              data: (outstandingMap) {
+              // 过滤应付款（未付/已付按剩余本金）
               final filteredPayables = payables.where((p) {
                 if (_filter == 'all') return true;
-                if (_filter == 'paid') return p.isPaid;
-                if (_filter == 'pending') return !p.isPaid;
+                final o = outstandingMap[p.id] ?? 0;
+                if (_filter == 'paid') return o <= _kReceivablePayableOutstandingEps;
+                if (_filter == 'pending') return o > _kReceivablePayableOutstandingEps;
                 return true;
               }).toList();
 
@@ -791,9 +813,7 @@ class _PayableAccountContentState extends ConsumerState<_PayableAccountContent> 
                     double pendingAmount = 0;
                     for (final p in payeePayables) {
                       totalAmount += p.amount;
-                      if (!p.isPaid) {
-                        pendingAmount += p.amount;
-                      }
+                      pendingAmount += outstandingMap[p.id] ?? 0;
                     }
 
                     return Column(
@@ -880,6 +900,7 @@ class _PayableAccountContentState extends ConsumerState<_PayableAccountContent> 
                                   padding: EdgeInsets.only(left: 44.0.scaled(context, ref)),
                                   child: _PayableTile(
                                     payable: p,
+                                    outstanding: outstandingMap[p.id] ?? 0,
                                     currencyCode: currencyCode,
                                     onTap: () => _viewPayableDetail(context, ref, p, currencyCode),
                                   ),
@@ -892,7 +913,21 @@ class _PayableAccountContentState extends ConsumerState<_PayableAccountContent> 
                   }),
                 ],
               );
-            },
+              },
+              loading: () => Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24.0.scaled(context, ref)),
+                  child: const CircularProgressIndicator(),
+                ),
+              ),
+              error: (err, stack) => Padding(
+                padding: EdgeInsets.all(16.0.scaled(context, ref)),
+                child: Text(
+                  '${l10n.commonError}: $err',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            ),
             loading: () => Center(
               child: Padding(
                 padding: EdgeInsets.all(24.0.scaled(context, ref)),
@@ -960,11 +995,14 @@ class _PayableAccountContentState extends ConsumerState<_PayableAccountContent> 
 /// 应收款记录列表项
 class _ReceivableTile extends ConsumerWidget {
   final db.Receivable receivable;
+  /// 剩余未收本金（与列表筛选、分组小计一致）
+  final double outstanding;
   final String currencyCode;
   final VoidCallback onTap;
 
   const _ReceivableTile({
     required this.receivable,
+    required this.outstanding,
     required this.currencyCode,
     required this.onTap,
   });
@@ -972,6 +1010,7 @@ class _ReceivableTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final primaryColor = ref.watch(primaryColorProvider);
+    final settled = outstanding <= _kReceivablePayableOutstandingEps;
 
     return InkWell(
       onTap: onTap,
@@ -986,15 +1025,15 @@ class _ReceivableTile extends ConsumerWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: receivable.isReceived
+                color: settled
                     ? Colors.green.withValues(alpha: 0.12)
                     : primaryColor.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                receivable.isReceived ? Icons.check : Icons.currency_exchange,
+                settled ? Icons.check : Icons.currency_exchange,
                 size: 18,
-                color: receivable.isReceived ? Colors.green : primaryColor,
+                color: settled ? Colors.green : primaryColor,
               ),
             ),
             SizedBox(width: 12.0.scaled(context, ref)),
@@ -1016,7 +1055,7 @@ class _ReceivableTile extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (receivable.isReceived)
+                      if (settled)
                         Container(
                           margin: EdgeInsets.only(left: 8.0.scaled(context, ref)),
                           padding: EdgeInsets.symmetric(
@@ -1070,14 +1109,14 @@ class _ReceivableTile extends ConsumerWidget {
               ),
             ),
             AmountText(
-              value: receivable.amount,
+              value: outstanding,
               signed: false,
               showCurrency: false,
               currencyCode: currencyCode,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: receivable.isReceived
+                color: settled
                     ? BeeTokens.textSecondary(context)
                     : BeeTokens.textPrimary(context),
               ),
@@ -1097,11 +1136,13 @@ class _ReceivableTile extends ConsumerWidget {
 /// 应付款记录列表项
 class _PayableTile extends ConsumerWidget {
   final db.Payable payable;
+  final double outstanding;
   final String currencyCode;
   final VoidCallback onTap;
 
   const _PayableTile({
     required this.payable,
+    required this.outstanding,
     required this.currencyCode,
     required this.onTap,
   });
@@ -1109,6 +1150,7 @@ class _PayableTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final primaryColor = ref.watch(primaryColorProvider);
+    final settled = outstanding <= _kReceivablePayableOutstandingEps;
 
     return InkWell(
       onTap: onTap,
@@ -1122,15 +1164,15 @@ class _PayableTile extends ConsumerWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: payable.isPaid
+                color: settled
                     ? Colors.green.withValues(alpha: 0.12)
                     : primaryColor.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                payable.isPaid ? Icons.check : Icons.currency_exchange,
+                settled ? Icons.check : Icons.currency_exchange,
                 size: 18,
-                color: payable.isPaid ? Colors.green : primaryColor,
+                color: settled ? Colors.green : primaryColor,
               ),
             ),
             SizedBox(width: 12.0.scaled(context, ref)),
@@ -1152,7 +1194,7 @@ class _PayableTile extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (payable.isPaid)
+                      if (settled)
                         Container(
                           margin: EdgeInsets.only(left: 8.0.scaled(context, ref)),
                           padding: EdgeInsets.symmetric(
@@ -1206,14 +1248,14 @@ class _PayableTile extends ConsumerWidget {
               ),
             ),
             AmountText(
-              value: payable.amount,
+              value: outstanding,
               signed: false,
               showCurrency: false,
               currencyCode: currencyCode,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: payable.isPaid
+                color: settled
                     ? BeeTokens.textSecondary(context)
                     : BeeTokens.textPrimary(context),
               ),
@@ -1514,6 +1556,13 @@ final receivableBalanceProvider = FutureProvider.family
   return repo.getReceivableBalance(accountId);
 });
 
+/// 每笔应收款的剩余未收本金（收款后实时更新）
+final receivableOutstandingMapProvider = StreamProvider.family
+    .autoDispose<Map<int, double>, int>((ref, accountId) {
+  final repo = ref.watch(repositoryProvider);
+  return repo.watchReceivableOutstandingMapForAccount(accountId);
+});
+
 // Provider: 应收款统计
 final receivableStatsProvider = FutureProvider.family
     .autoDispose<({double pending, double total, double received}), int>((ref, accountId) {
@@ -1533,6 +1582,13 @@ final payableBalanceProvider = FutureProvider.family
     .autoDispose<double, int>((ref, accountId) {
   final repo = ref.watch(repositoryProvider);
   return repo.getPayableBalance(accountId);
+});
+
+/// 每笔应付款的剩余未付本金（还款后实时更新）
+final payableOutstandingMapProvider = StreamProvider.family
+    .autoDispose<Map<int, double>, int>((ref, accountId) {
+  final repo = ref.watch(repositoryProvider);
+  return repo.watchPayableOutstandingMapForAccount(accountId);
 });
 
 // Provider: 应付款统计

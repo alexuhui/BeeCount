@@ -1476,9 +1476,29 @@ class CloudRepository extends BaseRepository {
   Future<({double paid, double pending, double total})> getPayableStats(int accountId) {
     throw UnimplementedError('应付功能在云端模式下暂不可用');
   }
+
+  @override
+  Future<Map<int, double>> getPayableOutstandingMapForAccount(int accountId) {
+    throw UnimplementedError('应付功能在云端模式下暂不可用');
+  }
+
+  @override
+  Stream<Map<int, double>> watchPayableOutstandingMapForAccount(int accountId) {
+    throw UnimplementedError('应付功能在云端模式下暂不可用');
+  }
   
   @override
   Future<({double pending, double received, double total})> getReceivableStats(int accountId) {
+    throw UnimplementedError('应收功能在云端模式下暂不可用');
+  }
+
+  @override
+  Future<Map<int, double>> getReceivableOutstandingMapForAccount(int accountId) {
+    throw UnimplementedError('应收功能在云端模式下暂不可用');
+  }
+
+  @override
+  Stream<Map<int, double>> watchReceivableOutstandingMapForAccount(int accountId) {
     throw UnimplementedError('应收功能在云端模式下暂不可用');
   }
   

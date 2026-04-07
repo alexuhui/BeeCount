@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' as d;
 
 import '../../../services/system/logger_service.dart';
@@ -264,6 +266,55 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     return (pending: pending, total: total, received: received);
   }
 
+  @override
+  Future<Map<int, double>> getReceivableOutstandingMapForAccount(int accountId) async {
+    final rows = await db.customSelect(
+      '''
+      SELECT r.id AS rid, r.amount AS amt, COALESCE(SUM(p.amount), 0) AS paid
+      FROM receivables r
+      LEFT JOIN receivable_payments p ON p.receivable_id = r.id
+      WHERE r.account_id = ?
+      GROUP BY r.id, r.amount
+      ''',
+      variables: [d.Variable.withInt(accountId)],
+      readsFrom: {db.receivables, db.receivablePayments},
+    ).get();
+
+    final map = <int, double>{};
+    for (final row in rows) {
+      final id = row.data['rid'] as int;
+      final amt = (row.data['amt'] as num).toDouble();
+      final paid = (row.data['paid'] as num).toDouble();
+      final remaining = amt - paid;
+      map[id] = remaining > 0 ? remaining : 0.0;
+    }
+    return map;
+  }
+
+  @override
+  Stream<Map<int, double>> watchReceivableOutstandingMapForAccount(int accountId) {
+    return Stream<Map<int, double>>.multi((controller) {
+      Future<void> emit() async {
+        try {
+          final m = await getReceivableOutstandingMapForAccount(accountId);
+          if (!controller.isClosed) controller.add(m);
+        } catch (e, st) {
+          if (!controller.isClosed) controller.addError(e, st);
+        }
+      }
+
+      emit();
+      final sub1 = (db.select(db.receivables)..where((t) => t.accountId.equals(accountId)))
+          .watch()
+          .listen((_) => emit());
+      final sub2 = db.select(db.receivablePayments).watch().listen((_) => emit());
+      controller.onCancel = () {
+        sub1.cancel();
+        sub2.cancel();
+      };
+    });
+  }
+
   // ========== 应付款相关 ==========
 
   @override
@@ -514,6 +565,55 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     }
 
     return (pending: pending, total: total, paid: paid);
+  }
+
+  @override
+  Future<Map<int, double>> getPayableOutstandingMapForAccount(int accountId) async {
+    final rows = await db.customSelect(
+      '''
+      SELECT p.id AS pid, p.amount AS amt, COALESCE(SUM(pp.amount), 0) AS paid
+      FROM payables p
+      LEFT JOIN payable_payments pp ON pp.payable_id = p.id
+      WHERE p.account_id = ?
+      GROUP BY p.id, p.amount
+      ''',
+      variables: [d.Variable.withInt(accountId)],
+      readsFrom: {db.payables, db.payablePayments},
+    ).get();
+
+    final map = <int, double>{};
+    for (final row in rows) {
+      final id = row.data['pid'] as int;
+      final amt = (row.data['amt'] as num).toDouble();
+      final paid = (row.data['paid'] as num).toDouble();
+      final remaining = amt - paid;
+      map[id] = remaining > 0 ? remaining : 0.0;
+    }
+    return map;
+  }
+
+  @override
+  Stream<Map<int, double>> watchPayableOutstandingMapForAccount(int accountId) {
+    return Stream<Map<int, double>>.multi((controller) {
+      Future<void> emit() async {
+        try {
+          final m = await getPayableOutstandingMapForAccount(accountId);
+          if (!controller.isClosed) controller.add(m);
+        } catch (e, st) {
+          if (!controller.isClosed) controller.addError(e, st);
+        }
+      }
+
+      emit();
+      final sub1 = (db.select(db.payables)..where((t) => t.accountId.equals(accountId)))
+          .watch()
+          .listen((_) => emit());
+      final sub2 = db.select(db.payablePayments).watch().listen((_) => emit());
+      controller.onCancel = () {
+        sub1.cancel();
+        sub2.cancel();
+      };
+    });
   }
 
   // ========== 收款/还款记录相关 ==========

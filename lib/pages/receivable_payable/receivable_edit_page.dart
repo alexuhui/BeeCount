@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
@@ -12,7 +11,7 @@ import '../../utils/ui_scale_extensions.dart';
 import '../account/account_detail_page.dart' show receivableStatsProvider, receivableBalanceProvider;
 import '../../providers/statistics_providers.dart';
 
-/// 应收款记录编辑页面
+/// 应收款记录编辑页面（收款请使用详情页「记录收款」）
 class ReceivableEditPage extends ConsumerStatefulWidget {
   final db.Account account;
   final db.Receivable? receivable;
@@ -33,10 +32,7 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
   late final TextEditingController _noteController;
   late double _amount;
   late DateTime _borrowDate;
-  DateTime? _receiveDate;
   int? _fromAccountId;
-  int? _toAccountId;
-  bool _isReceived = false;
   bool _saving = false;
 
   bool get isEditing => widget.receivable != null;
@@ -49,10 +45,7 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
     _noteController = TextEditingController(text: r?.note ?? '');
     _amount = r?.amount ?? 0;
     _borrowDate = r?.borrowDate ?? DateTime.now();
-    _receiveDate = r?.receiveDate;
     _fromAccountId = r?.fromAccountId;
-    _toAccountId = r?.toAccountId;
-    _isReceived = r?.isReceived ?? false;
   }
 
   @override
@@ -134,9 +127,9 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
                   SizedBox(height: 8.0.scaled(context, ref)),
                   accountsAsync.when(
                     data: (accounts) {
-                      final otherAccounts = accounts.where((a) => 
-                        a.id != widget.account.id && 
-                        a.type != 'receivable' && 
+                      final otherAccounts = accounts.where((a) =>
+                        a.id != widget.account.id &&
+                        a.type != 'receivable' &&
                         a.type != 'payable'
                       ).toList();
                       return _buildSectionCard(
@@ -154,39 +147,6 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
                               setState(() => _fromAccountId = accountId);
                             },
                           ),
-                          BeeTokens.cardDivider(context),
-                          _buildSwitchField(
-                            context,
-                            label: '已收款',
-                            value: _isReceived,
-                            onChanged: (value) {
-                              setState(() => _isReceived = value);
-                            },
-                          ),
-                          if (_isReceived) ...[
-                            BeeTokens.cardDivider(context),
-                            _buildDateField(
-                              context,
-                              label: '收款日期',
-                              date: _receiveDate ?? DateTime.now(),
-                              icon: Icons.event_available_outlined,
-                              onDateSelected: (date) {
-                                setState(() => _receiveDate = date);
-                              },
-                            ),
-                            BeeTokens.cardDivider(context),
-                            _buildAccountSelector(
-                              context,
-                              accounts: otherAccounts,
-                              selectedAccountId: _toAccountId,
-                              label: '收款账户',
-                              hint: '选择收款入账的账户',
-                              icon: Icons.account_balance_outlined,
-                              onAccountSelected: (accountId) {
-                                setState(() => _toAccountId = accountId);
-                              },
-                            ),
-                          ],
                         ],
                       );
                     },
@@ -502,37 +462,6 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
     );
   }
 
-  Widget _buildSwitchField(
-    BuildContext context, {
-    required String label,
-    required bool value,
-    required Function(bool) onChanged,
-  }) {
-    return Padding(
-      padding: EdgeInsets.all(16.0.scaled(context, ref)),
-      child: Row(
-        children: [
-          Icon(Icons.check_circle_outline, size: 20, color: BeeTokens.textSecondary(context)),
-          SizedBox(width: 12.0.scaled(context, ref)),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 16,
-                color: BeeTokens.textPrimary(context),
-              ),
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: ref.watch(primaryColorProvider),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSaveButton(BuildContext context, Color primaryColor, AppLocalizations l10n) {
     return SizedBox(
       width: double.infinity,
@@ -589,10 +518,6 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
       showToast(context, '请输入有效金额');
       return;
     }
-    if (_isReceived && _toAccountId == null) {
-      showToast(context, '请选择收款账户');
-      return;
-    }
 
     setState(() => _saving = true);
 
@@ -609,9 +534,6 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
           note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
           fromAccountId: _fromAccountId,
           applyFromAccountId: true,
-          isReceived: _isReceived,
-          receiveDate: _isReceived ? _receiveDate : null,
-          toAccountId: _isReceived ? _toAccountId : null,
           updatedAt: now,
         );
       } else {
@@ -622,9 +544,6 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
           borrowDate: _borrowDate,
           note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
           fromAccountId: _fromAccountId,
-          isReceived: _isReceived,
-          receiveDate: _isReceived ? _receiveDate : null,
-          toAccountId: _isReceived ? _toAccountId : null,
         );
       }
 

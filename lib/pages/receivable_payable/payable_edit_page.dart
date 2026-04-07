@@ -11,7 +11,7 @@ import '../../utils/ui_scale_extensions.dart';
 import '../account/account_detail_page.dart' show payableStatsProvider, payableBalanceProvider;
 import '../../providers/statistics_providers.dart';
 
-/// 应付款记录编辑页面
+/// 应付款记录编辑页面（还款请使用详情页「记录还款」）
 class PayableEditPage extends ConsumerStatefulWidget {
   final db.Account account;
   final db.Payable? payable;
@@ -32,10 +32,7 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
   late final TextEditingController _noteController;
   late double _amount;
   late DateTime _payDate;
-  DateTime? _paidDate;
   int? _toAccountId;
-  int? _fromAccountId;
-  bool _isPaid = false;
   bool _saving = false;
 
   bool get isEditing => widget.payable != null;
@@ -48,10 +45,7 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
     _noteController = TextEditingController(text: p?.note ?? '');
     _amount = p?.amount ?? 0;
     _payDate = p?.payDate ?? DateTime.now();
-    _paidDate = p?.paidDate;
     _toAccountId = p?.toAccountId;
-    _fromAccountId = p?.fromAccountId;
-    _isPaid = p?.isPaid ?? false;
   }
 
   @override
@@ -133,9 +127,9 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
                   SizedBox(height: 8.0.scaled(context, ref)),
                   accountsAsync.when(
                     data: (accounts) {
-                      final otherAccounts = accounts.where((a) => 
-                        a.id != widget.account.id && 
-                        a.type != 'receivable' && 
+                      final otherAccounts = accounts.where((a) =>
+                        a.id != widget.account.id &&
+                        a.type != 'receivable' &&
                         a.type != 'payable'
                       ).toList();
                       return _buildSectionCard(
@@ -153,39 +147,6 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
                               setState(() => _toAccountId = accountId);
                             },
                           ),
-                          BeeTokens.cardDivider(context),
-                          _buildSwitchField(
-                            context,
-                            label: '已还款',
-                            value: _isPaid,
-                            onChanged: (value) {
-                              setState(() => _isPaid = value);
-                            },
-                          ),
-                          if (_isPaid) ...[
-                            BeeTokens.cardDivider(context),
-                            _buildDateField(
-                              context,
-                              label: '还款日期',
-                              date: _paidDate ?? DateTime.now(),
-                              icon: Icons.event_available_outlined,
-                              onDateSelected: (date) {
-                                setState(() => _paidDate = date);
-                              },
-                            ),
-                            BeeTokens.cardDivider(context),
-                            _buildAccountSelector(
-                              context,
-                              accounts: otherAccounts,
-                              selectedAccountId: _fromAccountId,
-                              label: '还款账户',
-                              hint: '选择还款的账户',
-                              icon: Icons.account_balance_wallet_outlined,
-                              onAccountSelected: (accountId) {
-                                setState(() => _fromAccountId = accountId);
-                              },
-                            ),
-                          ],
                         ],
                       );
                     },
@@ -501,37 +462,6 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
     );
   }
 
-  Widget _buildSwitchField(
-    BuildContext context, {
-    required String label,
-    required bool value,
-    required Function(bool) onChanged,
-  }) {
-    return Padding(
-      padding: EdgeInsets.all(16.0.scaled(context, ref)),
-      child: Row(
-        children: [
-          Icon(Icons.check_circle_outline, size: 20, color: BeeTokens.textSecondary(context)),
-          SizedBox(width: 12.0.scaled(context, ref)),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 16,
-                color: BeeTokens.textPrimary(context),
-              ),
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: ref.watch(primaryColorProvider),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSaveButton(BuildContext context, Color primaryColor, AppLocalizations l10n) {
     return SizedBox(
       width: double.infinity,
@@ -588,10 +518,6 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
       showToast(context, '请输入有效金额');
       return;
     }
-    if (_isPaid && _fromAccountId == null) {
-      showToast(context, '请选择还款账户');
-      return;
-    }
 
     setState(() => _saving = true);
 
@@ -608,9 +534,6 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
           note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
           toAccountId: _toAccountId,
           applyToAccountId: true,
-          isPaid: _isPaid,
-          paidDate: _isPaid ? _paidDate : null,
-          fromAccountId: _isPaid ? _fromAccountId : null,
           updatedAt: now,
         );
       } else {
@@ -621,9 +544,6 @@ class _PayableEditPageState extends ConsumerState<PayableEditPage> {
           payDate: _payDate,
           note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
           toAccountId: _toAccountId,
-          isPaid: _isPaid,
-          paidDate: _isPaid ? _paidDate : null,
-          fromAccountId: _isPaid ? _fromAccountId : null,
         );
       }
 

@@ -83,11 +83,10 @@ class SyncVersionService {
         if (serverVersion > _localVersion) {
           logger.info('SyncVersion', '服务器有新数据，触发同步');
           await _doSync(syncEngine, provider);
-          
-          _localVersion = serverVersion;
-          final store = UserSettingsStore(_ref.read(databaseProvider));
-          await store.setInt(UserSettingKeys.syncVersion, serverVersion);
-          logger.info('SyncVersion', '本地版本已更新: $_localVersion');
+          // 合并后 flush 会把本地队列推到服务端并递增服务端版本；若仍用本次检测开始时的
+          // serverVersion 更新本地，会落后于真实服务端版本 → 每 10s 再次判定「服务器有新数据」。
+          await _drainOutgoingQueue(syncEngine);
+          await syncVersionFromServer();
         }
       } else {
         logger.debug('SyncVersion', 'databaseService 不是 BeeCountDatabaseService: ${provider.databaseService.runtimeType}');
@@ -95,6 +94,17 @@ class SyncVersionService {
     } catch (e, st) {
       logger.warning('SyncVersion', '检测版本号失败: $e\n$st');
     }
+  }
+
+  /// 合并远程数据后尽快排空上传队列（与 [BeeCountSyncEngine] 定时 flush 交错时需重试）。
+  Future<void> _drainOutgoingQueue(BeeCountSyncEngine syncEngine) async {
+    for (var i = 0; i < 60; i++) {
+      await syncEngine.flush();
+      final pending = await syncEngine.pendingCount();
+      if (pending == 0) return;
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    logger.warning('SyncVersion', '排空上传队列超时，可能仍有待上传数据');
   }
 
   Future<void> _doSync(BeeCountSyncEngine syncEngine, CloudProvider provider) async {

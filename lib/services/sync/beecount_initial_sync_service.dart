@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' as d;
 import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
 
 import '../../data/db.dart';
+import '../../data/repositories/local/local_receivable_payable_repository.dart';
 import '../system/logger_service.dart';
 import 'beecount_sync_engine.dart';
 
@@ -43,6 +44,7 @@ class BeeCountInitialSyncService {
         '远程数据拉取完成: ledgers=${remote['ledgers']?.length}, accounts=${remote['accounts']?.length}, categories=${remote['categories']?.length}, tags=${remote['tags']?.length}, receivables=${remote['receivables']?.length}, receivable_payments=${remote['receivable_payments']?.length}, payables=${remote['payables']?.length}, payable_payments=${remote['payable_payments']?.length}');
 
     await _merge(remote);
+    await LocalReceivablePayableRepository(db).repairAllBorrowHiddenTransfers();
     logger.info('InitialSync', '数据合并完成');
   }
 

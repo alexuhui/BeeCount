@@ -190,6 +190,32 @@ class LocalReceivablePayableRepository implements ReceivablePayableRepository {
     return rows.isEmpty ? null : rows.first;
   }
 
+  /// 按当前应收行补齐/修正「借出」隐藏转账（仅同步 receivables 表时调用）。
+  Future<void> ensureReceivableBorrowHiddenTransfer(int receivableId) async {
+    final r = await (db.select(db.receivables)..where((t) => t.id.equals(receivableId))).getSingleOrNull();
+    if (r == null) return;
+    await _syncReceivableBorrowHiddenTransfer(r);
+  }
+
+  /// 按当前应付行补齐/修正「借入」隐藏转账。
+  Future<void> ensurePayableBorrowHiddenTransfer(int payableId) async {
+    final p = await (db.select(db.payables)..where((t) => t.id.equals(payableId))).getSingleOrNull();
+    if (p == null) return;
+    await _syncPayableBorrowHiddenTransfer(p);
+  }
+
+  /// 扫描全部应收/应付，保证借款来源/去向账户对应的隐藏转账存在（幂等）。
+  Future<void> repairAllBorrowHiddenTransfers() async {
+    final receivables = await db.select(db.receivables).get();
+    for (final r in receivables) {
+      await _syncReceivableBorrowHiddenTransfer(r);
+    }
+    final payables = await db.select(db.payables).get();
+    for (final p in payables) {
+      await _syncPayableBorrowHiddenTransfer(p);
+    }
+  }
+
   @override
   Future<void> deleteReceivable(int id) async {
     await db.transaction(() async {

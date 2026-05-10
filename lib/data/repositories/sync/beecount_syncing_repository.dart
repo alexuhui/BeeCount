@@ -522,6 +522,28 @@ class BeeCountSyncingRepository extends LocalRepository {
   // ReceivablePayableRepository 接口覆盖 - 添加同步支持
   // ============================================
 
+  Future<void> _enqueueBorrowLinkTransferForReceivable(int receivableId) async {
+    final rows = await (db.select(db.transactions)
+          ..where((t) =>
+              t.receivableId.equals(receivableId) &
+              t.receivablePaymentId.isNull() &
+              t.type.equals('transfer')))
+        .get();
+    if (rows.isEmpty) return;
+    await sync.enqueueUpsert('transactions', rows.first.id);
+  }
+
+  Future<void> _enqueueBorrowLinkTransferForPayable(int payableId) async {
+    final rows = await (db.select(db.transactions)
+          ..where((t) =>
+              t.payableId.equals(payableId) &
+              t.payablePaymentId.isNull() &
+              t.type.equals('transfer')))
+        .get();
+    if (rows.isEmpty) return;
+    await sync.enqueueUpsert('transactions', rows.first.id);
+  }
+
   @override
   Future<int> createReceivable({
     required int accountId,
@@ -546,6 +568,7 @@ class BeeCountSyncingRepository extends LocalRepository {
       toAccountId: toAccountId,
     );
     await sync.enqueueUpsert('receivables', id);
+    await _enqueueBorrowLinkTransferForReceivable(id);
     return id;
   }
 
@@ -577,6 +600,7 @@ class BeeCountSyncingRepository extends LocalRepository {
       updatedAt: updatedAt,
     );
     await sync.enqueueUpsert('receivables', id);
+    await _enqueueBorrowLinkTransferForReceivable(id);
   }
 
   @override
@@ -609,6 +633,7 @@ class BeeCountSyncingRepository extends LocalRepository {
       fromAccountId: fromAccountId,
     );
     await sync.enqueueUpsert('payables', id);
+    await _enqueueBorrowLinkTransferForPayable(id);
     return id;
   }
 
@@ -640,6 +665,7 @@ class BeeCountSyncingRepository extends LocalRepository {
       updatedAt: updatedAt,
     );
     await sync.enqueueUpsert('payables', id);
+    await _enqueueBorrowLinkTransferForPayable(id);
   }
 
   @override

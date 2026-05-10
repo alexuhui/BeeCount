@@ -521,6 +521,30 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           await syncEngine.enqueueUpsert('transaction_tags', r.id);
         }
 
+        final receivables = await db.select(db.receivables).get();
+        for (final r in receivables) {
+          logger.info('Login', '同步应收款 ID: ${r.id}');
+          await syncEngine.enqueueUpsert('receivables', r.id);
+        }
+
+        final payables = await db.select(db.payables).get();
+        for (final r in payables) {
+          logger.info('Login', '同步应付款 ID: ${r.id}');
+          await syncEngine.enqueueUpsert('payables', r.id);
+        }
+
+        final receivablePayments = await db.select(db.receivablePayments).get();
+        for (final r in receivablePayments) {
+          logger.info('Login', '同步应收款收款记录 ID: ${r.id}');
+          await syncEngine.enqueueUpsert('receivable_payments', r.id);
+        }
+
+        final payablePayments = await db.select(db.payablePayments).get();
+        for (final r in payablePayments) {
+          logger.info('Login', '同步应付款还款记录 ID: ${r.id}');
+          await syncEngine.enqueueUpsert('payable_payments', r.id);
+        }
+
         await syncEngine.flush();
         logger.info('Login', '本地数据同步完成');
       } finally {

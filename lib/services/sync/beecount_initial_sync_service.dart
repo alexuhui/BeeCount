@@ -34,10 +34,13 @@ class BeeCountInitialSyncService {
       'transactions': await _fetch('transactions'),
       'transaction_tags': await _fetch('transaction_tags'),
       'receivables': await _fetch('receivables'),
+      'receivable_payments': await _fetch('receivable_payments'),
       'payables': await _fetch('payables'),
+      'payable_payments': await _fetch('payable_payments'),
     };
 
-    logger.info('InitialSync', '远程数据拉取完成: ledgers=${remote['ledgers']?.length}, accounts=${remote['accounts']?.length}, categories=${remote['categories']?.length}, tags=${remote['tags']?.length}');
+    logger.info('InitialSync',
+        '远程数据拉取完成: ledgers=${remote['ledgers']?.length}, accounts=${remote['accounts']?.length}, categories=${remote['categories']?.length}, tags=${remote['tags']?.length}, receivables=${remote['receivables']?.length}, receivable_payments=${remote['receivable_payments']?.length}, payables=${remote['payables']?.length}, payable_payments=${remote['payable_payments']?.length}');
 
     await _merge(remote);
     logger.info('InitialSync', '数据合并完成');
@@ -155,7 +158,9 @@ class BeeCountInitialSyncService {
       'transactions',
       'transaction_tags',
       'receivables',
+      'receivable_payments',
       'payables',
+      'payable_payments',
     ];
 
     var progressed = true;
@@ -577,6 +582,70 @@ class BeeCountInitialSyncService {
                   createdAt: d.Value(createdAt),
                 ),
               );
+
+        case 'receivable_payments':
+          final remoteRecvId = row['receivable_id'];
+          final rid = remoteRecvId is int ? remoteRecvId : int.tryParse(remoteRecvId.toString());
+          if (rid == null) return null;
+          final localReceivableId = await _localIdByRemoteId('receivables', rid);
+          if (localReceivableId == null) return null;
+
+          int? localAccountId;
+          final remoteAccId = row['account_id'];
+          if (remoteAccId != null) {
+            final aid = remoteAccId is int ? remoteAccId : int.tryParse(remoteAccId.toString());
+            if (aid != null) {
+              localAccountId = await _localIdByRemoteId('accounts', aid);
+              if (localAccountId == null) return null;
+            }
+          }
+
+          final happenedAt = DateTime.tryParse((row['happened_at'] ?? '').toString()) ?? DateTime.now();
+          final createdAt = DateTime.tryParse(row['created_at']?.toString() ?? '') ?? DateTime.now();
+
+          return await db.into(db.receivablePayments).insert(
+                ReceivablePaymentsCompanion.insert(
+                  receivableId: localReceivableId,
+                  amount: ((row['amount'] ?? 0) as num).toDouble(),
+                  interestAmount: d.Value(((row['interest_amount'] ?? 0) as num).toDouble()),
+                  happenedAt: happenedAt,
+                  accountId: d.Value(localAccountId),
+                  note: d.Value(row['note']?.toString()),
+                  createdAt: d.Value(createdAt),
+                ),
+              );
+
+        case 'payable_payments':
+          final remotePayId = row['payable_id'];
+          final pid = remotePayId is int ? remotePayId : int.tryParse(remotePayId.toString());
+          if (pid == null) return null;
+          final localPayableId = await _localIdByRemoteId('payables', pid);
+          if (localPayableId == null) return null;
+
+          int? localAccountId;
+          final remoteAccId = row['account_id'];
+          if (remoteAccId != null) {
+            final aid = remoteAccId is int ? remoteAccId : int.tryParse(remoteAccId.toString());
+            if (aid != null) {
+              localAccountId = await _localIdByRemoteId('accounts', aid);
+              if (localAccountId == null) return null;
+            }
+          }
+
+          final happenedAt = DateTime.tryParse((row['happened_at'] ?? '').toString()) ?? DateTime.now();
+          final createdAt = DateTime.tryParse(row['created_at']?.toString() ?? '') ?? DateTime.now();
+
+          return await db.into(db.payablePayments).insert(
+                PayablePaymentsCompanion.insert(
+                  payableId: localPayableId,
+                  amount: ((row['amount'] ?? 0) as num).toDouble(),
+                  interestAmount: d.Value(((row['interest_amount'] ?? 0) as num).toDouble()),
+                  happenedAt: happenedAt,
+                  accountId: d.Value(localAccountId),
+                  note: d.Value(row['note']?.toString()),
+                  createdAt: d.Value(createdAt),
+                ),
+              );
       }
     } catch (e, st) {
       logger.error('InitialSync', '插入失败: $entity', e, st);
@@ -916,6 +985,68 @@ class BeeCountInitialSyncService {
               paidDate: d.Value(paidDate),
               fromAccountId: d.Value(localFromAccountId),
               updatedAt: d.Value(DateTime.now()),
+            ),
+          );
+          return true;
+
+        case 'receivable_payments':
+          final remoteRecvId = row['receivable_id'];
+          final rid = remoteRecvId is int ? remoteRecvId : int.tryParse(remoteRecvId.toString());
+          if (rid == null) return false;
+          final localReceivableId = await _localIdByRemoteId('receivables', rid);
+          if (localReceivableId == null) return false;
+
+          int? localAccountId;
+          final remoteAccId = row['account_id'];
+          if (remoteAccId != null) {
+            final aid = remoteAccId is int ? remoteAccId : int.tryParse(remoteAccId.toString());
+            if (aid != null) {
+              localAccountId = await _localIdByRemoteId('accounts', aid);
+              if (localAccountId == null) return false;
+            }
+          }
+
+          final happenedAt = DateTime.tryParse((row['happened_at'] ?? '').toString()) ?? DateTime.now();
+
+          await (db.update(db.receivablePayments)..where((t) => t.id.equals(localId))).write(
+            ReceivablePaymentsCompanion(
+              receivableId: d.Value(localReceivableId),
+              amount: d.Value(((row['amount'] ?? 0) as num).toDouble()),
+              interestAmount: d.Value(((row['interest_amount'] ?? 0) as num).toDouble()),
+              happenedAt: d.Value(happenedAt),
+              accountId: d.Value(localAccountId),
+              note: d.Value(row['note']?.toString()),
+            ),
+          );
+          return true;
+
+        case 'payable_payments':
+          final remotePayId = row['payable_id'];
+          final pid = remotePayId is int ? remotePayId : int.tryParse(remotePayId.toString());
+          if (pid == null) return false;
+          final localPayableId = await _localIdByRemoteId('payables', pid);
+          if (localPayableId == null) return false;
+
+          int? localAccountId;
+          final remoteAccId = row['account_id'];
+          if (remoteAccId != null) {
+            final aid = remoteAccId is int ? remoteAccId : int.tryParse(remoteAccId.toString());
+            if (aid != null) {
+              localAccountId = await _localIdByRemoteId('accounts', aid);
+              if (localAccountId == null) return false;
+            }
+          }
+
+          final happenedAt = DateTime.tryParse((row['happened_at'] ?? '').toString()) ?? DateTime.now();
+
+          await (db.update(db.payablePayments)..where((t) => t.id.equals(localId))).write(
+            PayablePaymentsCompanion(
+              payableId: d.Value(localPayableId),
+              amount: d.Value(((row['amount'] ?? 0) as num).toDouble()),
+              interestAmount: d.Value(((row['interest_amount'] ?? 0) as num).toDouble()),
+              happenedAt: d.Value(happenedAt),
+              accountId: d.Value(localAccountId),
+              note: d.Value(row['note']?.toString()),
             ),
           );
           return true;

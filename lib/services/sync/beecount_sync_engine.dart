@@ -170,6 +170,8 @@ class BeeCountSyncEngine {
     'transaction_tags',
     'receivables',
     'payables',
+    'receivable_payments',
+    'payable_payments',
   ];
 
   Future<bool> _flushOnce() async {
@@ -553,6 +555,36 @@ class BeeCountSyncEngine {
           'from_account_id': remoteFromAccountId,
           'created_at': row.createdAt.toIso8601String(),
           'updated_at': row.updatedAt.toIso8601String(),
+          'user_id': provider.currentUserId,
+        };
+
+      case 'receivable_payments':
+        final row = await (db.select(db.receivablePayments)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        if (row == null) return null;
+        final remoteReceivableId = await _requireRemoteId('receivables', row.receivableId);
+        final remoteAccountId = row.accountId == null ? null : await _requireRemoteId('accounts', row.accountId!);
+        return {
+          'receivable_id': remoteReceivableId,
+          'amount': row.amount,
+          'interest_amount': row.interestAmount,
+          'happened_at': row.happenedAt.toIso8601String(),
+          if (remoteAccountId != null) 'account_id': remoteAccountId,
+          'note': row.note,
+          'user_id': provider.currentUserId,
+        };
+
+      case 'payable_payments':
+        final row = await (db.select(db.payablePayments)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        if (row == null) return null;
+        final remotePayableId = await _requireRemoteId('payables', row.payableId);
+        final remoteAccountId = row.accountId == null ? null : await _requireRemoteId('accounts', row.accountId!);
+        return {
+          'payable_id': remotePayableId,
+          'amount': row.amount,
+          'interest_amount': row.interestAmount,
+          'happened_at': row.happenedAt.toIso8601String(),
+          if (remoteAccountId != null) 'account_id': remoteAccountId,
+          'note': row.note,
           'user_id': provider.currentUserId,
         };
     }

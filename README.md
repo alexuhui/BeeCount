@@ -489,6 +489,7 @@ flutter run --flavor dev
 
 # 构建发布版本
 flutter build apk --flavor prod --release
+flutter build windows --release  
 ```
 
 </details>

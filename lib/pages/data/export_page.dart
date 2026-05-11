@@ -33,6 +33,8 @@ class _ExportPageState extends ConsumerState<ExportPage> {
   bool exportAccounts = true;
   bool exportReceivableList = true;
   bool exportPayableList = true;
+  bool includeReceived = false;
+  bool includePaid = false;
 
   @override
   void initState() {
@@ -198,6 +200,68 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                               child: Text('导出内容'),
                             ),
                             CheckboxListTile(
+                              value: exportAccounts,
+                              onChanged: exporting
+                                  ? null
+                                  : (value) => setState(
+                                      () => exportAccounts = value ?? false),
+                              title: const Text('账户信息'),
+                              controlAffinity: ListTileControlAffinity.leading,
+                              dense: true,
+                            ),
+                            CheckboxListTile(
+                              value: exportReceivableList,
+                              onChanged: exporting
+                                  ? null
+                                  : (value) => setState(() =>
+                                      exportReceivableList = value ?? false),
+                              title: Row(
+                                children: [
+                                  const Text('应收列表'),
+                                  const Text('（'),
+                                  Checkbox(
+                                    value: includeReceived,
+                                    onChanged: exporting
+                                        ? null
+                                        : (value) => setState(() =>
+                                            includeReceived = value ?? false),
+                                    visualDensity: VisualDensity.compact,
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  const Text('含已收）'),
+                                ],
+                              ),
+                              controlAffinity: ListTileControlAffinity.leading,
+                              dense: true,
+                            ),
+                            CheckboxListTile(
+                              value: exportPayableList,
+                              onChanged: exporting
+                                  ? null
+                                  : (value) => setState(
+                                      () => exportPayableList = value ?? false),
+                              title: Row(
+                                children: [
+                                  const Text('应付列表'),
+                                  const Text('（'),
+                                  Checkbox(
+                                    value: includePaid,
+                                    onChanged: exporting
+                                        ? null
+                                        : (value) => setState(
+                                            () => includePaid = value ?? false),
+                                    visualDensity: VisualDensity.compact,
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  const Text('含已付）'),
+                                ],
+                              ),
+                              controlAffinity: ListTileControlAffinity.leading,
+                              dense: true,
+                            ),
+                            CheckboxListTile(
                               value: exportIncome,
                               onChanged: exporting
                                   ? null
@@ -224,36 +288,6 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                                   : (value) => setState(
                                       () => exportTransfer = value ?? false),
                               title: const Text('转账交易记录'),
-                              controlAffinity: ListTileControlAffinity.leading,
-                              dense: true,
-                            ),
-                            CheckboxListTile(
-                              value: exportAccounts,
-                              onChanged: exporting
-                                  ? null
-                                  : (value) => setState(
-                                      () => exportAccounts = value ?? false),
-                              title: const Text('账户信息'),
-                              controlAffinity: ListTileControlAffinity.leading,
-                              dense: true,
-                            ),
-                            CheckboxListTile(
-                              value: exportReceivableList,
-                              onChanged: exporting
-                                  ? null
-                                  : (value) => setState(() =>
-                                      exportReceivableList = value ?? false),
-                              title: const Text('应收列表'),
-                              controlAffinity: ListTileControlAffinity.leading,
-                              dense: true,
-                            ),
-                            CheckboxListTile(
-                              value: exportPayableList,
-                              onChanged: exporting
-                                  ? null
-                                  : (value) => setState(
-                                      () => exportPayableList = value ?? false),
-                              title: const Text('应付列表'),
                               controlAffinity: ListTileControlAffinity.leading,
                               dense: true,
                             ),
@@ -433,6 +467,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
           receivableData.list,
           receivableData.outstandingById,
           accountMap,
+          includeReceived: includeReceived,
         );
       }
       if (exportPayableList) {
@@ -440,6 +475,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
           payableData.list,
           payableData.outstandingById,
           accountMap,
+          includePaid: includePaid,
         );
       }
       if (shouldExportTransactions) {
@@ -586,11 +622,9 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     ];
   }
 
-  List<List<dynamic>> _buildReceivableListRows(
-    List<Receivable> receivables,
-    Map<int, double> outstandingById,
-    Map<int, Account> accountMap,
-  ) {
+  List<List<dynamic>> _buildReceivableListRows(List<Receivable> receivables,
+      Map<int, double> outstandingById, Map<int, Account> accountMap,
+      {required bool includeReceived}) {
     final rows = <List<dynamic>>[
       ['借款人/出借人', 'ID', '应收账户', '借款日期', '应收金额', '已收回', '未收回', '状态', '备注'],
     ];
@@ -622,14 +656,16 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     }
 
     for (final item in receivables) {
+      final outstanding =
+          outstandingById[item.id] ?? (item.isReceived ? 0.0 : item.amount);
+      if (!includeReceived && outstanding <= 0.000001) continue;
+      final received = item.amount - outstanding;
+
       if (currentBorrower != item.borrowerName) {
         closeGroupIfNeeded();
         currentBorrower = item.borrowerName;
         rows.add(['借款人：$currentBorrower', '', '', '', '', '', '', '', '']);
       }
-      final outstanding =
-          outstandingById[item.id] ?? (item.isReceived ? 0.0 : item.amount);
-      final received = item.amount - outstanding;
       rows.add([
         '',
         item.id,
@@ -663,11 +699,9 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     return rows;
   }
 
-  List<List<dynamic>> _buildPayableListRows(
-    List<Payable> payables,
-    Map<int, double> outstandingById,
-    Map<int, Account> accountMap,
-  ) {
+  List<List<dynamic>> _buildPayableListRows(List<Payable> payables,
+      Map<int, double> outstandingById, Map<int, Account> accountMap,
+      {required bool includePaid}) {
     final rows = <List<dynamic>>[
       ['借款人/出借人', 'ID', '应付账户', '应付日期', '应付金额', '已还款', '未还款', '状态', '备注'],
     ];
@@ -699,14 +733,16 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     }
 
     for (final item in payables) {
+      final outstanding =
+          outstandingById[item.id] ?? (item.isPaid ? 0.0 : item.amount);
+      if (!includePaid && outstanding <= 0.000001) continue;
+      final paid = item.amount - outstanding;
+
       if (currentPayee != item.payeeName) {
         closeGroupIfNeeded();
         currentPayee = item.payeeName;
         rows.add(['出借人：$currentPayee', '', '', '', '', '', '', '', '']);
       }
-      final outstanding =
-          outstandingById[item.id] ?? (item.isPaid ? 0.0 : item.amount);
-      final paid = item.amount - outstanding;
       rows.add([
         '',
         item.id,

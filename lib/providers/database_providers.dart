@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/db.dart';
 import '../data/repositories/local/local_repository.dart';
 import '../data/repositories/base_repository.dart';
-import '../data/repositories/sync/beecount_syncing_repository.dart';
+import '../data/repositories/sync/beecount_server_first_repository.dart';
 import '../services/system/logger_service.dart';
 import '../services/user_settings/user_setting_keys.dart';
 import '../services/user_settings/user_settings_store.dart';
@@ -40,8 +40,9 @@ final repositoryProvider = Provider<BaseRepository>((ref) {
   final syncEngine = ref.watch(beecountSyncEngineProvider);
 
   if (syncEngine != null) {
-    logger.info('RepositoryProvider', '✅ 使用 BeeCountSyncingRepository (本地缓存 + 自动同步)');
-    return BeeCountSyncingRepository(db, sync: syncEngine);
+    logger.info('RepositoryProvider',
+        '✅ 使用 BeeCountServerFirstRepository (服务器优先 + 本地缓存)');
+    return BeeCountServerFirstRepository(db, sync: syncEngine);
   }
 
   logger.info('RepositoryProvider', '✅ 使用 LocalRepository (离线模式/未登录)');
@@ -55,7 +56,7 @@ final dynamicRepositoryProvider = Provider<Object>((ref) {
   final syncEngine = ref.watch(beecountSyncEngineProvider);
 
   if (syncEngine != null) {
-    return BeeCountSyncingRepository(db, sync: syncEngine);
+    return BeeCountServerFirstRepository(db, sync: syncEngine);
   }
 
   return LocalRepository(db);
@@ -105,7 +106,8 @@ final currentLedgerProvider = FutureProvider<Ledger?>((ref) async {
 });
 
 // 获取指定账本的详细信息
-final ledgerByIdProvider = FutureProvider.family<Ledger?, int>((ref, ledgerId) async {
+final ledgerByIdProvider =
+    FutureProvider.family<Ledger?, int>((ref, ledgerId) async {
   final repo = ref.watch(repositoryProvider);
 
   return await repo.getLedgerById(ledgerId);
@@ -162,7 +164,8 @@ final categoriesProvider = FutureProvider<List<Category>>((ref) async {
 
 // 分类与交易笔数组合Provider（响应式版本）
 // 使用 autoDispose 在页面关闭时自动取消订阅
-final categoriesWithCountProvider = StreamProvider.autoDispose<List<({Category category, int transactionCount})>>((ref) {
+final categoriesWithCountProvider = StreamProvider.autoDispose<
+    List<({Category category, int transactionCount})>>((ref) {
   final repo = ref.watch(repositoryProvider);
   return repo.watchCategoriesWithCount();
 });
@@ -175,20 +178,24 @@ final transferCategoryProvider = FutureProvider<Category>((ref) async {
 
 // 重复交易Provider（按账本过滤）
 // 注意：此 provider 已废弃，请使用 allRecurringTransactionsProvider 并在业务层过滤
-final recurringTransactionsProvider = FutureProvider.family<List<RecurringTransaction>, int>((ref, ledgerId) async {
+final recurringTransactionsProvider =
+    FutureProvider.family<List<RecurringTransaction>, int>(
+        (ref, ledgerId) async {
   final repo = ref.watch(repositoryProvider);
   final all = await repo.watchRecurringTransactionsByLedger(ledgerId).first;
   return all;
 });
 
 // 所有重复交易Provider（不限账本）
-final allRecurringTransactionsProvider = StreamProvider.autoDispose<List<RecurringTransaction>>((ref) {
+final allRecurringTransactionsProvider =
+    StreamProvider.autoDispose<List<RecurringTransaction>>((ref) {
   final repo = ref.watch(repositoryProvider);
   return repo.watchAllRecurringTransactions();
 });
 
 // 账户Provider（按账本过滤）
-final accountsStreamProvider = StreamProvider.family<List<Account>, int>((ref, ledgerId) {
+final accountsStreamProvider =
+    StreamProvider.family<List<Account>, int>((ref, ledgerId) {
   final repo = ref.watch(repositoryProvider);
   return repo.watchAccountsForLedger(ledgerId);
 });
@@ -202,7 +209,8 @@ final allAccountsStreamProvider = StreamProvider<List<Account>>((ref) {
 });
 
 // 获取单个账户信息
-final accountByIdProvider = FutureProvider.family<Account?, int>((ref, accountId) async {
+final accountByIdProvider =
+    FutureProvider.family<Account?, int>((ref, accountId) async {
   final repo = ref.watch(repositoryProvider);
   return await repo.getAccount(accountId);
 });

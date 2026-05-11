@@ -12,13 +12,17 @@ class BeeCountSyncEngine {
     required this.db,
     required this.provider,
     this.onFlushComplete,
+    this.onConnectionLost,
+    this.onConnectionRestored,
   });
 
   final BeeDatabase db;
   final CloudProvider provider;
-  
+
   /// flush 完成后的回调（用于更新版本号）
   final Future<void> Function()? onFlushComplete;
+  final void Function(Object error)? onConnectionLost;
+  final void Function()? onConnectionRestored;
 
   Timer? _debounce;
   Timer? _poll;
@@ -36,9 +40,11 @@ class BeeCountSyncEngine {
     _poll?.cancel();
   }
 
-  Future<void> enqueueUpsert(String entity, int localId, {int? createdAt}) async {
+  Future<void> enqueueUpsert(String entity, int localId,
+      {int? createdAt}) async {
     await _ensureLocalTables();
-    final createdAtValue = createdAt ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000);
+    final createdAtValue =
+        createdAt ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000);
     await db.customStatement(
       '''
       INSERT INTO sync_queue_items(entity, local_id, action, payload, retry_count, last_error, created_at, updated_at)
@@ -74,9 +80,11 @@ class BeeCountSyncEngine {
 
   Future<int> pendingCount() async {
     await _ensureLocalTables();
-    final row = await db.customSelect(
-      'SELECT COUNT(*) AS c FROM sync_queue_items',
-    ).getSingle();
+    final row = await db
+        .customSelect(
+          'SELECT COUNT(*) AS c FROM sync_queue_items',
+        )
+        .getSingle();
     return (row.data['c'] as int?) ?? 0;
   }
 
@@ -149,7 +157,7 @@ class BeeCountSyncEngine {
         rounds++;
         madeProgress = await _flushOnce();
       }
-      
+
       // flush 完成后调用回调
       if (onFlushComplete != null) {
         await onFlushComplete!();
@@ -226,12 +234,19 @@ class BeeCountSyncEngine {
           continue;
         }
 
-        await _markError(entity: item.entity, localId: item.localId, message: 'Unknown action: ${item.action}');
+        await _markError(
+            entity: item.entity,
+            localId: item.localId,
+            message: 'Unknown action: ${item.action}');
         break;
       } on _MissingDependencyException {
         continue;
       } catch (e) {
-        await _markError(entity: item.entity, localId: item.localId, message: e.toString());
+        if (_isConnectionFailure(e)) {
+          onConnectionLost?.call(e);
+        }
+        await _markError(
+            entity: item.entity, localId: item.localId, message: e.toString());
         break;
       }
     }
@@ -304,17 +319,20 @@ class BeeCountSyncEngine {
     }
 
     try {
-      await provider.databaseService!.delete(table: entity, id: remoteId.toString());
+      await provider.databaseService!
+          .delete(table: entity, id: remoteId.toString());
     } on CloudDatabaseException catch (e) {
       if (e.statusCode == 404) {
         await _removeIdMap(entity, localId);
         await _removeQueueItem(entity, localId);
+        onConnectionRestored?.call();
         return true;
       }
       rethrow;
     }
     await _removeIdMap(entity, localId);
     await _removeQueueItem(entity, localId);
+    onConnectionRestored?.call();
     return true;
   }
 
@@ -327,25 +345,39 @@ class BeeCountSyncEngine {
 
     final remoteId = await _remoteIdOf(entity, localId);
     if (remoteId == null) {
-      final result = await provider.databaseService!.insert(table: entity, data: payload);
+      final result =
+          await provider.databaseService!.insert(table: entity, data: payload);
       await _saveRemoteIdFromInsertResponse(entity, localId, result);
       await _removeQueueItem(entity, localId);
+      onConnectionRestored?.call();
       return true;
     }
 
     try {
-      await provider.databaseService!.update(table: entity, id: remoteId.toString(), data: payload);
+      await provider.databaseService!
+          .update(table: entity, id: remoteId.toString(), data: payload);
     } on CloudDatabaseException catch (e) {
       if (e.statusCode == 404) {
         await _removeIdMap(entity, localId);
-        final result = await provider.databaseService!.insert(table: entity, data: payload);
+        final result = await provider.databaseService!
+            .insert(table: entity, data: payload);
         await _saveRemoteIdFromInsertResponse(entity, localId, result);
         await _removeQueueItem(entity, localId);
+        onConnectionRestored?.call();
         return true;
       }
       rethrow;
     }
     await _removeQueueItem(entity, localId);
+    onConnectionRestored?.call();
+    return true;
+  }
+
+  bool _isConnectionFailure(Object error) {
+    if (error is CloudDatabaseException) {
+      final statusCode = error.statusCode;
+      return statusCode == null || statusCode == 0 || statusCode >= 500;
+    }
     return true;
   }
 
@@ -376,10 +408,13 @@ class BeeCountSyncEngine {
     return id;
   }
 
-  Future<Map<String, dynamic>?> _buildPayload(String entity, int localId) async {
+  Future<Map<String, dynamic>?> _buildPayload(
+      String entity, int localId) async {
     switch (entity) {
       case 'ledgers':
-        final row = await (db.select(db.ledgers)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        final row = await (db.select(db.ledgers)
+              ..where((t) => t.id.equals(localId)))
+            .getSingleOrNull();
         if (row == null) return null;
         return {
           'name': row.name,
@@ -389,7 +424,9 @@ class BeeCountSyncEngine {
         };
 
       case 'accounts':
-        final row = await (db.select(db.accounts)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        final row = await (db.select(db.accounts)
+              ..where((t) => t.id.equals(localId)))
+            .getSingleOrNull();
         if (row == null) return null;
         final remoteLedgerId = await _requireRemoteId('ledgers', row.ledgerId);
         return {
@@ -398,13 +435,17 @@ class BeeCountSyncEngine {
           'type': row.type,
           'currency': row.currency,
           'initial_balance': row.initialBalance,
-          if (row.createdAt != null) 'created_at': row.createdAt!.toIso8601String(),
-          if (row.updatedAt != null) 'updated_at': row.updatedAt!.toIso8601String(),
+          if (row.createdAt != null)
+            'created_at': row.createdAt!.toIso8601String(),
+          if (row.updatedAt != null)
+            'updated_at': row.updatedAt!.toIso8601String(),
           'user_id': provider.currentUserId,
         };
 
       case 'categories':
-        final row = await (db.select(db.categories)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        final row = await (db.select(db.categories)
+              ..where((t) => t.id.equals(localId)))
+            .getSingleOrNull();
         if (row == null) return null;
         int? parentRemoteId;
         if (row.parentId != null) {
@@ -424,13 +465,24 @@ class BeeCountSyncEngine {
         };
 
       case 'transactions':
-        final row = await (db.select(db.transactions)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        final row = await (db.select(db.transactions)
+              ..where((t) => t.id.equals(localId)))
+            .getSingleOrNull();
         if (row == null) return null;
         final remoteLedgerId = await _requireRemoteId('ledgers', row.ledgerId);
-        final remoteCategoryId = row.categoryId == null ? null : await _requireRemoteId('categories', row.categoryId!);
-        final remoteAccountId = row.accountId == null ? null : await _requireRemoteId('accounts', row.accountId!);
-        final remoteToAccountId = row.toAccountId == null ? null : await _requireRemoteId('accounts', row.toAccountId!);
-        final remoteRecurringId = row.recurringId == null ? null : await _requireRemoteId('recurring_transactions', row.recurringId!);
+        final remoteCategoryId = row.categoryId == null
+            ? null
+            : await _requireRemoteId('categories', row.categoryId!);
+        final remoteAccountId = row.accountId == null
+            ? null
+            : await _requireRemoteId('accounts', row.accountId!);
+        final remoteToAccountId = row.toAccountId == null
+            ? null
+            : await _requireRemoteId('accounts', row.toAccountId!);
+        final remoteRecurringId = row.recurringId == null
+            ? null
+            : await _requireRemoteId(
+                'recurring_transactions', row.recurringId!);
         return {
           'ledger_id': remoteLedgerId,
           'type': row.type,
@@ -446,12 +498,20 @@ class BeeCountSyncEngine {
         };
 
       case 'recurring_transactions':
-        final row = await (db.select(db.recurringTransactions)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        final row = await (db.select(db.recurringTransactions)
+              ..where((t) => t.id.equals(localId)))
+            .getSingleOrNull();
         if (row == null) return null;
         final remoteLedgerId = await _requireRemoteId('ledgers', row.ledgerId);
-        final remoteCategoryId = row.categoryId == null ? null : await _requireRemoteId('categories', row.categoryId!);
-        final remoteAccountId = row.accountId == null ? null : await _requireRemoteId('accounts', row.accountId!);
-        final remoteToAccountId = row.toAccountId == null ? null : await _requireRemoteId('accounts', row.toAccountId!);
+        final remoteCategoryId = row.categoryId == null
+            ? null
+            : await _requireRemoteId('categories', row.categoryId!);
+        final remoteAccountId = row.accountId == null
+            ? null
+            : await _requireRemoteId('accounts', row.accountId!);
+        final remoteToAccountId = row.toAccountId == null
+            ? null
+            : await _requireRemoteId('accounts', row.toAccountId!);
         return {
           'ledger_id': remoteLedgerId,
           'type': row.type,
@@ -475,7 +535,9 @@ class BeeCountSyncEngine {
         };
 
       case 'tags':
-        final row = await (db.select(db.tags)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        final row = await (db.select(db.tags)
+              ..where((t) => t.id.equals(localId)))
+            .getSingleOrNull();
         if (row == null) return null;
         return {
           'name': row.name,
@@ -486,9 +548,12 @@ class BeeCountSyncEngine {
         };
 
       case 'transaction_tags':
-        final row = await (db.select(db.transactionTags)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        final row = await (db.select(db.transactionTags)
+              ..where((t) => t.id.equals(localId)))
+            .getSingleOrNull();
         if (row == null) return null;
-        final remoteTxId = await _requireRemoteId('transactions', row.transactionId);
+        final remoteTxId =
+            await _requireRemoteId('transactions', row.transactionId);
         final remoteTagId = await _requireRemoteId('tags', row.tagId);
         return {
           'transaction_id': remoteTxId,
@@ -497,10 +562,14 @@ class BeeCountSyncEngine {
         };
 
       case 'budgets':
-        final row = await (db.select(db.budgets)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        final row = await (db.select(db.budgets)
+              ..where((t) => t.id.equals(localId)))
+            .getSingleOrNull();
         if (row == null) return null;
         final remoteLedgerId = await _requireRemoteId('ledgers', row.ledgerId);
-        final remoteCategoryId = row.categoryId == null ? null : await _requireRemoteId('categories', row.categoryId!);
+        final remoteCategoryId = row.categoryId == null
+            ? null
+            : await _requireRemoteId('categories', row.categoryId!);
         return {
           'ledger_id': remoteLedgerId,
           'year': row.year,
@@ -517,11 +586,18 @@ class BeeCountSyncEngine {
         };
 
       case 'receivables':
-        final row = await (db.select(db.receivables)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        final row = await (db.select(db.receivables)
+              ..where((t) => t.id.equals(localId)))
+            .getSingleOrNull();
         if (row == null) return null;
-        final remoteAccountId = await _requireRemoteId('accounts', row.accountId);
-        final remoteFromAccountId = row.fromAccountId == null ? null : await _requireRemoteId('accounts', row.fromAccountId!);
-        final remoteToAccountId = row.toAccountId == null ? null : await _requireRemoteId('accounts', row.toAccountId!);
+        final remoteAccountId =
+            await _requireRemoteId('accounts', row.accountId);
+        final remoteFromAccountId = row.fromAccountId == null
+            ? null
+            : await _requireRemoteId('accounts', row.fromAccountId!);
+        final remoteToAccountId = row.toAccountId == null
+            ? null
+            : await _requireRemoteId('accounts', row.toAccountId!);
         return {
           'account_id': remoteAccountId,
           'borrower_name': row.borrowerName,
@@ -538,11 +614,18 @@ class BeeCountSyncEngine {
         };
 
       case 'payables':
-        final row = await (db.select(db.payables)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        final row = await (db.select(db.payables)
+              ..where((t) => t.id.equals(localId)))
+            .getSingleOrNull();
         if (row == null) return null;
-        final remoteAccountId = await _requireRemoteId('accounts', row.accountId);
-        final remoteToAccountId = row.toAccountId == null ? null : await _requireRemoteId('accounts', row.toAccountId!);
-        final remoteFromAccountId = row.fromAccountId == null ? null : await _requireRemoteId('accounts', row.fromAccountId!);
+        final remoteAccountId =
+            await _requireRemoteId('accounts', row.accountId);
+        final remoteToAccountId = row.toAccountId == null
+            ? null
+            : await _requireRemoteId('accounts', row.toAccountId!);
+        final remoteFromAccountId = row.fromAccountId == null
+            ? null
+            : await _requireRemoteId('accounts', row.fromAccountId!);
         return {
           'account_id': remoteAccountId,
           'payee_name': row.payeeName,
@@ -559,10 +642,15 @@ class BeeCountSyncEngine {
         };
 
       case 'receivable_payments':
-        final row = await (db.select(db.receivablePayments)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        final row = await (db.select(db.receivablePayments)
+              ..where((t) => t.id.equals(localId)))
+            .getSingleOrNull();
         if (row == null) return null;
-        final remoteReceivableId = await _requireRemoteId('receivables', row.receivableId);
-        final remoteAccountId = row.accountId == null ? null : await _requireRemoteId('accounts', row.accountId!);
+        final remoteReceivableId =
+            await _requireRemoteId('receivables', row.receivableId);
+        final remoteAccountId = row.accountId == null
+            ? null
+            : await _requireRemoteId('accounts', row.accountId!);
         return {
           'receivable_id': remoteReceivableId,
           'amount': row.amount,
@@ -574,10 +662,15 @@ class BeeCountSyncEngine {
         };
 
       case 'payable_payments':
-        final row = await (db.select(db.payablePayments)..where((t) => t.id.equals(localId))).getSingleOrNull();
+        final row = await (db.select(db.payablePayments)
+              ..where((t) => t.id.equals(localId)))
+            .getSingleOrNull();
         if (row == null) return null;
-        final remotePayableId = await _requireRemoteId('payables', row.payableId);
-        final remoteAccountId = row.accountId == null ? null : await _requireRemoteId('accounts', row.accountId!);
+        final remotePayableId =
+            await _requireRemoteId('payables', row.payableId);
+        final remoteAccountId = row.accountId == null
+            ? null
+            : await _requireRemoteId('accounts', row.accountId!);
         return {
           'payable_id': remotePayableId,
           'amount': row.amount,
@@ -594,7 +687,8 @@ class BeeCountSyncEngine {
       return (jsonDecode(payload) as Map).cast<String, dynamic>();
     }
 
-    logger.warning('BeeCountSync', 'No payload builder for entity=$entity localId=$localId');
+    logger.warning('BeeCountSync',
+        'No payload builder for entity=$entity localId=$localId');
     return null;
   }
 

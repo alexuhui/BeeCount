@@ -63,7 +63,8 @@ class SyncVersionService {
       }
 
       final provider = syncEngine.provider;
-      logger.debug('SyncVersion', 'provider: $provider, databaseService: ${provider.databaseService}');
+      logger.debug('SyncVersion',
+          'provider: $provider, databaseService: ${provider.databaseService}');
       if (provider.databaseService == null) {
         logger.debug('SyncVersion', 'databaseService 为 null，跳过检测');
         return;
@@ -72,13 +73,19 @@ class SyncVersionService {
       if (provider.databaseService is BeeCountDatabaseService) {
         final beecountDb = provider.databaseService as BeeCountDatabaseService;
         final serverVersion = await beecountDb.getSyncVersion();
-        
-        logger.info('SyncVersion', '服务器版本: $serverVersion, 本地版本: $_localVersion');
+
+        logger.info(
+            'SyncVersion', '服务器版本: $serverVersion, 本地版本: $_localVersion');
 
         if (serverVersion == null) {
           logger.warning('SyncVersion', '获取服务器版本号为空，跳过同步');
+          _ref
+              .read(beecountServerConnectionControllerProvider)
+              .markDisconnected('服务器连接失败，请重新连接');
           return;
         }
+
+        _ref.read(beecountServerConnectionControllerProvider).markConnected();
 
         if (serverVersion > _localVersion) {
           logger.info('SyncVersion', '服务器有新数据，触发同步');
@@ -89,10 +96,14 @@ class SyncVersionService {
           await syncVersionFromServer();
         }
       } else {
-        logger.debug('SyncVersion', 'databaseService 不是 BeeCountDatabaseService: ${provider.databaseService.runtimeType}');
+        logger.debug('SyncVersion',
+            'databaseService 不是 BeeCountDatabaseService: ${provider.databaseService.runtimeType}');
       }
     } catch (e, st) {
       logger.warning('SyncVersion', '检测版本号失败: $e\n$st');
+      _ref
+          .read(beecountServerConnectionControllerProvider)
+          .markDisconnected('服务器连接失败，请重新连接');
     }
   }
 
@@ -107,22 +118,23 @@ class SyncVersionService {
     logger.warning('SyncVersion', '排空上传队列超时，可能仍有待上传数据');
   }
 
-  Future<void> _doSync(BeeCountSyncEngine syncEngine, CloudProvider provider) async {
+  Future<void> _doSync(
+      BeeCountSyncEngine syncEngine, CloudProvider provider) async {
     if (_isSyncing) return;
     _isSyncing = true;
 
     try {
       final db = _ref.read(databaseProvider);
-      
+
       logger.info('SyncVersion', '开始从服务器拉取数据');
-      
+
       final syncService = BeeCountInitialSyncService(
         db: db,
         provider: provider,
         sync: syncEngine,
       );
       await syncService.run();
-      
+
       logger.info('SyncVersion', '同步完成，刷新 UI');
 
       final ledgers = await db.select(db.ledgers).get();
@@ -138,26 +150,26 @@ class SyncVersionService {
 
       // 刷新预算相关 Provider
       _ref.read(budgetRefreshProvider.notifier).state++;
-      
+
       // 刷新账户相关 Provider
       _ref.invalidate(accountsStreamProvider);
       _ref.invalidate(allAccountsStreamProvider);
-      
+
       // 刷新统计相关 Provider
       _ref.read(statsRefreshProvider.notifier).state++;
-      
+
       // 刷新标签相关 Provider
       _ref.read(tagListRefreshProvider.notifier).state++;
-      
+
       // 刷新日历相关 Provider
       _ref.read(calendarRefreshProvider.notifier).state++;
-      
+
       // 刷新账本列表相关 Provider
       _ref.read(ledgerListRefreshProvider.notifier).state++;
-      
+
       // 刷新同步状态相关 Provider
       _ref.read(syncStatusRefreshProvider.notifier).state++;
-      
+
       logger.info('SyncVersion', 'UI 刷新完成');
     } catch (e, st) {
       logger.error('SyncVersion', '同步失败', e, st);
@@ -186,14 +198,22 @@ class SyncVersionService {
         final beecountDb = provider.databaseService as BeeCountDatabaseService;
         final serverVersion = await beecountDb.getSyncVersion();
         if (serverVersion != null) {
+          _ref.read(beecountServerConnectionControllerProvider).markConnected();
           _localVersion = serverVersion;
           final store = UserSettingsStore(_ref.read(databaseProvider));
           await store.setInt(UserSettingKeys.syncVersion, serverVersion);
           logger.info('SyncVersion', '从服务器同步版本号: $_localVersion');
+        } else {
+          _ref
+              .read(beecountServerConnectionControllerProvider)
+              .markDisconnected('服务器连接失败，请重新连接');
         }
       }
     } catch (e) {
       logger.warning('SyncVersion', '同步版本号失败: $e');
+      _ref
+          .read(beecountServerConnectionControllerProvider)
+          .markDisconnected('服务器连接失败，请重新连接');
     }
   }
 }

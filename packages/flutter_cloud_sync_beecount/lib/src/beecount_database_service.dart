@@ -6,6 +6,7 @@ import 'beecount_auth_service.dart';
 class BeeCountDatabaseService implements CloudDatabaseService {
   final String serverUrl;
   final BeeCountAuthService auth;
+  int _mutationCounter = 0;
 
   BeeCountDatabaseService(this.serverUrl, this.auth);
 
@@ -17,6 +18,15 @@ class BeeCountDatabaseService implements CloudDatabaseService {
     };
   }
 
+  Map<String, String> _headersWithMutation(String table) {
+    final now = DateTime.now().toUtc().microsecondsSinceEpoch;
+    final counter = _mutationCounter++;
+    return {
+      ..._headers,
+      'Idempotency-Key': '$table-$now-$counter',
+    };
+  }
+
   @override
   Future<Map<String, dynamic>> insert({
     required String table,
@@ -25,16 +35,17 @@ class BeeCountDatabaseService implements CloudDatabaseService {
   }) async {
     final url = '$serverUrl/api/v1/$table';
     final body = jsonEncode(data);
-    
+
     print('📡 POST $url  📤 Request body: $body');
-    
+
     final response = await http.post(
       Uri.parse(url),
-      headers: _headers,
+      headers: _headersWithMutation(table),
       body: body,
     );
-    
-    print('📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
+
+    print(
+        '📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
 
     if (response.statusCode == 201 || response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -56,16 +67,17 @@ class BeeCountDatabaseService implements CloudDatabaseService {
   }) async {
     final url = '$serverUrl/api/v1/$table/$id';
     final body = jsonEncode(data);
-    
+
     print('📡 PUT $url  📤 Request body: $body');
-    
+
     final response = await http.put(
       Uri.parse(url),
       headers: _headers,
       body: body,
     );
-    
-    print('📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
+
+    print(
+        '📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -85,15 +97,16 @@ class BeeCountDatabaseService implements CloudDatabaseService {
     bool autoFilterByUser = true,
   }) async {
     final url = '$serverUrl/api/v1/$table/$id';
-    
+
     print('📡 DELETE $url');
-    
+
     final response = await http.delete(
       Uri.parse(url),
       headers: _headers,
     );
-    
-    print('📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
+
+    print(
+        '📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
 
     if (response.statusCode != 204 && response.statusCode != 200) {
       throw CloudDatabaseException(
@@ -115,15 +128,17 @@ class BeeCountDatabaseService implements CloudDatabaseService {
     bool autoFilterByUser = true,
   }) async {
     final url = '$serverUrl/api/v1/$table';
-    
-    print('📡 GET $url  📤 Filters: ${filters?.map((f) => '${f.column} ${f.operator} ${f.value}').join(', ')}');
-    
+
+    print(
+        '📡 GET $url  📤 Filters: ${filters?.map((f) => '${f.column} ${f.operator} ${f.value}').join(', ')}');
+
     final response = await http.get(
       Uri.parse(url),
       headers: _headers,
     );
-    
-    print('📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
+
+    print(
+        '📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
@@ -135,15 +150,24 @@ class BeeCountDatabaseService implements CloudDatabaseService {
           results = results.where((item) {
             final val = item[filter.column];
             switch (filter.operator) {
-              case 'eq': return val == filter.value;
-              case 'neq': return val != filter.value;
-              case 'gt': return (val as num) > (filter.value as num);
-              case 'gte': return (val as num) >= (filter.value as num);
-              case 'lt': return (val as num) < (filter.value as num);
-              case 'lte': return (val as num) <= (filter.value as num);
-              case 'like': return val.toString().contains(filter.value.toString());
-              case 'in': return (filter.value as List).contains(val);
-              default: return true;
+              case 'eq':
+                return val == filter.value;
+              case 'neq':
+                return val != filter.value;
+              case 'gt':
+                return (val as num) > (filter.value as num);
+              case 'gte':
+                return (val as num) >= (filter.value as num);
+              case 'lt':
+                return (val as num) < (filter.value as num);
+              case 'lte':
+                return (val as num) <= (filter.value as num);
+              case 'like':
+                return val.toString().contains(filter.value.toString());
+              case 'in':
+                return (filter.value as List).contains(val);
+              default:
+                return true;
             }
           }).toList();
         }
@@ -242,7 +266,6 @@ class BeeCountDatabaseService implements CloudDatabaseService {
     throw UnsupportedError('rawQuery not supported on BeeCount server');
   }
 
-  @override
   Future<int> count({
     required String table,
     List<QueryFilter>? filters,
@@ -253,15 +276,16 @@ class BeeCountDatabaseService implements CloudDatabaseService {
 
   Future<int?> getSyncVersion() async {
     final url = '$serverUrl/api/v1/sync_version';
-    
+
     print('📡 GET $url (sync version)');
-    
+
     final response = await http.get(
       Uri.parse(url),
       headers: _headers,
     );
-    
-    print('📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
+
+    print(
+        '📥 Response status: ${response.statusCode}  📥 Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);

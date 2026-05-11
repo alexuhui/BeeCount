@@ -463,6 +463,11 @@ class MainApp extends ConsumerWidget {
           Locale('zh', 'TW'),
         ],
         locale: selectedLanguage,
+        builder: (context, child) {
+          return _BeeCountConnectionOverlay(
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
         // 显式命名根路由，便于路由日志与 popUntil 精确识别
         home: _getLoginPage(initState, ref),
         onGenerateRoute: (settings) {
@@ -474,6 +479,108 @@ class MainApp extends ConsumerWidget {
           }
           return null;
         },
+      ),
+    );
+  }
+}
+
+class _BeeCountConnectionOverlay extends ConsumerWidget {
+  const _BeeCountConnectionOverlay({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final connection = ref.watch(beecountServerConnectionProvider);
+    final session = ref.watch(beecountSessionProvider);
+    final offline = ref.watch(beecountOfflineModeProvider);
+
+    final shouldShow = connection.disconnected &&
+        session.maybeWhen(
+            data: (value) => value != null, orElse: () => false) &&
+        offline.maybeWhen(data: (value) => !value, orElse: () => false);
+
+    if (!shouldShow) {
+      return child;
+    }
+
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return PopScope(
+      canPop: false,
+      child: Stack(
+        children: [
+          child,
+          Positioned.fill(
+            child: ColoredBox(
+              color: Colors.black.withValues(alpha: 0.45),
+              child: Center(
+                child: Material(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 44,
+                            height: 44,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              color: primary,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            connection.message ?? '服务器连接失败',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '当前无法连接 BeeCount 服务器。请重新连接，连接恢复后即可继续提交数据。',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: 20),
+                          FilledButton.icon(
+                            onPressed: connection.checking
+                                ? null
+                                : () {
+                                    ref
+                                        .read(
+                                          beecountServerConnectionControllerProvider,
+                                        )
+                                        .reconnect();
+                                  },
+                            icon: connection.checking
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.refresh),
+                            label: Text(
+                              connection.checking ? '正在重新连接' : '重新连接',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

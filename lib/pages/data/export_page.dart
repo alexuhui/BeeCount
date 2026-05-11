@@ -456,6 +456,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       }
       if (exportAccounts) {
         exportSheets['账户信息'] = await _buildAccountRows(
+          repo,
           accountsForExport,
           allTransactionsWithCategory.map((e) => e.t).toList(),
           start,
@@ -777,6 +778,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
   }
 
   Future<List<List<dynamic>>> _buildAccountRows(
+    BaseRepository repo,
     List<Account> accounts,
     List<Transaction> allLedgerTransactions,
     DateTime startDate,
@@ -788,12 +790,14 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       ['账户ID', '名称', '类型', '币种', '初始金额', '末期金额', '余额变动'],
     ];
     for (final account in accounts) {
-      final startAmount = _computeAccountAmountAtDate(
+      final startAmount = await _computeAccountAmountAtDate(
+        repo: repo,
         account: account,
         date: startDate,
         allLedgerTransactions: allLedgerTransactions,
       );
-      final endAmount = _computeAccountAmountAtDate(
+      final endAmount = await _computeAccountAmountAtDate(
+        repo: repo,
         account: account,
         date: endDate,
         allLedgerTransactions: allLedgerTransactions,
@@ -933,14 +937,50 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     rows.add(['', '', '', '']);
   }
 
-  double _computeAccountAmountAtDate({
+  Future<double> _computeAccountAmountAtDate({
+    required BaseRepository repo,
     required Account account,
     required DateTime date,
     required List<Transaction> allLedgerTransactions,
-  }) {
-    var amount = account.initialBalance;
+  }) async {
     final endOfDate =
         DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
+
+    if (account.type == 'receivable') {
+      final receivables = await repo.getReceivablesByAccountId(account.id);
+      var outstandingSum = 0.0;
+      for (final receivable in receivables) {
+        if (receivable.borrowDate.toLocal().isAfter(endOfDate)) continue;
+        final payments = await repo.getReceivablePayments(receivable.id);
+        final paidPrincipal = payments
+            .where((p) => !p.happenedAt.toLocal().isAfter(endOfDate))
+            .fold<double>(0.0, (sum, p) => sum + p.amount);
+        final outstanding = receivable.amount - paidPrincipal;
+        if (outstanding > 0) {
+          outstandingSum += outstanding;
+        }
+      }
+      return outstandingSum;
+    }
+
+    if (account.type == 'payable') {
+      final payables = await repo.getPayablesByAccountId(account.id);
+      var outstandingSum = 0.0;
+      for (final payable in payables) {
+        if (payable.payDate.toLocal().isAfter(endOfDate)) continue;
+        final payments = await repo.getPayablePayments(payable.id);
+        final paidPrincipal = payments
+            .where((p) => !p.happenedAt.toLocal().isAfter(endOfDate))
+            .fold<double>(0.0, (sum, p) => sum + p.amount);
+        final outstanding = payable.amount - paidPrincipal;
+        if (outstanding > 0) {
+          outstandingSum += outstanding;
+        }
+      }
+      return -outstandingSum;
+    }
+
+    var amount = account.initialBalance;
     for (final tx in allLedgerTransactions) {
       if (tx.happenedAt.toLocal().isAfter(endOfDate)) continue;
       if (tx.accountId == account.id) {

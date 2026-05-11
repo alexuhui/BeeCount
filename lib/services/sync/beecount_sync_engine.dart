@@ -471,9 +471,11 @@ class BeeCountSyncEngine {
             .getSingleOrNull();
         if (row == null) return null;
         final remoteLedgerId = await _requireRemoteId('ledgers', row.ledgerId);
-        final remoteCategoryId = row.categoryId == null
+        final remoteCategoryId = row.type == 'transfer'
             ? null
-            : await _requireRemoteId('categories', row.categoryId!);
+            : (row.categoryId == null
+                ? null
+                : await _requireRemoteId('categories', row.categoryId!));
         final remoteAccountId = row.accountId == null
             ? null
             : await _requireRemoteId('accounts', row.accountId!);
@@ -504,9 +506,11 @@ class BeeCountSyncEngine {
             .getSingleOrNull();
         if (row == null) return null;
         final remoteLedgerId = await _requireRemoteId('ledgers', row.ledgerId);
-        final remoteCategoryId = row.categoryId == null
+        final remoteCategoryId = row.type == 'transfer'
             ? null
-            : await _requireRemoteId('categories', row.categoryId!);
+            : (row.categoryId == null
+                ? null
+                : await _requireRemoteId('categories', row.categoryId!));
         final remoteAccountId = row.accountId == null
             ? null
             : await _requireRemoteId('accounts', row.accountId!);

@@ -17,7 +17,7 @@ class BeeCountServerFirstRepository extends BeeCountSyncingRepository {
     return db.transaction(() async {
       final existing = await _pendingKeys();
       if (existing.isNotEmpty) {
-        await sync.flush();
+        await sync.flush(notifyConnectionLoss: false);
         final remaining = await _pendingKeys();
         if (remaining.isNotEmpty) {
           throw Exception(
@@ -31,7 +31,7 @@ class BeeCountServerFirstRepository extends BeeCountSyncingRepository {
       final result = await action();
       final expectedTouched = touched?.call(result) ?? const <_QueueKey>[];
 
-      await sync.flush();
+      await sync.flush(notifyConnectionLoss: false);
 
       final after = await _pendingKeys();
       final remainingTouched = expectedTouched.where(after.contains).toList();

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -25,6 +26,8 @@ typedef AmountEditorResult = ({
   List<File> pendingAttachments,
 });
 
+typedef AmountEditorSubmit = FutureOr<void> Function(AmountEditorResult result);
+
 class AmountEditorSheet extends ConsumerStatefulWidget {
   final String categoryName; // 仅用于上层提交，不在UI展示
   final DateTime initialDate;
@@ -33,7 +36,7 @@ class AmountEditorSheet extends ConsumerStatefulWidget {
   final int? initialAccountId;
   final List<int>? initialTagIds; // 初始标签ID列表
   final bool showAccountPicker; // 是否显示账户选择
-  final ValueChanged<AmountEditorResult> onSubmit;
+  final AmountEditorSubmit onSubmit;
   final int ledgerId;
   final int? editingTransactionId; // 编辑模式时的交易ID，用于显示已有附件
 
@@ -59,7 +62,6 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
   late String _amountStr;
   late DateTime _date;
   int? _selectedAccountId;
-  final bool _negative = false; // 显示用途，仅影响UI，不改变保存逻辑
   final TextEditingController _noteCtrl = TextEditingController();
   // 运算缓存：支持简单 + / - 键入累计
   double _acc = 0;
@@ -74,6 +76,7 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
 
   // 防重复提交标志
   bool _isSubmitting = false;
+  String? _submitError;
 
   // 已选标签ID列表
   late List<int> _selectedTagIds;
@@ -128,6 +131,7 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
 
   void _append(String s) {
     setState(() {
+      _submitError = null;
       if (s == '.') {
         if (_amountStr.contains('.')) return;
       }
@@ -151,6 +155,7 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
 
   void _backspace() {
     setState(() {
+      _submitError = null;
       if (_amountStr.isEmpty) return;
       _amountStr = _amountStr.substring(0, _amountStr.length - 1);
       if (_amountStr.isEmpty) _amountStr = '0';
@@ -452,6 +457,52 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
             // 标签和附件选择区域（一行）
             const SizedBox(height: 8),
             _buildTagAndAttachmentRow(),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: _submitError == null
+                  ? const SizedBox.shrink()
+                  : Container(
+                      key: const ValueKey('amount-editor-submit-error'),
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(top: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .errorContainer
+                            .withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 18,
+                            color: Theme.of(context).colorScheme.onErrorContainer,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _submitError!,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onErrorContainer,
+                                fontSize: 12,
+                                height: 1.25,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+            ),
             const SizedBox(height: 10),
             // 数字键盘
             LayoutBuilder(builder: (ctx, c) {
@@ -551,23 +602,35 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
                               // 正常模式：提交
                               // 防重复点击
                               if (_isSubmitting) return;
-                              setState(() => _isSubmitting = true);
+                              setState(() {
+                                _isSubmitting = true;
+                                _submitError = null;
+                              });
 
                               HapticFeedback.lightImpact();
                               SystemSound.play(SystemSoundType.click);
-                              widget.onSubmit((
-                                amount: total.abs(), // 始终正数
-                                note: _noteCtrl.text.isEmpty
-                                    ? null
-                                    : _noteCtrl.text,
-                                date: _date,
-                                accountId: _selectedAccountId,
-                                tagIds: _selectedTagIds,
-                                pendingAttachments: _pendingAttachments,
-                              ));
-
-                              // 注意：不需要在这里重置 _isSubmitting
-                              // 因为提交后整个 Sheet 会被关闭，State 会被销毁
+                              try {
+                                await widget.onSubmit((
+                                  amount: total.abs(), // 始终正数
+                                  note: _noteCtrl.text.isEmpty
+                                      ? null
+                                      : _noteCtrl.text,
+                                  date: _date,
+                                  accountId: _selectedAccountId,
+                                  tagIds: _selectedTagIds,
+                                  pendingAttachments: _pendingAttachments,
+                                ));
+                              } catch (e) {
+                                if (mounted) {
+                                  setState(() {
+                                    _submitError = _formatSubmitError(e);
+                                  });
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setState(() => _isSubmitting = false);
+                                }
+                              }
                             }
                           : null,
                       child: SizedBox(
@@ -660,6 +723,14 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
         ),
       ),
     );
+  }
+
+  String _formatSubmitError(Object error) {
+    final message = error.toString().trim();
+    if (message.startsWith('Exception: ')) {
+      return message.substring('Exception: '.length);
+    }
+    return message.isEmpty ? AppLocalizations.of(context).commonError : message;
   }
 
   /// 构建标签和附件选择行（一行显示）

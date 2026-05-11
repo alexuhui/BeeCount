@@ -232,11 +232,8 @@ class _TransferFormState extends ConsumerState<TransferForm> {
 
               widget.onTransferComplete();
             }
-          } catch (e) {
-            if (context.mounted) {
-              Navigator.of(context).pop();
-              showToast(context, '${l10n.commonError}: $e');
-            }
+          } catch (_) {
+            rethrow;
           }
         },
       ),

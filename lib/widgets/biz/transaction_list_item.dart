@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/db.dart' as db;
@@ -19,7 +21,7 @@ class TransactionListItem extends ConsumerWidget {
   final VoidCallback? onTap;
   final VoidCallback? onCategoryTap; // 点击分类图标/名称的回调
   final String? categoryName; // 分类名称，用于显示
-  final VoidCallback? onDelete; // 删除回调
+  final FutureOr<void> Function()? onDelete; // 删除回调
   final String? accountName; // 账户名称，用于显示
   final DateTime? happenedAt; // 交易时间，用于显示时分
 
@@ -283,15 +285,24 @@ class TransactionListItem extends ConsumerWidget {
         ),
         confirmDismiss: (direction) async {
           // 显示确认对话框
-          return await AppDialog.confirm<bool>(
+          final confirmed = await AppDialog.confirm<bool>(
             context,
             title: '确认删除',
             message: '确定要删除这笔交易吗？此操作无法撤销。',
           ) ?? false;
+          if (!confirmed) return false;
+
+          try {
+            await onDelete!();
+            return true;
+          } catch (e) {
+            if (context.mounted) {
+              showToast(context, '删除失败: $e');
+            }
+            return false;
+          }
         },
-        onDismissed: (direction) {
-          onDelete!();
-        },
+        onDismissed: (_) {},
         child: child,
       );
     }

@@ -300,7 +300,6 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
             ...dayTransactions.map((transaction) {
               final category = _categoryCache[transaction.categoryId];
               final categoryName = CategoryUtils.getDisplayName(category?.name, context);
-              final isTransfer = transaction.type == 'transfer';
 
               // 和首页保持一致：有备注显示备注，无备注显示分类名称
               final hasNote = transaction.note?.isNotEmpty == true;
@@ -335,19 +334,13 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
     final repo = ref.read(repositoryProvider);
     final ledgerId = ref.read(currentLedgerIdProvider);
 
-    try {
-      await repo.deleteTransaction(transaction.id);
+    await repo.deleteTransaction(transaction.id);
 
-      await PostProcessor.sync(ref, ledgerId: ledgerId);
+    await PostProcessor.sync(ref, ledgerId: ledgerId);
 
-      ref.invalidate(countsForLedgerProvider(ledgerId));
-      ref.read(statsRefreshProvider.notifier).state++;
-      ref.read(tagListRefreshProvider.notifier).state++;
-    } catch (e) {
-      if (mounted) {
-        showToast(context, '${l10n.commonError}: $e');
-      }
-    }
+    ref.invalidate(countsForLedgerProvider(ledgerId));
+    ref.read(statsRefreshProvider.notifier).state++;
+    ref.read(tagListRefreshProvider.notifier).state++;
   }
 
   void _confirmDelete(db.Tag tag, AppLocalizations l10n) async {

@@ -143,7 +143,7 @@ class BeeCountSyncEngine {
     });
   }
 
-  Future<void> flush() async {
+  Future<void> flush({bool notifyConnectionLoss = true}) async {
     await _ensureLocalTables();
     if (_flushing) return;
     if (provider.databaseService == null) return;
@@ -155,7 +155,8 @@ class BeeCountSyncEngine {
       var rounds = 0;
       while (madeProgress && rounds < 5) {
         rounds++;
-        madeProgress = await _flushOnce();
+        madeProgress =
+            await _flushOnce(notifyConnectionLoss: notifyConnectionLoss);
       }
 
       // flush 完成后调用回调
@@ -182,7 +183,7 @@ class BeeCountSyncEngine {
     'payable_payments',
   ];
 
-  Future<bool> _flushOnce() async {
+  Future<bool> _flushOnce({required bool notifyConnectionLoss}) async {
     final rows = await db.customSelect(
       '''
       SELECT entity, local_id, action, payload, retry_count, last_error, created_at, updated_at
@@ -242,7 +243,7 @@ class BeeCountSyncEngine {
       } on _MissingDependencyException {
         continue;
       } catch (e) {
-        if (_isConnectionFailure(e)) {
+        if (notifyConnectionLoss && _isConnectionFailure(e)) {
           onConnectionLost?.call(e);
         }
         await _markError(

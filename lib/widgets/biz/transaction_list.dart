@@ -455,27 +455,34 @@ class TransactionListState extends ConsumerState<TransactionList> {
                 child: const Icon(Icons.delete, color: Colors.white),
               ),
               confirmDismiss: (direction) async {
-                return await AppDialog.confirm<bool>(
+                final confirmed = await AppDialog.confirm<bool>(
                       context,
                       title: AppLocalizations.of(context).deleteConfirmTitle,
                       message: AppLocalizations.of(context).deleteConfirmMessage,
                     ) ??
                     false;
-              },
-              onDismissed: (direction) async {
-                final repo = ref.read(repositoryProvider);
-                await repo.deleteTransaction(it.t.id);
+                if (!confirmed) return false;
 
-                if (!context.mounted) return;
-                final curLedger = ref.read(currentLedgerIdProvider);
-                ref.invalidate(countsForLedgerProvider(curLedger));
-                ref.read(statsRefreshProvider.notifier).state++;
-                PostProcessor.sync(ref, ledgerId: curLedger);
+                try {
+                  final repo = ref.read(repositoryProvider);
+                  await repo.deleteTransaction(it.t.id);
 
-                if (context.mounted) {
+                  if (!context.mounted) return true;
+                  final curLedger = ref.read(currentLedgerIdProvider);
+                  ref.invalidate(countsForLedgerProvider(curLedger));
+                  ref.read(statsRefreshProvider.notifier).state++;
+                  PostProcessor.sync(ref, ledgerId: curLedger);
+
                   showToast(context, AppLocalizations.of(context).ledgersDeleted);
+                  return true;
+                } catch (e) {
+                  if (context.mounted) {
+                    showToast(context, '${AppLocalizations.of(context).commonError}: $e');
+                  }
+                  return false;
                 }
               },
+              onDismissed: (_) {},
               child: Column(
                 children: [
                   Builder(

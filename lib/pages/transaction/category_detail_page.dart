@@ -389,22 +389,16 @@ class _CategoryDetailPageState extends ConsumerState<CategoryDetailPage> {
                 final repo = ref.read(repositoryProvider);
                 final ledgerId = ref.read(currentLedgerIdProvider);
 
-                try {
-                  await repo.deleteTransaction(transaction.id);
+                await repo.deleteTransaction(transaction.id);
 
-                  // 统一处理：自动/手动同步与状态刷新（后台静默）
-                  await PostProcessor.sync(ref, ledgerId: ledgerId);
+                // 统一处理：自动/手动同步与状态刷新（后台静默）
+                await PostProcessor.sync(ref, ledgerId: ledgerId);
 
-                  // 刷新：账本笔数与全局统计
-                  ref.invalidate(countsForLedgerProvider(ledgerId));
-                  ref.read(statsRefreshProvider.notifier).state++;
+                // 刷新：账本笔数与全局统计
+                ref.invalidate(countsForLedgerProvider(ledgerId));
+                ref.read(statsRefreshProvider.notifier).state++;
 
-                  // 响应式provider会自动更新，无需手动刷新交易列表
-                } catch (e) {
-                  if (context.mounted) {
-                    showToast(context, '${AppLocalizations.of(context).categoryDetailDeleteFailed}: $e');
-                  }
-                }
+                // 响应式provider会自动更新，无需手动刷新交易列表
               },
             );
           }
@@ -470,22 +464,16 @@ class _CategoryDetailPageState extends ConsumerState<CategoryDetailPage> {
                 final repo = ref.read(repositoryProvider);
                 final ledgerId = ref.read(currentLedgerIdProvider);
 
-                try {
-                  await repo.deleteTransaction(transaction.id);
+                await repo.deleteTransaction(transaction.id);
 
-                  // 统一处理：自动/手动同步与状态刷新（后台静默）
-                  await PostProcessor.sync(ref, ledgerId: ledgerId);
+                // 统一处理：自动/手动同步与状态刷新（后台静默）
+                await PostProcessor.sync(ref, ledgerId: ledgerId);
 
-                  // 刷新：账本笔数与全局统计
-                  ref.invalidate(countsForLedgerProvider(ledgerId));
-                  ref.read(statsRefreshProvider.notifier).state++;
+                // 刷新：账本笔数与全局统计
+                ref.invalidate(countsForLedgerProvider(ledgerId));
+                ref.read(statsRefreshProvider.notifier).state++;
 
-                  // 响应式provider会自动更新，无需手动刷新交易列表
-                } catch (e) {
-                  if (context.mounted) {
-                    showToast(context, '${AppLocalizations.of(context).categoryDetailDeleteFailed}: $e');
-                  }
-                }
+                // 响应式provider会自动更新，无需手动刷新交易列表
               },
             );
             }),
@@ -619,27 +607,6 @@ final _categoryTransactionsWithSortProvider = Provider.family<AsyncValue<List<db
       }
 
       return AsyncValue.data(sorted);
-    },
-  );
-});
-
-// 派生数据：汇总统计（自动基于交易数据计算）
-final _categorySummaryProvider = Provider.family<AsyncValue<({int totalCount, double totalAmount, double averageAmount})>, int>((ref, categoryId) {
-  final transactionsAsync = ref.watch(_categoryTransactionsStreamProvider(categoryId));
-
-  return transactionsAsync.when(
-    loading: () => const AsyncValue.loading(),
-    error: (error, stack) => AsyncValue.error(error, stack),
-    data: (transactions) {
-      final totalCount = transactions.length;
-      final totalAmount = transactions.fold(0.0, (sum, t) => sum + t.amount);
-      final averageAmount = totalCount > 0 ? totalAmount / totalCount : 0.0;
-
-      return AsyncValue.data((
-        totalCount: totalCount,
-        totalAmount: totalAmount,
-        averageAmount: averageAmount,
-      ));
     },
   );
 });

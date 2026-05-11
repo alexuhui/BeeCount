@@ -144,7 +144,6 @@ class BeeCountInitialSyncService {
         parse(row['start_date']) ??
         parse(row['startDate']);
 
-    logger.info('InitialSync', '解析时间 $dt');
     if (dt == null) return 0;
     return dt.toUtc().millisecondsSinceEpoch ~/ 1000;
   }
@@ -190,7 +189,6 @@ class BeeCountInitialSyncService {
           final remoteId = idRaw is int ? idRaw : int.tryParse(idRaw.toString());
           if (remoteId == null) continue;
 
-          logger.info('InitialSync', '_merge 合并 $entity  $remoteId round $rounds');
           final did = await _mergeOne(entity, remoteId, r);
           if (did) progressed = true;
         }
@@ -204,12 +202,9 @@ class BeeCountInitialSyncService {
     Map<String, dynamic> row,
   ) async {
     final remoteSec = _remoteUpdatedAtSec(row);
-    logger.info('InitialSync', '_mergeOne 合并 $entity  remoteId  $remoteId');
     final localId = await _localIdByRemoteId(entity, remoteId);
-    logger.info('InitialSync', '_mergeOne 查找 $entity  $remoteId  localId : $localId');
     if (localId == null) {
       final inserted = await _insertRemote(entity, row);
-      logger.info('InitialSync', '_mergeOne 插入 $entity  $remoteId   inserted : $inserted');
       if (inserted == null) return false;
       await _saveIdMap(entity, inserted, remoteId);
       await _setLocalUpdatedAtSec(entity, inserted, remoteSec);
@@ -217,7 +212,6 @@ class BeeCountInitialSyncService {
     }
 
     final localSec = await _localUpdatedAtSec(entity, localId);
-    logger.info('InitialSync', '_mergeOne 查找 $entity  $remoteId  localSec : $localSec remoteSec : $remoteSec');
     if (remoteSec > localSec) {
       final ok = await _applyRemoteUpdate(entity, localId, row);
       if (ok) {
@@ -240,8 +234,6 @@ class BeeCountInitialSyncService {
 
   Future<int?> _insertRemote(String entity, Map<String, dynamic> row) async {
     try {
-      logger.info('InitialSync', '_insertRemote 插入 $entity  row: $row');
-
       switch (entity) {
         case 'ledgers':
           final name = (row['name'] ?? 'Ledger').toString();

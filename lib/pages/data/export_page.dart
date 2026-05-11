@@ -31,10 +31,8 @@ class _ExportPageState extends ConsumerState<ExportPage> {
   bool exportExpense = true;
   bool exportTransfer = true;
   bool exportAccounts = true;
-  bool exportReceivables = true;
-  bool exportPayables = true;
-  bool exportReceivablePayments = true;
-  bool exportPayablePayments = true;
+  bool exportReceivableList = true;
+  bool exportPayableList = true;
 
   @override
   void initState() {
@@ -240,43 +238,22 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                               dense: true,
                             ),
                             CheckboxListTile(
-                              value: exportReceivables,
-                              onChanged: exporting
-                                  ? null
-                                  : (value) => setState(
-                                      () => exportReceivables = value ?? false),
-                              title: const Text('应收款'),
-                              controlAffinity: ListTileControlAffinity.leading,
-                              dense: true,
-                            ),
-                            CheckboxListTile(
-                              value: exportPayables,
-                              onChanged: exporting
-                                  ? null
-                                  : (value) => setState(
-                                      () => exportPayables = value ?? false),
-                              title: const Text('应付款'),
-                              controlAffinity: ListTileControlAffinity.leading,
-                              dense: true,
-                            ),
-                            CheckboxListTile(
-                              value: exportReceivablePayments,
+                              value: exportReceivableList,
                               onChanged: exporting
                                   ? null
                                   : (value) => setState(() =>
-                                      exportReceivablePayments =
-                                          value ?? false),
-                              title: const Text('应收款记录'),
+                                      exportReceivableList = value ?? false),
+                              title: const Text('应收列表'),
                               controlAffinity: ListTileControlAffinity.leading,
                               dense: true,
                             ),
                             CheckboxListTile(
-                              value: exportPayablePayments,
+                              value: exportPayableList,
                               onChanged: exporting
                                   ? null
-                                  : (value) => setState(() =>
-                                      exportPayablePayments = value ?? false),
-                              title: const Text('应付款记录'),
+                                  : (value) => setState(
+                                      () => exportPayableList = value ?? false),
+                              title: const Text('应付列表'),
                               controlAffinity: ListTileControlAffinity.leading,
                               dense: true,
                             ),
@@ -330,10 +307,8 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         if (exportExpense) 'expense',
         if (exportTransfer) 'transfer',
       };
-      final shouldExportReceivableData = exportReceivables ||
-          exportPayables ||
-          exportReceivablePayments ||
-          exportPayablePayments;
+      final shouldExportReceivableData =
+          exportReceivableList || exportPayableList;
       final shouldExportTransactions = selectedTypes.isNotEmpty;
       if (!shouldExportTransactions &&
           !exportAccounts &&
@@ -423,22 +398,18 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         accountMap.addEntries(accounts.map((a) => MapEntry(a.id, a)));
       }
 
-      final receivables = shouldExportReceivableData
-          ? await _loadReceivables(
+      final receivableData = shouldExportReceivableData
+          ? await _loadReceivableListData(
               repo: repo,
               accounts: accountsForReceivable,
-              start: start,
-              end: end,
             )
-          : <Receivable>[];
-      final payables = shouldExportReceivableData
-          ? await _loadPayables(
+          : (list: <Receivable>[], outstandingById: <int, double>{});
+      final payableData = shouldExportReceivableData
+          ? await _loadPayableListData(
               repo: repo,
               accounts: accountsForReceivable,
-              start: start,
-              end: end,
             )
-          : <Payable>[];
+          : (list: <Payable>[], outstandingById: <int, double>{});
 
       final exportSheets = <String, List<List<dynamic>>>{};
       if (shouldExportTransactions) {
@@ -457,28 +428,18 @@ class _ExportPageState extends ConsumerState<ExportPage> {
           end,
         );
       }
-      if (exportReceivables) {
-        exportSheets['应收款'] = _buildReceivableRows(receivables, accountMap);
-      }
-      if (exportPayables) {
-        exportSheets['应付款'] = _buildPayableRows(payables, accountMap);
-      }
-      if (exportReceivablePayments) {
-        exportSheets['应收款记录'] = await _buildReceivablePaymentRows(
-          repo: repo,
-          receivables: receivables,
-          accountMap: accountMap,
-          start: start,
-          end: end,
+      if (exportReceivableList) {
+        exportSheets['应收列表'] = _buildReceivableListRows(
+          receivableData.list,
+          receivableData.outstandingById,
+          accountMap,
         );
       }
-      if (exportPayablePayments) {
-        exportSheets['应付款记录'] = await _buildPayablePaymentRows(
-          repo: repo,
-          payables: payables,
-          accountMap: accountMap,
-          start: start,
-          end: end,
+      if (exportPayableList) {
+        exportSheets['应付列表'] = _buildPayableListRows(
+          payableData.list,
+          payableData.outstandingById,
+          accountMap,
         );
       }
       if (shouldExportTransactions) {
@@ -550,44 +511,54 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     }
   }
 
-  Future<List<Receivable>> _loadReceivables({
+  Future<({List<Receivable> list, Map<int, double> outstandingById})>
+      _loadReceivableListData({
     required BaseRepository repo,
     required List<Account> accounts,
-    required DateTime start,
-    required DateTime end,
   }) async {
     final byId = <int, Receivable>{};
+    final outstandingById = <int, double>{};
     for (final account in accounts) {
       final list = await repo.getReceivablesByAccountId(account.id);
       for (final item in list) {
-        if (_isInRange(item.borrowDate, start, end)) {
-          byId[item.id] = item;
-        }
+        byId[item.id] = item;
       }
+      final outstanding =
+          await repo.getReceivableOutstandingMapForAccount(account.id);
+      outstandingById.addAll(outstanding);
     }
     final result = byId.values.toList()
-      ..sort((a, b) => b.borrowDate.compareTo(a.borrowDate));
-    return result;
+      ..sort((a, b) {
+        final name = a.borrowerName.compareTo(b.borrowerName);
+        if (name != 0) return name;
+        return b.borrowDate.compareTo(a.borrowDate);
+      });
+    return (list: result, outstandingById: outstandingById);
   }
 
-  Future<List<Payable>> _loadPayables({
+  Future<({List<Payable> list, Map<int, double> outstandingById})>
+      _loadPayableListData({
     required BaseRepository repo,
     required List<Account> accounts,
-    required DateTime start,
-    required DateTime end,
   }) async {
     final byId = <int, Payable>{};
+    final outstandingById = <int, double>{};
     for (final account in accounts) {
       final list = await repo.getPayablesByAccountId(account.id);
       for (final item in list) {
-        if (_isInRange(item.payDate, start, end)) {
-          byId[item.id] = item;
-        }
+        byId[item.id] = item;
       }
+      final outstanding =
+          await repo.getPayableOutstandingMapForAccount(account.id);
+      outstandingById.addAll(outstanding);
     }
     final result = byId.values.toList()
-      ..sort((a, b) => b.payDate.compareTo(a.payDate));
-    return result;
+      ..sort((a, b) {
+        final name = a.payeeName.compareTo(b.payeeName);
+        if (name != 0) return name;
+        return b.payDate.compareTo(a.payDate);
+      });
+    return (list: result, outstandingById: outstandingById);
   }
 
   List<List<dynamic>> _buildTransactionRows(
@@ -615,170 +586,154 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     ];
   }
 
-  List<List<dynamic>> _buildReceivableRows(
+  List<List<dynamic>> _buildReceivableListRows(
     List<Receivable> receivables,
+    Map<int, double> outstandingById,
     Map<int, Account> accountMap,
   ) {
-    final totalAmount =
-        receivables.fold<double>(0.0, (sum, item) => sum + item.amount);
-    return [
-      [
-        'ID',
-        '应收账户',
-        '借款人',
-        '金额',
-        '借款日期',
-        '借款账户',
-        '是否已收款',
-        '收款日期',
-        '收款账户',
-        '备注'
-      ],
-      for (final item in receivables)
-        [
-          item.id,
-          accountMap[item.accountId]?.name ?? '',
-          item.borrowerName,
-          item.amount.toStringAsFixed(2),
-          _formatDate(item.borrowDate),
-          item.fromAccountId == null
-              ? ''
-              : accountMap[item.fromAccountId!]?.name ?? '',
-          item.isReceived ? '是' : '否',
-          _formatDate(item.receiveDate),
-          item.toAccountId == null
-              ? ''
-              : accountMap[item.toAccountId!]?.name ?? '',
-          item.note ?? '',
-        ],
-      ['', '', '合计', totalAmount.toStringAsFixed(2), '', '', '', '', '', ''],
-    ];
-  }
-
-  List<List<dynamic>> _buildPayableRows(
-    List<Payable> payables,
-    Map<int, Account> accountMap,
-  ) {
-    final totalAmount =
-        payables.fold<double>(0.0, (sum, item) => sum + item.amount);
-    return [
-      [
-        'ID',
-        '应付账户',
-        '收款人',
-        '金额',
-        '应付日期',
-        '入账账户',
-        '是否已还款',
-        '还款日期',
-        '还款账户',
-        '备注'
-      ],
-      for (final item in payables)
-        [
-          item.id,
-          accountMap[item.accountId]?.name ?? '',
-          item.payeeName,
-          item.amount.toStringAsFixed(2),
-          _formatDate(item.payDate),
-          item.toAccountId == null
-              ? ''
-              : accountMap[item.toAccountId!]?.name ?? '',
-          item.isPaid ? '是' : '否',
-          _formatDate(item.paidDate),
-          item.fromAccountId == null
-              ? ''
-              : accountMap[item.fromAccountId!]?.name ?? '',
-          item.note ?? '',
-        ],
-      ['', '', '合计', totalAmount.toStringAsFixed(2), '', '', '', '', '', ''],
-    ];
-  }
-
-  Future<List<List<dynamic>>> _buildReceivablePaymentRows({
-    required BaseRepository repo,
-    required List<Receivable> receivables,
-    required Map<int, Account> accountMap,
-    required DateTime start,
-    required DateTime end,
-  }) async {
     final rows = <List<dynamic>>[
-      ['ID', '应收款ID', '借款人', '本金', '利息', '收款日期', '收款账户', '备注'],
+      ['借款人/出借人', 'ID', '应收账户', '借款日期', '应收金额', '已收回', '未收回', '状态', '备注'],
     ];
-    var totalPrincipal = 0.0;
-    var totalInterest = 0.0;
-    for (final receivable in receivables) {
-      final payments = await repo.getReceivablePayments(receivable.id);
-      for (final payment in payments) {
-        if (!_isInRange(payment.happenedAt, start, end)) continue;
-        totalPrincipal += payment.amount;
-        totalInterest += payment.interestAmount;
-        rows.add([
-          payment.id,
-          payment.receivableId,
-          receivable.borrowerName,
-          payment.amount.toStringAsFixed(2),
-          payment.interestAmount.toStringAsFixed(2),
-          _formatDate(payment.happenedAt),
-          payment.accountId == null
-              ? ''
-              : accountMap[payment.accountId!]?.name ?? '',
-          payment.note ?? '',
-        ]);
-      }
+    var grandAmount = 0.0;
+    var grandReceived = 0.0;
+    var grandOutstanding = 0.0;
+    String? currentBorrower;
+    var groupAmount = 0.0;
+    var groupReceived = 0.0;
+    var groupOutstanding = 0.0;
+
+    void closeGroupIfNeeded() {
+      if (currentBorrower == null) return;
+      rows.add([
+        '',
+        '合计',
+        '',
+        '',
+        groupAmount.toStringAsFixed(2),
+        groupReceived.toStringAsFixed(2),
+        groupOutstanding.toStringAsFixed(2),
+        '',
+        '',
+      ]);
+      rows.add(List.filled(9, ''));
+      groupAmount = 0.0;
+      groupReceived = 0.0;
+      groupOutstanding = 0.0;
     }
+
+    for (final item in receivables) {
+      if (currentBorrower != item.borrowerName) {
+        closeGroupIfNeeded();
+        currentBorrower = item.borrowerName;
+        rows.add(['借款人：$currentBorrower', '', '', '', '', '', '', '', '']);
+      }
+      final outstanding =
+          outstandingById[item.id] ?? (item.isReceived ? 0.0 : item.amount);
+      final received = item.amount - outstanding;
+      rows.add([
+        '',
+        item.id,
+        accountMap[item.accountId]?.name ?? '',
+        _formatDate(item.borrowDate),
+        item.amount.toStringAsFixed(2),
+        received.toStringAsFixed(2),
+        outstanding.toStringAsFixed(2),
+        outstanding <= 0.000001 ? '已收回' : '未收回',
+        item.note ?? '',
+      ]);
+      groupAmount += item.amount;
+      groupReceived += received;
+      groupOutstanding += outstanding;
+      grandAmount += item.amount;
+      grandReceived += received;
+      grandOutstanding += outstanding;
+    }
+    closeGroupIfNeeded();
     rows.add([
       '',
-      '',
       '合计',
-      totalPrincipal.toStringAsFixed(2),
-      totalInterest.toStringAsFixed(2),
       '',
+      '',
+      grandAmount.toStringAsFixed(2),
+      grandReceived.toStringAsFixed(2),
+      grandOutstanding.toStringAsFixed(2),
       '',
       '',
     ]);
     return rows;
   }
 
-  Future<List<List<dynamic>>> _buildPayablePaymentRows({
-    required BaseRepository repo,
-    required List<Payable> payables,
-    required Map<int, Account> accountMap,
-    required DateTime start,
-    required DateTime end,
-  }) async {
+  List<List<dynamic>> _buildPayableListRows(
+    List<Payable> payables,
+    Map<int, double> outstandingById,
+    Map<int, Account> accountMap,
+  ) {
     final rows = <List<dynamic>>[
-      ['ID', '应付款ID', '收款人', '本金', '利息', '还款日期', '还款账户', '备注'],
+      ['借款人/出借人', 'ID', '应付账户', '应付日期', '应付金额', '已还款', '未还款', '状态', '备注'],
     ];
-    var totalPrincipal = 0.0;
-    var totalInterest = 0.0;
-    for (final payable in payables) {
-      final payments = await repo.getPayablePayments(payable.id);
-      for (final payment in payments) {
-        if (!_isInRange(payment.happenedAt, start, end)) continue;
-        totalPrincipal += payment.amount;
-        totalInterest += payment.interestAmount;
-        rows.add([
-          payment.id,
-          payment.payableId,
-          payable.payeeName,
-          payment.amount.toStringAsFixed(2),
-          payment.interestAmount.toStringAsFixed(2),
-          _formatDate(payment.happenedAt),
-          payment.accountId == null
-              ? ''
-              : accountMap[payment.accountId!]?.name ?? '',
-          payment.note ?? '',
-        ]);
-      }
+    var grandAmount = 0.0;
+    var grandPaid = 0.0;
+    var grandOutstanding = 0.0;
+    String? currentPayee;
+    var groupAmount = 0.0;
+    var groupPaid = 0.0;
+    var groupOutstanding = 0.0;
+
+    void closeGroupIfNeeded() {
+      if (currentPayee == null) return;
+      rows.add([
+        '',
+        '合计',
+        '',
+        '',
+        groupAmount.toStringAsFixed(2),
+        groupPaid.toStringAsFixed(2),
+        groupOutstanding.toStringAsFixed(2),
+        '',
+        '',
+      ]);
+      rows.add(List.filled(9, ''));
+      groupAmount = 0.0;
+      groupPaid = 0.0;
+      groupOutstanding = 0.0;
     }
+
+    for (final item in payables) {
+      if (currentPayee != item.payeeName) {
+        closeGroupIfNeeded();
+        currentPayee = item.payeeName;
+        rows.add(['出借人：$currentPayee', '', '', '', '', '', '', '', '']);
+      }
+      final outstanding =
+          outstandingById[item.id] ?? (item.isPaid ? 0.0 : item.amount);
+      final paid = item.amount - outstanding;
+      rows.add([
+        '',
+        item.id,
+        accountMap[item.accountId]?.name ?? '',
+        _formatDate(item.payDate),
+        item.amount.toStringAsFixed(2),
+        paid.toStringAsFixed(2),
+        outstanding.toStringAsFixed(2),
+        outstanding <= 0.000001 ? '已还款' : '未还款',
+        item.note ?? '',
+      ]);
+      groupAmount += item.amount;
+      groupPaid += paid;
+      groupOutstanding += outstanding;
+      grandAmount += item.amount;
+      grandPaid += paid;
+      grandOutstanding += outstanding;
+    }
+    closeGroupIfNeeded();
     rows.add([
       '',
-      '',
       '合计',
-      totalPrincipal.toStringAsFixed(2),
-      totalInterest.toStringAsFixed(2),
       '',
+      '',
+      grandAmount.toStringAsFixed(2),
+      grandPaid.toStringAsFixed(2),
+      grandOutstanding.toStringAsFixed(2),
       '',
       '',
     ]);
@@ -981,6 +936,13 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       topBorder: thinBorder,
       bottomBorder: thinBorder,
     );
+    final groupRowStyle = xls.CellStyle(
+      backgroundColorHex: xls.ExcelColor.fromHexString('#D13707'),
+      leftBorder: thinBorder,
+      rightBorder: thinBorder,
+      topBorder: thinBorder,
+      bottomBorder: thinBorder,
+    );
     var firstSheet = true;
     for (final entry in sheets.entries) {
       final sheet = excel[entry.key];
@@ -988,9 +950,11 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         final row = entry.value[rowIndex];
         sheet.appendRow(row.map(_toExcelCellValue).toList());
         final isTotalRow = row.any((cell) => cell?.toString() == '合计');
+        final first = row.isNotEmpty ? (row.first?.toString() ?? '') : '';
+        final isGroupRow = first.startsWith('借款人：') || first.startsWith('出借人：');
         final hasAnyContent =
             row.any((cell) => (cell?.toString() ?? '').isNotEmpty);
-        if (isTotalRow || hasAnyContent) {
+        if (isTotalRow || isGroupRow || hasAnyContent) {
           // 有效数据行整行加边框；合计行整行加底色+边框。
           for (var columnIndex = 0; columnIndex < row.length; columnIndex++) {
             final cell = sheet.cell(
@@ -999,7 +963,13 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                 columnIndex: columnIndex,
               ),
             );
-            cell.cellStyle = isTotalRow ? totalRowStyle : borderedStyle;
+            if (isTotalRow) {
+              cell.cellStyle = totalRowStyle;
+            } else if (isGroupRow) {
+              cell.cellStyle = groupRowStyle;
+            } else {
+              cell.cellStyle = borderedStyle;
+            }
           }
         }
       }
@@ -1094,12 +1064,6 @@ class _ExportPageState extends ConsumerState<ExportPage> {
   String _formatDate(DateTime? dateTime) {
     if (dateTime == null) return '';
     return DateFormat('yyyy-MM-dd').format(dateTime.toLocal());
-  }
-
-  bool _isInRange(DateTime dateTime, DateTime start, DateTime end) {
-    final d = dateTime.toLocal();
-    return d.isAfter(start.subtract(const Duration(days: 1))) &&
-        d.isBefore(end.add(const Duration(days: 1)));
   }
 
   void _setCurrentMonth() {

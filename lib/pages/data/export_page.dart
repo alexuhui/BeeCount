@@ -31,6 +31,10 @@ class _ExportPageState extends ConsumerState<ExportPage> {
   bool exportExpense = true;
   bool exportTransfer = true;
   bool exportAccounts = true;
+  bool exportReceivables = true;
+  bool exportPayables = true;
+  bool exportReceivablePayments = true;
+  bool exportPayablePayments = true;
 
   @override
   void initState() {
@@ -72,14 +76,48 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                               children: [
                                 const Text('日期范围'),
                                 const Spacer(),
-                                TextButton(
+                                FilledButton(
                                   onPressed: exporting ? null : _setCurrentYear,
+                                  style: FilledButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 8,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
                                   child: const Text('本年'),
                                 ),
-                                TextButton(
+                                const SizedBox(width: 8),
+                                FilledButton(
                                   onPressed:
                                       exporting ? null : _setCurrentMonth,
+                                  style: FilledButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 8,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
                                   child: const Text('本月'),
+                                ),
+                                const SizedBox(width: 8),
+                                FilledButton(
+                                  onPressed:
+                                      exporting ? null : _setPreviousMonth,
+                                  style: FilledButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 8,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text('上月'),
                                 ),
                               ],
                             ),
@@ -201,6 +239,47 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                               controlAffinity: ListTileControlAffinity.leading,
                               dense: true,
                             ),
+                            CheckboxListTile(
+                              value: exportReceivables,
+                              onChanged: exporting
+                                  ? null
+                                  : (value) => setState(
+                                      () => exportReceivables = value ?? false),
+                              title: const Text('应收款'),
+                              controlAffinity: ListTileControlAffinity.leading,
+                              dense: true,
+                            ),
+                            CheckboxListTile(
+                              value: exportPayables,
+                              onChanged: exporting
+                                  ? null
+                                  : (value) => setState(
+                                      () => exportPayables = value ?? false),
+                              title: const Text('应付款'),
+                              controlAffinity: ListTileControlAffinity.leading,
+                              dense: true,
+                            ),
+                            CheckboxListTile(
+                              value: exportReceivablePayments,
+                              onChanged: exporting
+                                  ? null
+                                  : (value) => setState(() =>
+                                      exportReceivablePayments =
+                                          value ?? false),
+                              title: const Text('应收款记录'),
+                              controlAffinity: ListTileControlAffinity.leading,
+                              dense: true,
+                            ),
+                            CheckboxListTile(
+                              value: exportPayablePayments,
+                              onChanged: exporting
+                                  ? null
+                                  : (value) => setState(() =>
+                                      exportPayablePayments = value ?? false),
+                              title: const Text('应付款记录'),
+                              controlAffinity: ListTileControlAffinity.leading,
+                              dense: true,
+                            ),
                           ],
                         ),
                       ),
@@ -251,8 +330,14 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         if (exportExpense) 'expense',
         if (exportTransfer) 'transfer',
       };
+      final shouldExportReceivableData = exportReceivables ||
+          exportPayables ||
+          exportReceivablePayments ||
+          exportPayablePayments;
       final shouldExportTransactions = selectedTypes.isNotEmpty;
-      if (!shouldExportTransactions && !exportAccounts) {
+      if (!shouldExportTransactions &&
+          !exportAccounts &&
+          !shouldExportReceivableData) {
         showToast(context, '请至少选择一项导出内容');
         return;
       }
@@ -316,20 +401,44 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       final accountsForExport = exportAccounts
           ? await repo.getAvailableAccountsForLedger(ledgerId)
           : <Account>[];
+      final accountsForReceivable = shouldExportReceivableData
+          ? await repo.getAvailableAccountsForLedger(ledgerId)
+          : <Account>[];
+      final allAccounts = <Account>[
+        ...accountsForExport,
+        ...accountsForReceivable,
+      ];
       final accountIds = <int>{
-        for (final account in accountsForExport) account.id,
+        for (final account in allAccounts) account.id,
         for (final tx in transactions) ...[
           if (tx.t.accountId != null) tx.t.accountId!,
           if (tx.t.toAccountId != null) tx.t.toAccountId!,
         ],
       };
       final accountMap = <int, Account>{
-        for (final account in accountsForExport) account.id: account,
+        for (final account in allAccounts) account.id: account,
       };
       if (accountIds.isNotEmpty) {
         final accounts = await repo.getAccountsByIds(accountIds.toList());
         accountMap.addEntries(accounts.map((a) => MapEntry(a.id, a)));
       }
+
+      final receivables = shouldExportReceivableData
+          ? await _loadReceivables(
+              repo: repo,
+              accounts: accountsForReceivable,
+              start: start,
+              end: end,
+            )
+          : <Receivable>[];
+      final payables = shouldExportReceivableData
+          ? await _loadPayables(
+              repo: repo,
+              accounts: accountsForReceivable,
+              start: start,
+              end: end,
+            )
+          : <Payable>[];
 
       final exportSheets = <String, List<List<dynamic>>>{};
       if (shouldExportTransactions) {
@@ -346,6 +455,30 @@ class _ExportPageState extends ConsumerState<ExportPage> {
           allTransactionsWithCategory.map((e) => e.t).toList(),
           start,
           end,
+        );
+      }
+      if (exportReceivables) {
+        exportSheets['应收款'] = _buildReceivableRows(receivables, accountMap);
+      }
+      if (exportPayables) {
+        exportSheets['应付款'] = _buildPayableRows(payables, accountMap);
+      }
+      if (exportReceivablePayments) {
+        exportSheets['应收款记录'] = await _buildReceivablePaymentRows(
+          repo: repo,
+          receivables: receivables,
+          accountMap: accountMap,
+          start: start,
+          end: end,
+        );
+      }
+      if (exportPayablePayments) {
+        exportSheets['应付款记录'] = await _buildPayablePaymentRows(
+          repo: repo,
+          payables: payables,
+          accountMap: accountMap,
+          start: start,
+          end: end,
         );
       }
       if (shouldExportTransactions) {
@@ -417,6 +550,46 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     }
   }
 
+  Future<List<Receivable>> _loadReceivables({
+    required BaseRepository repo,
+    required List<Account> accounts,
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    final byId = <int, Receivable>{};
+    for (final account in accounts) {
+      final list = await repo.getReceivablesByAccountId(account.id);
+      for (final item in list) {
+        if (_isInRange(item.borrowDate, start, end)) {
+          byId[item.id] = item;
+        }
+      }
+    }
+    final result = byId.values.toList()
+      ..sort((a, b) => b.borrowDate.compareTo(a.borrowDate));
+    return result;
+  }
+
+  Future<List<Payable>> _loadPayables({
+    required BaseRepository repo,
+    required List<Account> accounts,
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    final byId = <int, Payable>{};
+    for (final account in accounts) {
+      final list = await repo.getPayablesByAccountId(account.id);
+      for (final item in list) {
+        if (_isInRange(item.payDate, start, end)) {
+          byId[item.id] = item;
+        }
+      }
+    }
+    final result = byId.values.toList()
+      ..sort((a, b) => b.payDate.compareTo(a.payDate));
+    return result;
+  }
+
   List<List<dynamic>> _buildTransactionRows(
     List<({Transaction t, Category? category})> transactions,
     Map<int, Account> accountMap,
@@ -440,6 +613,176 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         ],
       ['', '', '合计', totalAmount.toStringAsFixed(2), '', '', '', ''],
     ];
+  }
+
+  List<List<dynamic>> _buildReceivableRows(
+    List<Receivable> receivables,
+    Map<int, Account> accountMap,
+  ) {
+    final totalAmount =
+        receivables.fold<double>(0.0, (sum, item) => sum + item.amount);
+    return [
+      [
+        'ID',
+        '应收账户',
+        '借款人',
+        '金额',
+        '借款日期',
+        '借款账户',
+        '是否已收款',
+        '收款日期',
+        '收款账户',
+        '备注'
+      ],
+      for (final item in receivables)
+        [
+          item.id,
+          accountMap[item.accountId]?.name ?? '',
+          item.borrowerName,
+          item.amount.toStringAsFixed(2),
+          _formatDate(item.borrowDate),
+          item.fromAccountId == null
+              ? ''
+              : accountMap[item.fromAccountId!]?.name ?? '',
+          item.isReceived ? '是' : '否',
+          _formatDate(item.receiveDate),
+          item.toAccountId == null
+              ? ''
+              : accountMap[item.toAccountId!]?.name ?? '',
+          item.note ?? '',
+        ],
+      ['', '', '合计', totalAmount.toStringAsFixed(2), '', '', '', '', '', ''],
+    ];
+  }
+
+  List<List<dynamic>> _buildPayableRows(
+    List<Payable> payables,
+    Map<int, Account> accountMap,
+  ) {
+    final totalAmount =
+        payables.fold<double>(0.0, (sum, item) => sum + item.amount);
+    return [
+      [
+        'ID',
+        '应付账户',
+        '收款人',
+        '金额',
+        '应付日期',
+        '入账账户',
+        '是否已还款',
+        '还款日期',
+        '还款账户',
+        '备注'
+      ],
+      for (final item in payables)
+        [
+          item.id,
+          accountMap[item.accountId]?.name ?? '',
+          item.payeeName,
+          item.amount.toStringAsFixed(2),
+          _formatDate(item.payDate),
+          item.toAccountId == null
+              ? ''
+              : accountMap[item.toAccountId!]?.name ?? '',
+          item.isPaid ? '是' : '否',
+          _formatDate(item.paidDate),
+          item.fromAccountId == null
+              ? ''
+              : accountMap[item.fromAccountId!]?.name ?? '',
+          item.note ?? '',
+        ],
+      ['', '', '合计', totalAmount.toStringAsFixed(2), '', '', '', '', '', ''],
+    ];
+  }
+
+  Future<List<List<dynamic>>> _buildReceivablePaymentRows({
+    required BaseRepository repo,
+    required List<Receivable> receivables,
+    required Map<int, Account> accountMap,
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    final rows = <List<dynamic>>[
+      ['ID', '应收款ID', '借款人', '本金', '利息', '收款日期', '收款账户', '备注'],
+    ];
+    var totalPrincipal = 0.0;
+    var totalInterest = 0.0;
+    for (final receivable in receivables) {
+      final payments = await repo.getReceivablePayments(receivable.id);
+      for (final payment in payments) {
+        if (!_isInRange(payment.happenedAt, start, end)) continue;
+        totalPrincipal += payment.amount;
+        totalInterest += payment.interestAmount;
+        rows.add([
+          payment.id,
+          payment.receivableId,
+          receivable.borrowerName,
+          payment.amount.toStringAsFixed(2),
+          payment.interestAmount.toStringAsFixed(2),
+          _formatDate(payment.happenedAt),
+          payment.accountId == null
+              ? ''
+              : accountMap[payment.accountId!]?.name ?? '',
+          payment.note ?? '',
+        ]);
+      }
+    }
+    rows.add([
+      '',
+      '',
+      '合计',
+      totalPrincipal.toStringAsFixed(2),
+      totalInterest.toStringAsFixed(2),
+      '',
+      '',
+      '',
+    ]);
+    return rows;
+  }
+
+  Future<List<List<dynamic>>> _buildPayablePaymentRows({
+    required BaseRepository repo,
+    required List<Payable> payables,
+    required Map<int, Account> accountMap,
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    final rows = <List<dynamic>>[
+      ['ID', '应付款ID', '收款人', '本金', '利息', '还款日期', '还款账户', '备注'],
+    ];
+    var totalPrincipal = 0.0;
+    var totalInterest = 0.0;
+    for (final payable in payables) {
+      final payments = await repo.getPayablePayments(payable.id);
+      for (final payment in payments) {
+        if (!_isInRange(payment.happenedAt, start, end)) continue;
+        totalPrincipal += payment.amount;
+        totalInterest += payment.interestAmount;
+        rows.add([
+          payment.id,
+          payment.payableId,
+          payable.payeeName,
+          payment.amount.toStringAsFixed(2),
+          payment.interestAmount.toStringAsFixed(2),
+          _formatDate(payment.happenedAt),
+          payment.accountId == null
+              ? ''
+              : accountMap[payment.accountId!]?.name ?? '',
+          payment.note ?? '',
+        ]);
+      }
+    }
+    rows.add([
+      '',
+      '',
+      '合计',
+      totalPrincipal.toStringAsFixed(2),
+      totalInterest.toStringAsFixed(2),
+      '',
+      '',
+      '',
+    ]);
+    return rows;
   }
 
   Future<List<List<dynamic>>> _buildAccountRows(
@@ -748,6 +1091,17 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     return DateFormat('yyyy-MM-dd HH:mm:ss').format(dateTime.toLocal());
   }
 
+  String _formatDate(DateTime? dateTime) {
+    if (dateTime == null) return '';
+    return DateFormat('yyyy-MM-dd').format(dateTime.toLocal());
+  }
+
+  bool _isInRange(DateTime dateTime, DateTime start, DateTime end) {
+    final d = dateTime.toLocal();
+    return d.isAfter(start.subtract(const Duration(days: 1))) &&
+        d.isBefore(end.add(const Duration(days: 1)));
+  }
+
   void _setCurrentMonth() {
     final now = DateTime.now();
     setState(() {
@@ -761,6 +1115,19 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     setState(() {
       startDate = DateTime(now.year, 1, 1);
       endDate = DateTime(now.year, now.month, now.day);
+    });
+  }
+
+  void _setPreviousMonth() {
+    final now = DateTime.now();
+    final firstDayOfThisMonth = DateTime(now.year, now.month, 1);
+    final firstDayOfLastMonth =
+        DateTime(firstDayOfThisMonth.year, firstDayOfThisMonth.month - 1, 1);
+    final lastDayOfLastMonth =
+        DateTime(firstDayOfThisMonth.year, firstDayOfThisMonth.month, 0);
+    setState(() {
+      startDate = firstDayOfLastMonth;
+      endDate = lastDayOfLastMonth;
     });
   }
 }

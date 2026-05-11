@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,10 +24,7 @@ import 'services/platform/quick_actions_service.dart';
 import 'services/system/logger_service.dart';
 import 'services/sync/sync_version_service.dart';
 import 'services/user_settings/user_setting_keys.dart';
-import 'services/user_settings/user_settings_store.dart';
-import 'providers/database_providers.dart';
 import 'utils/notification_factory.dart';
-import 'cloud/sync_service.dart';
 
 class BeeApp extends ConsumerStatefulWidget {
   const BeeApp({super.key});
@@ -106,10 +102,8 @@ class _BeeAppState extends ConsumerState<BeeApp>
       final enabled =
           await store.getBool(UserSettingKeys.reminderEnabled) ?? false;
       if (!enabled) return;
-      final hour =
-          await store.getInt(UserSettingKeys.reminderHour) ?? 21;
-      final minute =
-          await store.getInt(UserSettingKeys.reminderMinute) ?? 0;
+      final hour = await store.getInt(UserSettingKeys.reminderHour) ?? 21;
+      final minute = await store.getInt(UserSettingKeys.reminderMinute) ?? 0;
       final notificationUtil = NotificationFactory.getInstance();
       await notificationUtil.scheduleDailyReminder(
         id: 1001,
@@ -172,7 +166,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
         // 静默失败，不影响App启动
       }
     });
-    
+
     _startSyncVersionService();
   }
 
@@ -181,7 +175,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
       try {
         final sessionAsync = ref.read(beecountSessionProvider);
         logger.info('BeeApp', 'BeeCount 会话状态: $sessionAsync');
-        
+
         if (sessionAsync.hasValue && sessionAsync.value != null) {
           _syncVersionService = ref.read(syncVersionServiceProvider);
           await _syncVersionService!.start();
@@ -259,9 +253,9 @@ class _BeeAppState extends ConsumerState<BeeApp>
     _removeOverlay();
     _expandController.dispose();
     WidgetsBinding.instance.removeObserver(this);
-    
+
     _syncVersionService?.stop();
-    
+
     super.dispose();
   }
 
@@ -440,10 +434,17 @@ class _BeeAppState extends ConsumerState<BeeApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    // 当app从后台恢复到前台时，更新小组件数据并检查版本
     if (state == AppLifecycleState.resumed) {
       _updateWidget();
-      _checkVersionOnResume();
+      _resumeSyncVersionService();
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      _pauseSyncVersionService();
     }
   }
 
@@ -461,12 +462,27 @@ class _BeeAppState extends ConsumerState<BeeApp>
     }
   }
 
-  /// App 恢复前台时检查版本
-  void _checkVersionOnResume() {
-    if (_syncVersionService != null) {
-      logger.info('SyncVersion', 'App 恢复前台，检查版本');
-      _syncVersionService!.checkVersion();
-    }
+  void _pauseSyncVersionService() {
+    if (_syncVersionService == null) return;
+    logger.info('SyncVersion', 'App 进入后台，暂停版本号检测');
+    _syncVersionService!.stop();
+    ref.read(syncVersionServiceRunningProvider.notifier).state = false;
+  }
+
+  void _resumeSyncVersionService() {
+    logger.info('SyncVersion', 'App 恢复前台，恢复版本号检测');
+    Future.microtask(() async {
+      try {
+        final sessionAsync = ref.read(beecountSessionProvider);
+        if (!sessionAsync.hasValue || sessionAsync.value == null) return;
+
+        _syncVersionService ??= ref.read(syncVersionServiceProvider);
+        await _syncVersionService!.start();
+        ref.read(syncVersionServiceRunningProvider.notifier).state = true;
+      } catch (e) {
+        logger.warning('SyncVersion', '恢复版本号检测失败: $e');
+      }
+    });
   }
 
   /// 构建记账按钮（独立在 Stack 最上层，防止点击穿透）

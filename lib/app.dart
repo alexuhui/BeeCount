@@ -551,6 +551,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
     final primaryColor = ref.watch(primaryColorProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final isBeeCountDataSyncing = ref.watch(beecountDataSyncingProvider);
 
     return PopScope(
       canPop: false,
@@ -608,7 +609,47 @@ class _BeeAppState extends ConsumerState<BeeApp>
           ),
           // 记账按钮（提升到 Stack 最上层，防止点击穿透）
           _buildCenterButton(primaryColor, bottomPadding),
+          if (isBeeCountDataSyncing) _BeeCountSyncOverlay(message: '${l10n.mineSyncTitle}...'),
         ],
+      ),
+    );
+  }
+}
+
+class _BeeCountSyncOverlay extends StatelessWidget {
+  const _BeeCountSyncOverlay({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: ColoredBox(
+        color: Colors.black.withValues(alpha: 0.38),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2.4),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

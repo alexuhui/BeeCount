@@ -90,6 +90,34 @@ final beecountServerConnectionControllerProvider =
   return BeeCountServerConnectionController(ref);
 });
 
+final beecountDataSyncingCountProvider = StateProvider<int>((ref) => 0);
+
+final beecountDataSyncingProvider = Provider<bool>((ref) {
+  return ref.watch(beecountDataSyncingCountProvider) > 0;
+});
+
+class BeeCountDataSyncOverlayController {
+  BeeCountDataSyncOverlayController(this._ref);
+
+  final Ref _ref;
+
+  Future<T> track<T>(Future<T> Function() action) async {
+    _ref.read(beecountDataSyncingCountProvider.notifier).state++;
+    try {
+      return await action();
+    } finally {
+      final notifier = _ref.read(beecountDataSyncingCountProvider.notifier);
+      final next = notifier.state - 1;
+      notifier.state = next < 0 ? 0 : next;
+    }
+  }
+}
+
+final beecountDataSyncOverlayControllerProvider =
+    Provider<BeeCountDataSyncOverlayController>((ref) {
+  return BeeCountDataSyncOverlayController(ref);
+});
+
 class BeeCountOfflineModeSetter {
   BeeCountOfflineModeSetter(this._ref);
   final Ref _ref;
@@ -191,7 +219,7 @@ final beecountBootstrapProvider = Provider<void>((ref) {
       provider: providerAsync.value!,
       sync: syncEngine,
     );
-    await svc.run();
+    await ref.read(beecountDataSyncOverlayControllerProvider).track(svc.run);
   }).catchError((e, st) {
     logger.error('BeeCountBootstrap', '启动拉取失败', e, st);
   });

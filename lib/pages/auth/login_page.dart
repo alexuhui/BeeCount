@@ -67,10 +67,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
+    final isDataSyncing = ref.watch(beecountDataSyncingProvider);
 
-    return Scaffold(
-      backgroundColor: theme.primaryColor,
-      body: SafeArea(
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: theme.primaryColor,
+          body: SafeArea(
         child: Column(
           children: [
             // 顶部语言选择下拉框
@@ -267,7 +270,43 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ),
           ],
         ),
-      ),
+          ),
+        ),
+        if (isDataSyncing)
+          Positioned.fill(
+            child: ColoredBox(
+              color: Colors.black.withValues(alpha: 0.38),
+              child: Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surface
+                        .withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2.4),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        '${l10n.mineSyncTitle}...',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -592,7 +631,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               sync: syncEngine,
             );
 
-            await initialSyncService.run();
+            await ref
+                .read(beecountDataSyncOverlayControllerProvider)
+                .track(initialSyncService.run);
 
             final ledgers = await db.select(db.ledgers).get();
             final accounts = await db.select(db.accounts).get();

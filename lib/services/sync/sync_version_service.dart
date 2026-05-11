@@ -133,7 +133,9 @@ class SyncVersionService {
         provider: provider,
         sync: syncEngine,
       );
-      await syncService.run();
+      await _ref
+          .read(beecountDataSyncOverlayControllerProvider)
+          .track(syncService.run);
 
       logger.info('SyncVersion', '同步完成，刷新 UI');
 

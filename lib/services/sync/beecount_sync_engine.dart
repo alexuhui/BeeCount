@@ -243,7 +243,8 @@ class BeeCountSyncEngine {
       } on _MissingDependencyException {
         continue;
       } catch (e) {
-        if (notifyConnectionLoss && _isConnectionFailure(e)) {
+        if (notifyConnectionLoss &&
+            (_isConnectionFailure(e) || _isAuthFailure(e))) {
           onConnectionLost?.call(e);
         }
         await _markError(
@@ -375,11 +376,20 @@ class BeeCountSyncEngine {
   }
 
   bool _isConnectionFailure(Object error) {
+    if (_isAuthFailure(error)) return false;
     if (error is CloudDatabaseException) {
       final statusCode = error.statusCode;
       return statusCode == null || statusCode == 0 || statusCode >= 500;
     }
     return true;
+  }
+
+  bool _isAuthFailure(Object error) {
+    if (error is CloudDatabaseException) {
+      final statusCode = error.statusCode;
+      return statusCode == 401 || statusCode == 403;
+    }
+    return false;
   }
 
   Future<void> _saveRemoteIdFromInsertResponse(

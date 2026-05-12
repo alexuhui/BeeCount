@@ -290,9 +290,14 @@ class BeeCountDatabaseService implements CloudDatabaseService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       return data['version'] as int?;
-    } else {
-      print('⚠️ Failed to get sync version: ${response.body}');
-      return null;
     }
+
+    print('⚠️ Failed to get sync version: ${response.body}');
+    // 与 insert/update/delete 一致：携带 HTTP 状态码，便于上层识别 401/403 并提示重新登录
+    throw CloudDatabaseException(
+      'Failed to get sync version: ${response.body}',
+      response.body,
+      response.statusCode,
+    );
   }
 }

@@ -29,6 +29,10 @@ import 'package:home_widget/home_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'dart:io';
 
+/// 根 [Navigator]，供 `MaterialApp.builder` 内蒙层在 signOut 后仍能可靠 [pushAndRemoveUntil] 到登录页
+///（仅用 `Navigator.of(context)` 时，蒙层消失重建后 context 往往拿不到正确 Navigator）。
+final GlobalKey<NavigatorState> beeRootNavigatorKey = GlobalKey<NavigatorState>();
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -440,6 +444,7 @@ class MainApp extends ConsumerWidget {
     return MediaQuery(
       data: media.copyWith(textScaler: newScaler),
       child: MaterialApp(
+        navigatorKey: beeRootNavigatorKey,
         onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
         scrollBehavior: const NoGlowScrollBehavior(),
         debugShowCheckedModeBanner: false,
@@ -505,6 +510,7 @@ class _BeeCountConnectionOverlay extends ConsumerWidget {
     }
 
     final primary = Theme.of(context).colorScheme.primary;
+    final isAuthFailed = connection.authFailed;
 
     return PopScope(
       canPop: false,
@@ -528,14 +534,23 @@ class _BeeCountConnectionOverlay extends ConsumerWidget {
                           SizedBox(
                             width: 44,
                             height: 44,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 3,
-                              color: primary,
-                            ),
+                            child: isAuthFailed
+                                ? Icon(
+                                    Icons.lock_outline,
+                                    size: 36,
+                                    color: primary,
+                                  )
+                                : CircularProgressIndicator(
+                                    strokeWidth: 3,
+                                    color: primary,
+                                  ),
                           ),
                           const SizedBox(height: 20),
                           Text(
-                            connection.message ?? '服务器连接失败',
+                            connection.message ??
+                                (isAuthFailed
+                                    ? '认证失败，请重新登录'
+                                    : '服务器连接失败'),
                             textAlign: TextAlign.center,
                             style: Theme.of(context)
                                 .textTheme
@@ -544,34 +559,96 @@ class _BeeCountConnectionOverlay extends ConsumerWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '当前无法连接 BeeCount 服务器。请重新连接，连接恢复后即可继续提交数据。',
+                            isAuthFailed
+                                ? '登录状态已失效或无权限访问服务器。可先尝试重新连接，或重新登录后继续。'
+                                : '当前无法连接 BeeCount 服务器。请重新连接，连接恢复后即可继续提交数据。',
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           const SizedBox(height: 20),
-                          FilledButton.icon(
-                            onPressed: connection.checking
-                                ? null
-                                : () {
-                                    ref
-                                        .read(
-                                          beecountServerConnectionControllerProvider,
-                                        )
-                                        .reconnect();
-                                  },
-                            icon: connection.checking
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                          if (isAuthFailed)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    onPressed: connection.checking
+                                        ? null
+                                        : () {
+                                            ref
+                                                .read(
+                                                  beecountServerConnectionControllerProvider,
+                                                )
+                                                .reconnect();
+                                          },
+                                    icon: connection.checking
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(Icons.refresh),
+                                    label: Text(
+                                      connection.checking
+                                          ? '正在重新连接'
+                                          : '重新连接',
                                     ),
-                                  )
-                                : const Icon(Icons.refresh),
-                            label: Text(
-                              connection.checking ? '正在重新连接' : '重新连接',
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () async {
+                                      await ref
+                                          .read(beecountAuthControllerProvider)
+                                          .signOut();
+                                      // 等一帧：signOut 会 markConnected + 切换 home，避免 builder 内 context 找不到 Navigator
+                                      WidgetsBinding.instance
+                                          .addPostFrameCallback((_) {
+                                        beeRootNavigatorKey.currentState
+                                            ?.pushAndRemoveUntil<void>(
+                                          MaterialPageRoute<void>(
+                                            builder: (_) => const LoginPage(),
+                                            settings: const RouteSettings(
+                                              name: '/',
+                                            ),
+                                          ),
+                                          (route) => false,
+                                        );
+                                      });
+                                    },
+                                    icon: const Icon(Icons.login),
+                                    label: const Text('重新登录'),
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            FilledButton.icon(
+                              onPressed: connection.checking
+                                  ? null
+                                  : () {
+                                      ref
+                                          .read(
+                                            beecountServerConnectionControllerProvider,
+                                          )
+                                          .reconnect();
+                                    },
+                              icon: connection.checking
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.refresh),
+                              label: Text(
+                                connection.checking ? '正在重新连接' : '重新连接',
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),

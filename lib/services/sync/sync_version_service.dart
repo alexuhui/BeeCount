@@ -101,6 +101,12 @@ class SyncVersionService {
       }
     } catch (e, st) {
       logger.warning('SyncVersion', '检测版本号失败: $e\n$st');
+      if (_isAuthFailure(e)) {
+        _ref
+            .read(beecountServerConnectionControllerProvider)
+            .markAuthFailed('认证失败，请重新登录');
+        return;
+      }
       _ref
           .read(beecountServerConnectionControllerProvider)
           .markDisconnected('服务器连接失败，请重新连接');
@@ -213,10 +219,24 @@ class SyncVersionService {
       }
     } catch (e) {
       logger.warning('SyncVersion', '同步版本号失败: $e');
+      if (_isAuthFailure(e)) {
+        _ref
+            .read(beecountServerConnectionControllerProvider)
+            .markAuthFailed('认证失败，请重新登录');
+        return;
+      }
       _ref
           .read(beecountServerConnectionControllerProvider)
           .markDisconnected('服务器连接失败，请重新连接');
     }
+  }
+
+  static bool _isAuthFailure(Object error) {
+    if (error is CloudDatabaseException) {
+      final statusCode = error.statusCode;
+      return statusCode == 401 || statusCode == 403;
+    }
+    return false;
   }
 }
 

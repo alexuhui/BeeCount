@@ -10,6 +10,8 @@ import '../services/sync/beecount_initial_sync_service.dart';
 import '../services/sync/beecount_sync_engine.dart';
 import '../services/sync/sync_version_service.dart';
 import '../services/system/logger_service.dart';
+import '../utils/local_storage_utils.dart';
+import 'ui_state_providers.dart';
 
 final beeCountSessionStoreProvider = Provider<BeeCountSessionStore>((ref) {
   return BeeCountSessionStore();
@@ -23,21 +25,26 @@ final beecountOfflineModeProvider = FutureProvider<bool>((ref) async {
 class BeeCountServerConnectionState {
   const BeeCountServerConnectionState({
     this.disconnected = false,
+    this.authFailed = false,
     this.checking = false,
     this.message,
   });
 
   final bool disconnected;
+  /// 401/403 等认证失败（与纯网络/服务器错误区分）
+  final bool authFailed;
   final bool checking;
   final String? message;
 
   BeeCountServerConnectionState copyWith({
     bool? disconnected,
+    bool? authFailed,
     bool? checking,
     String? message,
   }) {
     return BeeCountServerConnectionState(
       disconnected: disconnected ?? this.disconnected,
+      authFailed: authFailed ?? this.authFailed,
       checking: checking ?? this.checking,
       message: message ?? this.message,
     );
@@ -58,8 +65,19 @@ class BeeCountServerConnectionController {
     _ref.read(beecountServerConnectionProvider.notifier).state =
         BeeCountServerConnectionState(
       disconnected: true,
+      authFailed: false,
       checking: false,
       message: message ?? '服务器连接失败',
+    );
+  }
+
+  void markAuthFailed([String? message]) {
+    _ref.read(beecountServerConnectionProvider.notifier).state =
+        BeeCountServerConnectionState(
+      disconnected: true,
+      authFailed: true,
+      checking: false,
+      message: message ?? '认证失败，请重新登录',
     );
   }
 
@@ -186,6 +204,13 @@ final beecountSyncEngineProvider = Provider<BeeCountSyncEngine?>((ref) {
       await syncVersionService.syncVersionFromServer();
     },
     onConnectionLost: (error) {
+      if (error is CloudDatabaseException &&
+          (error.statusCode == 401 || error.statusCode == 403)) {
+        ref
+            .read(beecountServerConnectionControllerProvider)
+            .markAuthFailed('认证失败，请重新登录');
+        return;
+      }
       ref
           .read(beecountServerConnectionControllerProvider)
           .markDisconnected('服务器连接失败，请重新连接');
@@ -307,6 +332,7 @@ class BeeCountAuthController {
     final store = _ref.read(beeCountSessionStoreProvider);
     await store.clearSession();
     await store.setOfflineMode(false);
+    await LocalStorageUtils.setAppStatus(LocalStorageUtils.appStatusNone);
     _ref.read(beecountServerConnectionControllerProvider).markConnected();
     _ref.read(databaseScopeKeyProvider.notifier).state =
         DatabaseScopes.signedOut;
@@ -314,9 +340,15 @@ class BeeCountAuthController {
     resetInMemoryDataForAccountSwitch(_ref);
     _ref.invalidate(beecountProviderProvider);
     _ref.invalidate(beecountOfflineModeProvider);
+    _ref.invalidate(beecountSessionProvider);
     _ref.invalidate(beecountSyncEngineProvider);
     _ref.invalidate(beecountPendingSyncCountProvider);
     _ref.read(_beecountBootstrappedProvider.notifier).state = false;
+
+    _ref.read(shouldShowLoginProvider.notifier).state = true;
+    _ref.read(appInitStateProvider.notifier).state = AppInitState.splash;
+    _ref.invalidate(loginCheckProvider);
+    _ref.invalidate(appInitStateProvider);
   }
 
   Future<void> useOfflineMode() async {

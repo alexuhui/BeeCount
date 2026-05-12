@@ -561,94 +561,68 @@ class _BeeCountConnectionOverlay extends ConsumerWidget {
                           Text(
                             isAuthFailed
                                 ? '登录状态已失效或无权限访问服务器。可先尝试重新连接，或重新登录后继续。'
-                                : '当前无法连接 BeeCount 服务器。请重新连接，连接恢复后即可继续提交数据。',
+                                : '当前无法连接 BeeCount 服务器。请检查网络后尝试重新连接；若多次失败，可重新登录后再试。',
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           const SizedBox(height: 20),
-                          if (isAuthFailed)
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: FilledButton.icon(
-                                    onPressed: connection.checking
-                                        ? null
-                                        : () {
-                                            ref
-                                                .read(
-                                                  beecountServerConnectionControllerProvider,
-                                                )
-                                                .reconnect();
-                                          },
-                                    icon: connection.checking
-                                        ? const SizedBox(
-                                            width: 16,
-                                            height: 16,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          )
-                                        : const Icon(Icons.refresh),
-                                    label: Text(
-                                      connection.checking
-                                          ? '正在重新连接'
-                                          : '重新连接',
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: () async {
-                                      await ref
-                                          .read(beecountAuthControllerProvider)
-                                          .signOut();
-                                      // 等一帧：signOut 会 markConnected + 切换 home，避免 builder 内 context 找不到 Navigator
-                                      WidgetsBinding.instance
-                                          .addPostFrameCallback((_) {
-                                        beeRootNavigatorKey.currentState
-                                            ?.pushAndRemoveUntil<void>(
-                                          MaterialPageRoute<void>(
-                                            builder: (_) => const LoginPage(),
-                                            settings: const RouteSettings(
-                                              name: '/',
-                                            ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: FilledButton.icon(
+                                  onPressed: connection.checking
+                                      ? null
+                                      : () {
+                                          ref
+                                              .read(
+                                                beecountServerConnectionControllerProvider,
+                                              )
+                                              .reconnect();
+                                        },
+                                  icon: connection.checking
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
                                           ),
-                                          (route) => false,
-                                        );
-                                      });
-                                    },
-                                    icon: const Icon(Icons.login),
-                                    label: const Text('重新登录'),
+                                        )
+                                      : const Icon(Icons.refresh),
+                                  label: Text(
+                                    connection.checking
+                                        ? '正在重新连接'
+                                        : '重新连接',
                                   ),
                                 ),
-                              ],
-                            )
-                          else
-                            FilledButton.icon(
-                              onPressed: connection.checking
-                                  ? null
-                                  : () {
-                                      ref
-                                          .read(
-                                            beecountServerConnectionControllerProvider,
-                                          )
-                                          .reconnect();
-                                    },
-                              icon: connection.checking
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.refresh),
-                              label: Text(
-                                connection.checking ? '正在重新连接' : '重新连接',
                               ),
-                            ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () async {
+                                    await ref
+                                        .read(beecountAuthControllerProvider)
+                                        .signOut();
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                      beeRootNavigatorKey.currentState
+                                          ?.pushAndRemoveUntil<void>(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => const LoginPage(),
+                                          settings: const RouteSettings(
+                                            name: '/',
+                                          ),
+                                        ),
+                                        (route) => false,
+                                      );
+                                    });
+                                  },
+                                  icon: const Icon(Icons.login),
+                                  label: const Text('重新登录'),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),

@@ -746,4 +746,47 @@ class LocalTransactionRepository implements TransactionRepository {
         .cast<String>()
         .toList();
   }
+
+  @override
+  Future<({List<({Transaction t, Category? category})> items, int total})>
+      fetchTransactionsPage({
+    int? ledgerId,
+    required int page,
+    required int pageSize,
+    DateTime? from,
+    DateTime? to,
+    String? type,
+    int? categoryId,
+    int? accountId,
+    int? tagId,
+    String? q,
+  }) async {
+    final all = await watchTransactionsWithCategoryAll(ledgerId: ledgerId).first;
+    var filtered = all;
+    if (from != null) {
+      filtered = filtered.where((e) => !e.t.happenedAt.isBefore(from)).toList();
+    }
+    if (to != null) {
+      filtered = filtered.where((e) => e.t.happenedAt.isBefore(to)).toList();
+    }
+    if (type != null) {
+      filtered = filtered.where((e) => e.t.type == type).toList();
+    }
+    if (categoryId != null) {
+      filtered = filtered.where((e) => e.t.categoryId == categoryId).toList();
+    }
+    if (accountId != null) {
+      filtered = filtered
+          .where((e) => e.t.accountId == accountId || e.t.toAccountId == accountId)
+          .toList();
+    }
+    if (q != null && q.trim().isNotEmpty) {
+      final n = q.trim();
+      filtered = filtered.where((e) => (e.t.note ?? '').contains(n)).toList();
+    }
+    final total = filtered.length;
+    final start = ((page - 1) * pageSize).clamp(0, total);
+    final end = (start + pageSize).clamp(0, total);
+    return (items: filtered.sublist(start, end), total: total);
+  }
 }

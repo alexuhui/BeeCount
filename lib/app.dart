@@ -14,7 +14,6 @@ import 'l10n/app_localizations.dart';
 import 'widget/widget_manager.dart';
 import 'widgets/ui/ui.dart';
 import 'widgets/ui/speed_dial_fab.dart';
-import 'cloud/transactions_sync_manager.dart';
 import 'utils/voice_billing_helper.dart';
 import 'utils/image_billing_helper.dart';
 import 'services/ai/ai_constants.dart';
@@ -156,12 +155,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
   void _refreshLedgersStatusInBackground() {
     Future.microtask(() async {
       try {
-        final syncService = ref.read(syncServiceProvider);
-        if (syncService is TransactionsSyncManager) {
-          await syncService.refreshAllLedgersStatus();
-          // 刷新完成后触发账本列表更新
-          ref.read(ledgerListRefreshProvider.notifier).state++;
-        }
+        ref.read(ledgerListRefreshProvider.notifier).state++;
       } catch (e) {
         // 静默失败，不影响App启动
       }

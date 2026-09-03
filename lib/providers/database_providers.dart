@@ -1,13 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/db.dart';
-import '../data/repositories/local/local_repository.dart';
+import '../data/repositories/api/api_repository.dart';
 import '../data/repositories/base_repository.dart';
-import '../data/repositories/sync/beecount_server_first_repository.dart';
 import '../services/system/logger_service.dart';
 import '../services/user_settings/user_setting_keys.dart';
 import '../services/user_settings/user_settings_store.dart';
-import 'sync_providers.dart';
 import 'beecount_server_providers.dart';
 import 'database_scope_provider.dart';
 import '../services/database/database_scopes.dart';
@@ -37,29 +35,16 @@ final userSettingsStoreProvider = Provider<UserSettingsStore>((ref) {
 // LocalRepository (本地模式) 和 CloudRepository (云端模式) 都继承 BaseRepository
 final repositoryProvider = Provider<BaseRepository>((ref) {
   final db = ref.watch(databaseProvider);
-  final syncEngine = ref.watch(beecountSyncEngineProvider);
-
-  if (syncEngine != null) {
-    logger.info('RepositoryProvider',
-        '✅ 使用 BeeCountServerFirstRepository (服务器优先 + 本地缓存)');
-    return BeeCountServerFirstRepository(db, sync: syncEngine);
+  final api = ref.watch(beecountApiClientProvider);
+  if (api == null) {
+    throw StateError('未登录，无法访问账本数据');
   }
-
-  logger.info('RepositoryProvider', '✅ 使用 LocalRepository (离线模式/未登录)');
-  return LocalRepository(db);
+  logger.info('RepositoryProvider', '使用 ApiRepository（服务器为准）');
+  return ApiRepository(db, api: api);
 });
 
-// 新增：根据 AppMode 返回对应的 Repository 实现
-// 这个 Provider 返回抽象接口类型，可以是本地或云端实现
 final dynamicRepositoryProvider = Provider<Object>((ref) {
-  final db = ref.watch(databaseProvider);
-  final syncEngine = ref.watch(beecountSyncEngineProvider);
-
-  if (syncEngine != null) {
-    return BeeCountServerFirstRepository(db, sync: syncEngine);
-  }
-
-  return LocalRepository(db);
+  return ref.watch(repositoryProvider);
 });
 
 // 记住当前账本：启动时加载，切换时持久化
@@ -142,18 +127,13 @@ final _currentLedgerPersist = Provider<void>((ref) {
 
 // 当账本切换时，顺便触发一次设置页状态刷新（确保"我的"页及时反映）
 final _ledgerChangeListener = Provider<void>((ref) {
-  // 激活持久化监听
   ref.read(_currentLedgerPersist);
-  ref.listen<int>(currentLedgerIdProvider, (prev, next) {
-    ref.read(syncStatusRefreshProvider.notifier).state++;
-  });
 });
 
 // 确保监听器被激活
 final appInitProvider = FutureProvider<void>((ref) async {
   // 读取以激活监听
   ref.read(_ledgerChangeListener);
-  ref.read(beecountBootstrapProvider);
 });
 
 // 分类Provider

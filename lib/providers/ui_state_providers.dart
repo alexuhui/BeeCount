@@ -1,22 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../utils/local_storage_utils.dart';
 import 'database_providers.dart';
 import 'theme_providers.dart';
 import 'statistics_providers.dart';
 import 'font_scale_provider.dart';
 import 'update_providers.dart';
 import 'smart_billing_providers.dart';
-import 'sync_providers.dart';
 import 'ai_config_providers.dart';
 import '../data/db.dart';
-import '../services/data/recurring_transaction_service.dart';
-import '../services/billing/post_processor.dart';
 import '../services/system/logger_service.dart';
 import '../services/ai/ai_constants.dart';
 import '../services/platform/app_link_service.dart';
-import '../cloud/sync_service.dart';
-import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
+import '../services/sync/beecount_session_store.dart';
 
 // 底部导航索引（0: 明细, 1: 图表, 2: 账本, 3: 我的）
 final bottomTabIndexProvider = StateProvider<int>((ref) => 0);
@@ -180,14 +175,21 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
         'AI配置预加载完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
     stepTime = DateTime.now();
 
-    // 尝试自动登录
+    // 会话已由 beecountSessionProvider 从本地恢复
     await _tryAutoLogin(ref);
     logger.info(tag,
         '自动登录检查完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
     stepTime = DateTime.now();
 
     // 获取 repository
-    final repo = ref.read(repositoryProvider);
+    late final dynamic repo;
+    try {
+      repo = ref.read(repositoryProvider);
+    } catch (e) {
+      logger.warning(tag, '未登录，跳过账本预加载: $e');
+      ref.read(appInitStateProvider.notifier).state = AppInitState.ready;
+      return;
+    }
 
     // 预加载当前账本的关键数据
     final ledgerId = ref.read(currentLedgerIdProvider);
@@ -295,20 +297,9 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
           '账本统计(异步): ${DateTime.now().difference(start).inMilliseconds}ms');
     });
 
-    // 生成待处理的周期交易
+    // 周期记账已在登录时由服务端 generate 接口处理
     try {
-      final generatedLedgerIds =
-          await RecurringTransactionService.generatePendingTransactionsStatic(
-        repository: repo,
-        verbose: false,
-      );
-      logger.info(tag,
-          '周期交易生成完成: ${DateTime.now().difference(stepTime).inMilliseconds}ms');
-
-      // 统一后处理：刷新UI + 触发云同步（如果有生成交易）
-      for (final genLedgerId in generatedLedgerIds) {
-        await PostProcessor.runR(ref, ledgerId: genLedgerId);
-      }
+      logger.info(tag, '跳过本地周期扫表');
     } catch (e, stackTrace) {
       logger.error(tag, '周期交易生成失败', e, stackTrace);
     }
@@ -322,133 +313,19 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
   ref.read(appInitStateProvider.notifier).state = AppInitState.ready;
 });
 
-/// 尝试自动登录
+/// Session is restored from SharedPreferences by [beecountSessionProvider].
 Future<void> _tryAutoLogin(Ref ref) async {
-  try {
-    final appStatus = await LocalStorageUtils.getAppStatus();
-    if (appStatus != LocalStorageUtils.appStatusOnline) {
-      // 非在线模式不需要登录
-      return;
-    }
-
-    final cloudConfig = await ref.read(activeCloudConfigProvider.future);
-
-    // 检查是否有保存的账号密码
-    String? email;
-    String? password;
-    if (cloudConfig.type == CloudBackendType.supabase) {
-      email = cloudConfig.supabaseEmail;
-      password = cloudConfig.supabasePassword;
-    } else if (cloudConfig.type == CloudBackendType.beecount) {
-      email = cloudConfig.beecountUsername;
-      password = cloudConfig.beecountPassword;
-    }
-
-    logger.info('AutoLogin',
-        '当前云后端类型: ${cloudConfig.type}  邮箱: $email  密码: ${password}');
-
-    if (email != null &&
-        email.isNotEmpty &&
-        password != null &&
-        password.isNotEmpty) {
-      logger.info('AutoLogin', '尝试自动登录: $email');
-      final auth = await ref.read(authServiceProvider.future);
-      await auth.signInWithEmail(email: email, password: password);
-      logger.info('AutoLogin', '自动登录成功: $email');
-
-      // 刷新认证服务和同步服务以触发状态更新
-      ref.invalidate(authServiceProvider);
-      ref.invalidate(syncServiceProvider);
-
-      // 刷新同步状态
-      ref.read(syncStatusRefreshProvider.notifier).state++;
-
-      // 尝试同步数据，确保前后端数据一致
-      await _syncDataAfterLogin(ref);
-    } else {
-      logger.info('AutoLogin', '没有保存的账号密码，跳过自动登录');
-    }
-  } catch (e, stackTrace) {
-    // 自动登录失败，忽略错误，用户可以手动登录
-    logger.warning('AutoLogin', '自动登录失败: $e');
-  }
+  final session = await BeeCountSessionStore().loadSession();
+  logger.info('AutoLogin', session == null ? '无本地会话' : '已有服务器会话');
 }
 
-/// 登录后同步数据，确保前后端数据一致
-Future<void> _syncDataAfterLogin(Ref ref) async {
-  try {
-    final syncService = ref.read(syncServiceProvider);
-    if (syncService is LocalOnlySyncService) {
-      // 本地模式不需要同步
-      return;
-    }
-
-    // 获取当前账本ID
-    final ledgerId = ref.read(currentLedgerIdProvider);
-
-    // 检查同步状态
-    final status = await syncService.getStatus(ledgerId: ledgerId);
-    logger.info('SyncAfterLogin', '同步状态: ${status.diff}');
-
-    // 根据同步状态进行相应操作
-    switch (status.diff) {
-      case SyncDiff.inSync:
-        // 数据已同步，无需操作
-        logger.info('SyncAfterLogin', '数据已同步');
-        break;
-      case SyncDiff.localNewer:
-        // 本地数据较新，上传到服务器
-        logger.info('SyncAfterLogin', '本地数据较新，上传到服务器');
-        await syncService.uploadCurrentLedger(ledgerId: ledgerId);
-        break;
-      case SyncDiff.cloudNewer:
-        // 服务器数据较新，下载到本地
-        logger.info('SyncAfterLogin', '服务器数据较新，下载到本地');
-        await syncService.downloadAndRestoreToCurrentLedger(ledgerId: ledgerId);
-        break;
-      case SyncDiff.different:
-        // 数据不同，需要比较最后一条记录的时间
-        logger.info('SyncAfterLogin', '数据不同，比较最后一条记录的时间');
-        await _resolveConflict(syncService, ledgerId);
-        break;
-      case SyncDiff.noRemote:
-        // 服务器没有数据，上传本地数据
-        logger.info('SyncAfterLogin', '服务器没有数据，上传本地数据');
-        await syncService.uploadCurrentLedger(ledgerId: ledgerId);
-        break;
-      default:
-        // 其他状态，忽略
-        break;
-    }
-  } catch (e, stackTrace) {
-    // 同步失败，忽略错误
-    logger.warning('SyncAfterLogin', '同步失败: $e');
-  }
-}
-
-/// 解决数据冲突，以最后记录的一条数据为准
-Future<void> _resolveConflict(SyncService syncService, int ledgerId) async {
-  try {
-    // 这里简化处理，直接下载服务器数据
-    // 实际应用中，应该比较本地和服务器最后一条记录的时间
-    // 以最后记录的一条数据为准
-    logger.info('ResolveConflict', '解决数据冲突，下载服务器数据');
-    await syncService.downloadAndRestoreToCurrentLedger(ledgerId: ledgerId);
-  } catch (e) {
-    logger.warning('ResolveConflict', '解决冲突失败: $e');
-  }
-}
-
-// 是否应该显示登录页面的Provider
 final shouldShowLoginProvider = StateProvider<bool>((ref) => false);
 
-// 初始化检查是否需要显示登录页面
 final loginCheckProvider = FutureProvider<bool>((ref) async {
-  logger.info('LoginCheck', '开始检查应用状态');
-  final appStatus = await LocalStorageUtils.getAppStatus();
-  logger.info('LoginCheck', '当前应用状态: $appStatus');
-  if (appStatus == LocalStorageUtils.appStatusNone) {
-    logger.info('LoginCheck', '👋 app 应用状态为空，需要展示登录页面，用户可以选择登录或离线方式使用app');
+  logger.info('LoginCheck', '开始检查登录会话');
+  final session = await BeeCountSessionStore().loadSession();
+  if (session == null) {
+    logger.info('LoginCheck', '未登录，展示登录页');
     ref.read(shouldShowLoginProvider.notifier).state = true;
     return true;
   }

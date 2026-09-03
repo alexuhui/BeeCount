@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import '../../providers.dart';
+import '../../providers/home_transaction_providers.dart';
 import '../settings/personalize_page.dart' show headerStyleProvider;
 import '../../data/db.dart';
 import '../../widgets/ui/ui.dart';
@@ -461,10 +462,9 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final repo = ref.watch(repositoryProvider);
-    // 预加载数据（含标签、附件、账户，仅前 N 条）
     final cachedFullData = ref.watch(cachedTransactionsProvider);
     final ledgerId = ref.watch(currentLedgerIdProvider);
+    final homeTx = ref.watch(homeTransactionControllerProvider(ledgerId));
     final month = ref.watch(selectedMonthProvider);
     final hide = ref.watch(hideAmountsProvider);
     final aiEnabledAsync = ref.watch(aiAssistantEnabledProvider);
@@ -723,40 +723,53 @@ class _HomePageState extends ConsumerState<HomePage> {
           if (_showAnnualReportReminder)
             _buildAnnualReportReminderCard(context),
           Expanded(
-            child: StreamBuilder<List<({Transaction t, Category? category})>>(
-              key: ValueKey('transactions_$_streamBuilderKey'), // 使用递增key强制重建
-              stream: repo.transactionsWithCategoryAll(ledgerId: ledgerId),
-              builder: (context, snapshot) {
-                // Stream 数据到来前，使用预加载数据；到来后使用 Stream 数据
-                final streamData = snapshot.data;
-                final hasStreamData =
-                    streamData != null && streamData.isNotEmpty;
-
-                // 如果 Stream 没数据，从预加载数据构建基础列表
-                final transactions = hasStreamData
-                    ? streamData
-                    : (cachedFullData
-                            ?.map(
-                                (item) => (t: item.t, category: item.category))
-                            .toList() ??
-                        []);
-
-                return TransactionList(
-                  key: _transactionListKey,
-                  transactions: transactions,
-                  // 传入预加载数据供详情使用（标签、附件、账户）
-                  transactionsWithDetails: cachedFullData,
-                  hideAmounts: hide,
-                  enableVisibilityTracking: true,
-                  onDateVisibilityChanged: _onHeaderVisibilityChanged,
-                  controller: _listController,
-                  emptyWidget: AppEmpty(
-                    text: AppLocalizations.of(context).homeNoRecords,
-                    subtext: AppLocalizations.of(context).homeNoRecordsSubtext,
-                  ),
-                );
-              },
-            ),
+            child: homeTx.loading && homeTx.items.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : homeTx.error != null && homeTx.items.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('${homeTx.error}'),
+                            const SizedBox(height: 12),
+                            FilledButton(
+                              onPressed: () => ref
+                                  .read(homeTransactionControllerProvider(
+                                          ledgerId)
+                                      .notifier)
+                                  .reload(),
+                              child: const Text('重试'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : NotificationListener<ScrollNotification>(
+                        onNotification: (n) {
+                          if (n.metrics.pixels >=
+                              n.metrics.maxScrollExtent - 240) {
+                            ref
+                                .read(homeTransactionControllerProvider(
+                                        ledgerId)
+                                    .notifier)
+                                .loadMore();
+                          }
+                          return false;
+                        },
+                        child: TransactionList(
+                          key: _transactionListKey,
+                          transactions: homeTx.items,
+                          transactionsWithDetails: cachedFullData,
+                          hideAmounts: hide,
+                          enableVisibilityTracking: true,
+                          onDateVisibilityChanged: _onHeaderVisibilityChanged,
+                          controller: _listController,
+                          emptyWidget: AppEmpty(
+                            text: AppLocalizations.of(context).homeNoRecords,
+                            subtext: AppLocalizations.of(context)
+                                .homeNoRecordsSubtext,
+                          ),
+                        ),
+                      ),
           ),
         ],
       ),

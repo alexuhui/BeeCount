@@ -15,8 +15,6 @@ class DatabaseBootstrap {
   }
 
   static Future<String> _resolveScope(SharedPreferences prefs) async {
-    final offline = prefs.getBool('beecount_offline_mode') ?? false;
-    if (offline) return DatabaseScopes.offline;
     final session = await BeeCountSessionStore().loadSession();
     if (session != null) return DatabaseScopes.forUserId(session.userId);
     return DatabaseScopes.signedOut;

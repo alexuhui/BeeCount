@@ -10,7 +10,6 @@ import 'package:intl/intl.dart';
 import '../../providers.dart';
 import '../../providers/cloud_mode_providers.dart';
 import '../../models/ledger_display_item.dart';
-import '../../cloud/transactions_sync_manager.dart';
 import '../../cloud/sync_service.dart';
 import '../../widgets/ui/ui.dart';
 import '../../widgets/biz/biz.dart';
@@ -312,16 +311,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
     try {
       showToast(context, AppLocalizations.of(context).ledgersDownloading);
 
-      final syncService = ref.read(syncServiceProvider);
-      if (syncService is! TransactionsSyncManager) {
-        throw Exception('Cloud sync not available');
-      }
-
-      await syncService.downloadRemoteLedger(
-        name: ledger.name,
-        currency: ledger.currency,
-        remotePath: 'ledger_${ledger.id}.json',
-      );
+      throw Exception('Cloud backup is not available');
 
       if (!mounted) return;
 
@@ -643,12 +633,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
     try {
       showToast(context, AppLocalizations.of(context).ledgersDeleting);
 
-      final syncService = ref.read(syncServiceProvider);
-      if (syncService is! TransactionsSyncManager) {
-        throw Exception('Cloud sync not available');
-      }
-
-      await syncService.deleteRemoteLedger(remotePath: 'ledger_${ledger.id}.json');
+      throw Exception('Cloud backup is not available');
 
       if (!mounted) return;
 
@@ -683,32 +668,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
 
     try {
       showToast(context, AppLocalizations.of(context).ledgersRestoring);
-
-      final syncService = ref.read(syncServiceProvider);
-      if (syncService is! TransactionsSyncManager) {
-        throw Exception('Cloud sync not available');
-      }
-
-      final result = await syncService.restoreAllRemoteLedgers();
-
-      if (!mounted) return;
-
-      setState(() => _isRestoring = false);
-
-      // 刷新列表和同步状态
-      ref.read(ledgerListRefreshProvider.notifier).state++;
-      ref.read(statsRefreshProvider.notifier).state++;
-      ref.read(syncStatusRefreshProvider.notifier).state++;
-
-      // 显示结果
-      await AppDialog.info(
-        context,
-        title: AppLocalizations.of(context).ledgersRestoreComplete,
-        message: AppLocalizations.of(context).ledgersRestoreResult(
-          result.success,
-          result.failed,
-        ),
-      );
+      throw Exception('Cloud backup is not available');
     } catch (e) {
       setState(() => _isRestoring = false);
 

@@ -332,6 +332,33 @@ class LocalRepository extends BaseRepository {
       _transactionRepo.getTransactionDatesByMonth(
           ledgerId: ledgerId, month: month);
 
+  @override
+  Future<({List<({Transaction t, Category? category})> items, int total})>
+      fetchTransactionsPage({
+    int? ledgerId,
+    required int page,
+    required int pageSize,
+    DateTime? from,
+    DateTime? to,
+    String? type,
+    int? categoryId,
+    int? accountId,
+    int? tagId,
+    String? q,
+  }) =>
+      _transactionRepo.fetchTransactionsPage(
+        ledgerId: ledgerId,
+        page: page,
+        pageSize: pageSize,
+        from: from,
+        to: to,
+        type: type,
+        categoryId: categoryId,
+        accountId: accountId,
+        tagId: tagId,
+        q: q,
+      );
+
   // ============================================
   // CategoryRepository 接口实现 - 委托给 LocalCategoryRepository
   // ============================================

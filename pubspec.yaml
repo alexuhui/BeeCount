@@ -22,7 +22,6 @@ dependencies:
   shared_preferences: ^2.3.2
   csv: ^5.0.2
   file_picker: ^8.1.2
-  supabase_flutter: ^2.5.6
   crypto: ^3.0.5
   flutter_svg: ^2.0.10+1
   package_info_plus: ^8.0.2
@@ -61,18 +60,6 @@ dependencies:
     path: packages/flutter_ai_kit_tflite
   flutter_ai_kit_openai:
     path: packages/flutter_ai_kit_openai
-  flutter_cloud_sync:
-    path: packages/flutter_cloud_sync
-  flutter_cloud_sync_supabase:
-    path: packages/flutter_cloud_sync_supabase
-  flutter_cloud_sync_webdav:
-    path: packages/flutter_cloud_sync_webdav
-  flutter_cloud_sync_icloud:
-    path: packages/flutter_cloud_sync_icloud
-  flutter_cloud_sync_s3:
-    path: packages/flutter_cloud_sync_s3
-  flutter_cloud_sync_beecount:
-    path: packages/flutter_cloud_sync_beecount
   quick_actions: ^1.1.0
   table_calendar: ^3.1.0
 

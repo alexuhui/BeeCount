@@ -17,11 +17,3 @@ export 'local/local_category_repository.dart';
 export 'local/local_account_repository.dart';
 export 'local/local_statistics_repository.dart';
 export 'local/local_tag_repository.dart';
-
-// Cloud 实现
-export 'cloud/cloud_repository.dart';
-export 'cloud/cloud_ledger_repository.dart';
-export 'cloud/cloud_transaction_repository.dart';
-export 'cloud/cloud_category_repository.dart';
-export 'cloud/cloud_account_repository.dart';
-export 'cloud/cloud_statistics_repository.dart';

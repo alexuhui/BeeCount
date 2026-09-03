@@ -498,12 +498,10 @@ class _BeeCountConnectionOverlay extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final connection = ref.watch(beecountServerConnectionProvider);
     final session = ref.watch(beecountSessionProvider);
-    final offline = ref.watch(beecountOfflineModeProvider);
 
     final shouldShow = connection.disconnected &&
         session.maybeWhen(
-            data: (value) => value != null, orElse: () => false) &&
-        offline.maybeWhen(data: (value) => !value, orElse: () => false);
+            data: (value) => value != null, orElse: () => false);
 
     if (!shouldShow) {
       return child;

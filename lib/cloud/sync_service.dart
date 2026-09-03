@@ -32,21 +32,20 @@ class LocalOnlySyncService implements SyncService {
   @override
   Future<({int inserted, int deletedDup})>
       downloadAndRestoreToCurrentLedger({required int ledgerId}) async {
-    throw UnsupportedError('Cloud sync not configured');
+    return (inserted: 0, deletedDup: 0);
   }
 
   @override
   Future<void> uploadCurrentLedger({required int ledgerId}) async {
-    throw UnsupportedError('Cloud sync not configured');
+    return;
   }
 
   @override
   Future<SyncStatus> getStatus({required int ledgerId}) async {
     return const SyncStatus(
-      diff: SyncDiff.notConfigured,
+      diff: SyncDiff.inSync,
       localCount: 0,
       localFingerprint: '',
-      message: '__SYNC_NOT_CONFIGURED__', // 特殊标记，在UI层处理本地化
     );
   }
 
@@ -56,12 +55,12 @@ class LocalOnlySyncService implements SyncService {
   @override
   Future<({String? fingerprint, int? count, DateTime? exportedAt})>
       refreshCloudFingerprint({required int ledgerId}) async {
-    throw UnsupportedError('Cloud sync not configured');
+    return (fingerprint: null, count: null, exportedAt: null);
   }
 
   @override
   Future<void> deleteRemoteBackup({required int ledgerId}) async {
-    throw UnsupportedError('Cloud sync not configured');
+    return;
   }
 }
 

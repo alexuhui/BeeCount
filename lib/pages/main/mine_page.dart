@@ -73,14 +73,8 @@ class MinePage extends ConsumerWidget {
                       12.0.scaled(context, ref), 0),
                   child: Consumer(
                     builder: (sectionContext, sectionRef, _) {
-                      final offlineAsync =
-                          sectionRef.watch(beecountOfflineModeProvider);
                       final sessionAsync =
                           sectionRef.watch(beecountSessionProvider);
-                      final pendingAsync =
-                          sectionRef.watch(beecountPendingSyncCountProvider);
-
-                      final offline = offlineAsync.asData?.value ?? false;
                       final session = sessionAsync.asData?.value;
 
                       return Column(
@@ -89,13 +83,10 @@ class MinePage extends ConsumerWidget {
                             leading: Icons.cloud_queue_outlined,
                             title: AppLocalizations.of(sectionContext)
                                 .cloudCustomBeeCountTitle,
-                            subtitle: offline
+                            subtitle: session == null
                                 ? AppLocalizations.of(sectionContext)
-                                    .mineCloudServiceOffline
-                                : (session == null
-                                    ? AppLocalizations.of(sectionContext)
-                                        .mineSyncNotLoggedIn
-                                    : '${AppLocalizations.of(sectionContext).mineLoggedInEmail}: ${session.username}'),
+                                    .mineSyncNotLoggedIn
+                                : '${AppLocalizations.of(sectionContext).mineLoggedInEmail}: ${session.username}',
                             trailing: Icon(Icons.chevron_right,
                                 color: BeeTokens.iconTertiary(context),
                                 size: 20),
@@ -107,27 +98,6 @@ class MinePage extends ConsumerWidget {
                             },
                           ),
                           BeeTokens.cardDivider(sectionContext),
-                          pendingAsync.when(
-                            data: (n) => Column(
-                              children: [
-                                AppListTile(
-                                  leading: Icons.cloud_sync_outlined,
-                                  title: AppLocalizations.of(sectionContext)
-                                      .mineSyncTitle,
-                                  subtitle: '待同步: $n',
-                                  trailing: Icon(Icons.chevron_right,
-                                      color: BeeTokens.iconTertiary(context),
-                                      size: 20),
-                                  onTap: () async {
-                                    await Navigator.of(sectionContext).push(
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              const BeeCountServerPage()),
-                                    );
-                                  },
-                                ),
-                                BeeTokens.cardDivider(sectionContext),
-                                // 导入功能
                                 AppListTile(
                                   leading: Icons.file_download_outlined,
                                   title: AppLocalizations.of(sectionContext)
@@ -192,20 +162,6 @@ class MinePage extends ConsumerWidget {
                                     );
                                   },
                                 ),
-                              ],
-                            ),
-                            loading: () => const Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: Center(child: CircularProgressIndicator()),
-                            ),
-                            error: (e, _) => Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Text(
-                                e.toString(),
-                                style: const TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ),
                         ],
                       );
                     },

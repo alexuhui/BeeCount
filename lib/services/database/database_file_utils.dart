@@ -15,14 +15,19 @@ abstract class DatabaseFileUtils {
     return File(p.join(dir.path, 'beecount_scope_${_safe(scopeKey)}.sqlite'));
   }
 
-  /// 将离线库整文件复制为当前登录用户的库（覆盖目标文件）。
-  static Future<void> copyOfflineDatabaseToUser(String userId) async {
-    final from = await fileForScope(DatabaseScopes.offline);
-    if (!await from.exists()) return;
-    final to = await fileForScope(DatabaseScopes.forUserId(userId));
-    if (await to.exists()) {
-      await to.delete();
+  /// 删除账本相关 SQLite（离线库、各账号库），保留进程内非账本设置走新库。
+  static Future<void> deleteBusinessDatabases() async {
+    final dir = await getApplicationDocumentsDirectory();
+    if (!await dir.exists()) return;
+    await for (final entity in dir.list()) {
+      if (entity is! File) continue;
+      final name = p.basename(entity.path);
+      if (name.startsWith('beecount_scope_') && name.endsWith('.sqlite')) {
+        if (name.contains('signed_out')) continue;
+        try {
+          await entity.delete();
+        } catch (_) {}
+      }
     }
-    await from.copy(to.path);
   }
 }

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as d;
+import '../../config/page_sizes.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
 import '../../widgets/biz/biz.dart';
@@ -25,9 +28,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   final TextEditingController _noteController = TextEditingController();
 
   List<({Transaction t, Category? category})> _searchResults = [];
-  List<({Transaction t, Category? category})> _allTransactions = [];
   bool _isSearching = false;
   String _searchText = '';
+  int _searchPage = 0;
+  int _searchTotal = 0;
+  bool _loadingMore = false;
+  Timer? _searchDebounce;
 
   // 筛选条件
   double? _minAmount;
@@ -48,6 +54,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     _noteController.dispose();
     super.dispose();
@@ -62,101 +69,83 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   /// 执行搜索
   void _performSearch() {
-    // 如果没有任何搜索条件，清空结果
-    if (_searchText.isEmpty && _minAmount == null && _maxAmount == null &&
-        _startDate == null && _endDate == null) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 280), () {
+      if (mounted) _runServerSearch();
+    });
+  }
+
+  Future<void> _performSearchFromDb() => _runServerSearch();
+
+  Future<void> _runServerSearch({bool more = false}) async {
+    if (_searchText.isEmpty &&
+        _minAmount == null &&
+        _maxAmount == null &&
+        _startDate == null &&
+        _endDate == null) {
       setState(() {
         _searchResults = [];
+        _searchPage = 0;
+        _searchTotal = 0;
         _isSearching = false;
         _hasScheduledSearch = false;
       });
       return;
     }
 
-    setState(() {
-      _isSearching = true;
-      _hasScheduledSearch = false;
-    });
-
-    final results = _allTransactions.where((item) {
-      final transaction = item.t;
-      final category = item.category;
-
-      // 文本搜索
-      bool textMatch = true;
-      if (_searchText.isNotEmpty) {
-        final searchLower = _searchText.toLowerCase();
-        final note = transaction.note?.toLowerCase() ?? '';
-        final categoryName =
-            CategoryUtils.getDisplayName(category?.name, context).toLowerCase();
-        final amountStr = transaction.amount.toString();
-
-        textMatch = note.contains(searchLower) ||
-            categoryName.contains(searchLower) ||
-            amountStr.contains(searchLower);
+    if (more) {
+      if (_loadingMore || _isSearching || _searchResults.length >= _searchTotal) {
+        return;
       }
+      setState(() => _loadingMore = true);
+    } else {
+      setState(() {
+        _isSearching = true;
+        _hasScheduledSearch = false;
+      });
+    }
 
-      // 金额范围搜索
-      bool amountMatch = true;
+    try {
+      final repo = ref.read(repositoryProvider);
+      final ledgerId = ref.read(currentLedgerIdProvider);
+      final pageNum = more ? _searchPage + 1 : 1;
+      DateTime? to;
+      if (_endDate != null) {
+        to = DateTime(
+            _endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59);
+      }
+      final page = await repo.fetchTransactionsPage(
+        ledgerId: ledgerId,
+        page: pageNum,
+        pageSize: PageSizes.searchTransactions,
+        q: _searchText.isEmpty ? null : _searchText,
+        from: _startDate,
+        to: to,
+      );
+      var items = page.items;
       if (_minAmount != null || _maxAmount != null) {
-        final amount = transaction.amount.abs();
-        if (_minAmount != null && amount < _minAmount!) {
-          amountMatch = false;
-        }
-        if (_maxAmount != null && amount > _maxAmount!) {
-          amountMatch = false;
-        }
+        items = items.where((item) {
+          final amount = item.t.amount.abs();
+          if (_minAmount != null && amount < _minAmount!) return false;
+          if (_maxAmount != null && amount > _maxAmount!) return false;
+          return true;
+        }).toList();
       }
-
-      // 时间范围搜索
-      bool dateMatch = true;
-      if (_startDate != null || _endDate != null) {
-        final happenedAt = transaction.happenedAt;
-        if (_startDate != null) {
-          final startOfDay = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
-          if (happenedAt.isBefore(startOfDay)) {
-            dateMatch = false;
-          }
-        }
-        if (_endDate != null) {
-          final endOfDay = DateTime(_endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59);
-          if (happenedAt.isAfter(endOfDay)) {
-            dateMatch = false;
-          }
-        }
-      }
-
-      return textMatch && amountMatch && dateMatch;
-    }).toList();
-
-    setState(() {
-      _searchResults = results;
-      _isSearching = false;
-    });
-  }
-
-  /// 从数据库重新加载并执行搜索
-  Future<void> _performSearchFromDb() async {
-    if (!mounted) return;
-
-    final repo = ref.read(repositoryProvider);
-    final ledgerId = ref.read(currentLedgerIdProvider);
-
-    setState(() {
-      _isSearching = true;
-    });
-
-    // 从数据库重新获取所有交易
-    final allTransactions =
-        await repo.transactionsWithCategoryAll(ledgerId: ledgerId).first;
-
-    if (!mounted) return;
-
-    // 更新_allTransactions
-    _allTransactions = allTransactions;
-
-    // 执行搜索筛选
-    _performSearch();
+      if (!mounted) return;
+      setState(() {
+        _searchPage = pageNum;
+        _searchTotal = page.total;
+        _searchResults = more ? [..._searchResults, ...items] : items;
+        _isSearching = false;
+        _loadingMore = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+        _loadingMore = false;
+      });
+    }
   }
 
   /// 切换批量操作模式
@@ -587,8 +576,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    final repo = ref.watch(repositoryProvider);
-    final ledgerId = ref.watch(currentLedgerIdProvider);
     final hide = ref.watch(hideAmountsProvider);
     final l10n = AppLocalizations.of(context);
 
@@ -740,28 +727,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             ),
           // 搜索结果
           Expanded(
-            child: StreamBuilder<List<({Transaction t, Category? category})>>(
-              stream: repo.transactionsWithCategoryAll(ledgerId: ledgerId),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  _allTransactions = snapshot.data!;
-                  if ((_searchText.isNotEmpty ||
-                          _minAmount != null ||
-                          _maxAmount != null ||
-                          _startDate != null ||
-                          _endDate != null) &&
-                      _searchResults.isEmpty &&
-                      !_isSearching &&
-                      !_hasScheduledSearch) {
-                    _hasScheduledSearch = true;
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) {
-                        _performSearch();
-                      }
-                    });
-                  }
-                }
-
+            child: Builder(
+              builder: (context) {
                 if (_isSearching) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -941,10 +908,26 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       ),
                     // 列表
                     Expanded(
-                      child: ListView.builder(
+                      child: NotificationListener<ScrollNotification>(
+                        onNotification: (n) {
+                          if (n.metrics.pixels >=
+                              n.metrics.maxScrollExtent - 200) {
+                            _runServerSearch(more: true);
+                          }
+                          return false;
+                        },
+                        child: ListView.builder(
                         padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
-                        itemCount: _searchResults.length,
+                        itemCount: _searchResults.length +
+                            (_loadingMore ? 1 : 0),
                         itemBuilder: (context, index) {
+                          if (index >= _searchResults.length) {
+                            return const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Center(
+                                  child: CircularProgressIndicator()),
+                            );
+                          }
                           final item = _searchResults[index];
                           final isTransfer = item.t.type == 'transfer';
                           final isExpense = item.t.type == 'expense';
@@ -1010,6 +993,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             ],
                           );
                         },
+                      ),
                       ),
                     ),
                   ],

@@ -1,25 +1,42 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_cloud_sync/flutter_cloud_sync.dart';
-import 'package:flutter_cloud_sync_beecount/flutter_cloud_sync_beecount.dart';
 
-import 'database_providers.dart';
-import 'database_scope_provider.dart';
+import '../services/api/beecount_api_client.dart';
+import '../services/api/beecount_api_exception.dart';
+import '../services/database/database_file_utils.dart';
 import '../services/database/database_scopes.dart';
 import '../services/sync/beecount_session_store.dart';
-import '../services/sync/beecount_initial_sync_service.dart';
-import '../services/sync/beecount_sync_engine.dart';
-import '../services/sync/sync_version_service.dart';
 import '../services/system/logger_service.dart';
 import '../utils/local_storage_utils.dart';
+import 'database_scope_provider.dart';
 import 'ui_state_providers.dart';
 
 final beeCountSessionStoreProvider = Provider<BeeCountSessionStore>((ref) {
   return BeeCountSessionStore();
 });
 
-final beecountOfflineModeProvider = FutureProvider<bool>((ref) async {
+final beecountSessionProvider = FutureProvider<BeeCountSession?>((ref) async {
   final store = ref.watch(beeCountSessionStoreProvider);
-  return store.loadOfflineMode();
+  return store.loadSession();
+});
+
+final beecountApiClientProvider = Provider<BeeCountApiClient?>((ref) {
+  final sessionAsync = ref.watch(beecountSessionProvider);
+  final session = sessionAsync.asData?.value;
+  if (session == null) return null;
+  return BeeCountApiClient(
+    serverUrl: session.serverUrl,
+    token: session.token,
+    onAuthFailed: () {
+      ref
+          .read(beecountServerConnectionControllerProvider)
+          .markAuthFailed('认证失败，请重新登录');
+    },
+    onNetworkError: () {
+      ref
+          .read(beecountServerConnectionControllerProvider)
+          .markDisconnected('服务器连接失败');
+    },
+  );
 });
 
 class BeeCountServerConnectionState {
@@ -31,7 +48,6 @@ class BeeCountServerConnectionState {
   });
 
   final bool disconnected;
-  /// 401/403 等认证失败（与纯网络/服务器错误区分）
   final bool authFailed;
   final bool checking;
   final String? message;
@@ -58,7 +74,6 @@ final beecountServerConnectionProvider =
 
 class BeeCountServerConnectionController {
   BeeCountServerConnectionController(this._ref);
-
   final Ref _ref;
 
   void markDisconnected([String? message]) {
@@ -90,15 +105,22 @@ class BeeCountServerConnectionController {
     final current = _ref.read(beecountServerConnectionProvider);
     _ref.read(beecountServerConnectionProvider.notifier).state =
         current.copyWith(checking: true);
-
     try {
-      await _ref.read(syncVersionServiceProvider).checkVersion();
-    } finally {
-      final next = _ref.read(beecountServerConnectionProvider);
-      if (next.checking) {
-        _ref.read(beecountServerConnectionProvider.notifier).state =
-            next.copyWith(checking: false);
+      final api = _ref.read(beecountApiClientProvider);
+      if (api == null) {
+        markAuthFailed();
+        return;
       }
+      await api.getSyncVersion();
+      markConnected();
+    } on BeeCountApiException catch (e) {
+      if (e.isAuth) {
+        markAuthFailed();
+      } else {
+        markDisconnected();
+      }
+    } catch (_) {
+      markDisconnected();
     }
   }
 }
@@ -116,7 +138,6 @@ final beecountDataSyncingProvider = Provider<bool>((ref) {
 
 class BeeCountDataSyncOverlayController {
   BeeCountDataSyncOverlayController(this._ref);
-
   final Ref _ref;
 
   Future<T> track<T>(Future<T> Function() action) async {
@@ -136,164 +157,46 @@ final beecountDataSyncOverlayControllerProvider =
   return BeeCountDataSyncOverlayController(ref);
 });
 
-class BeeCountOfflineModeSetter {
-  BeeCountOfflineModeSetter(this._ref);
-  final Ref _ref;
-
-  Future<void> set(bool v) async {
-    final store = _ref.read(beeCountSessionStoreProvider);
-    await store.setOfflineMode(v);
-    if (v) {
-      _ref.read(databaseScopeKeyProvider.notifier).state =
-          DatabaseScopes.offline;
-      _ref.invalidate(databaseProvider);
-      resetInMemoryDataForAccountSwitch(_ref);
-    }
-    _ref.invalidate(beecountOfflineModeProvider);
-    _ref.invalidate(beecountSessionProvider);
-    _ref.invalidate(beecountProviderProvider);
-    _ref.invalidate(beecountSyncEngineProvider);
-    _ref.invalidate(beecountPendingSyncCountProvider);
-    _ref.read(_beecountBootstrappedProvider.notifier).state = false;
-  }
-}
-
-final beecountOfflineModeSetterProvider =
-    Provider<BeeCountOfflineModeSetter>((ref) {
-  return BeeCountOfflineModeSetter(ref);
-});
-
-final beecountSessionProvider = FutureProvider<BeeCountSession?>((ref) async {
-  final store = ref.watch(beeCountSessionStoreProvider);
-  final offline = await ref.watch(beecountOfflineModeProvider.future);
-  if (offline) return null;
-  return store.loadSession();
-});
-
-final beecountProviderProvider = FutureProvider<CloudProvider?>((ref) async {
-  final offline = await ref.watch(beecountOfflineModeProvider.future);
-  if (offline) return null;
-  final session = await ref.watch(beecountSessionProvider.future);
-  if (session == null) return null;
-
-  final provider = BeeCountProvider();
-  await provider.initialize({'serverUrl': session.serverUrl});
-  final auth = provider.auth;
-  if (auth is BeeCountAuthService) {
-    auth.restoreSession(
-      token: session.token,
-      userId: session.userId,
-      username: session.username,
-    );
-  }
-
-  return provider;
-});
-
-final beecountSyncEngineProvider = Provider<BeeCountSyncEngine?>((ref) {
-  final providerAsync = ref.watch(beecountProviderProvider);
-  if (!providerAsync.hasValue || providerAsync.value == null) return null;
-  final db = ref.watch(databaseProvider);
-
-  final syncVersionService = ref.read(syncVersionServiceProvider);
-
-  final engine = BeeCountSyncEngine(
-    db: db,
-    provider: providerAsync.value!,
-    onFlushComplete: () async {
-      await syncVersionService.syncVersionFromServer();
-    },
-    onConnectionLost: (error) {
-      if (error is CloudDatabaseException &&
-          (error.statusCode == 401 || error.statusCode == 403)) {
-        ref
-            .read(beecountServerConnectionControllerProvider)
-            .markAuthFailed('认证失败，请重新登录');
-        return;
-      }
-      ref
-          .read(beecountServerConnectionControllerProvider)
-          .markDisconnected('服务器连接失败，请重新连接');
-    },
-    onConnectionRestored: () {
-      ref.read(beecountServerConnectionControllerProvider).markConnected();
-    },
-  );
-  engine.start();
-  ref.onDispose(engine.dispose);
-  return engine;
-});
-
-final _beecountBootstrappedProvider = StateProvider<bool>((ref) => false);
-
-final beecountBootstrapProvider = Provider<void>((ref) {
-  final already = ref.watch(_beecountBootstrappedProvider);
-  if (already) return;
-
-  final providerAsync = ref.watch(beecountProviderProvider);
-  final syncEngine = ref.watch(beecountSyncEngineProvider);
-  if (!providerAsync.hasValue || providerAsync.value == null) return;
-  if (syncEngine == null) return;
-
-  ref.read(_beecountBootstrappedProvider.notifier).state = true;
-
-  final db = ref.watch(databaseProvider);
-  Future(() async {
-    final svc = BeeCountInitialSyncService(
-      db: db,
-      provider: providerAsync.value!,
-      sync: syncEngine,
-    );
-    await ref.read(beecountDataSyncOverlayControllerProvider).track(svc.run);
-  }).catchError((e, st) {
-    logger.error('BeeCountBootstrap', '启动拉取失败', e, st);
-  });
-});
-
-final beecountPendingSyncCountProvider = StreamProvider<int>((ref) {
-  final db = ref.watch(databaseProvider);
-  return Stream.periodic(const Duration(seconds: 1)).asyncMap((_) async {
-    final row = await db
-        .customSelect('SELECT COUNT(*) AS c FROM sync_queue_items')
-        .getSingle();
-    return (row.data['c'] as int?) ?? 0;
-  }).distinct();
-});
-
 class BeeCountAuthController {
   BeeCountAuthController(this._ref);
   final Ref _ref;
+
+  Future<void> _applySession(BeeCountSession session) async {
+    final store = _ref.read(beeCountSessionStoreProvider);
+    await store.setOfflineMode(false);
+    await store.saveSession(session);
+    await DatabaseFileUtils.deleteBusinessDatabases();
+    _ref.read(beecountServerConnectionControllerProvider).markConnected();
+    _ref.read(databaseScopeKeyProvider.notifier).state =
+        DatabaseScopes.forUserId(session.userId);
+    _ref.invalidate(beecountSessionProvider);
+    try {
+      final api = BeeCountApiClient(
+        serverUrl: session.serverUrl,
+        token: session.token,
+      );
+      await api.generateRecurring();
+    } catch (e, st) {
+      logger.warning('BeeCountAuth', '周期记账生成失败: $e');
+    }
+  }
 
   Future<void> signIn({
     required String serverUrl,
     required String username,
     required String password,
   }) async {
-    final provider = BeeCountProvider();
-    await provider.initialize({'serverUrl': serverUrl});
-    final user = await provider.auth
-        .signInWithEmail(email: username, password: password);
-    final token = user.metadata?['token']?.toString() ?? '';
-    if (token.isEmpty) {
-      throw Exception('Missing token');
-    }
-
-    final store = _ref.read(beeCountSessionStoreProvider);
-    await store.setOfflineMode(false);
-    await store.saveSession(
-      BeeCountSession(
-        serverUrl: serverUrl,
-        token: token,
-        userId: user.id,
-        username: user.email ?? username,
-      ),
+    final result = await BeeCountApiClient.loginAt(
+      serverUrl: serverUrl,
+      username: username,
+      password: password,
     );
-    _ref.read(beecountServerConnectionControllerProvider).markConnected();
-
-    _ref.invalidate(beecountOfflineModeProvider);
-    _ref.invalidate(beecountSessionProvider);
-    _ref.invalidate(beecountProviderProvider);
-    _ref.read(_beecountBootstrappedProvider.notifier).state = false;
+    await _applySession(BeeCountSession(
+      serverUrl: serverUrl,
+      token: result.token,
+      userId: result.userId,
+      username: result.username,
+    ));
   }
 
   Future<void> signUp({
@@ -301,31 +204,17 @@ class BeeCountAuthController {
     required String username,
     required String password,
   }) async {
-    final provider = BeeCountProvider();
-    await provider.initialize({'serverUrl': serverUrl});
-    final user = await provider.auth
-        .signUpWithEmail(email: username, password: password);
-    final token = user.metadata?['token']?.toString() ?? '';
-    if (token.isEmpty) {
-      throw Exception('Missing token');
-    }
-
-    final store = _ref.read(beeCountSessionStoreProvider);
-    await store.setOfflineMode(false);
-    await store.saveSession(
-      BeeCountSession(
-        serverUrl: serverUrl,
-        token: token,
-        userId: user.id,
-        username: user.email ?? username,
-      ),
+    final result = await BeeCountApiClient.registerAt(
+      serverUrl: serverUrl,
+      username: username,
+      password: password,
     );
-    _ref.read(beecountServerConnectionControllerProvider).markConnected();
-
-    _ref.invalidate(beecountOfflineModeProvider);
-    _ref.invalidate(beecountSessionProvider);
-    _ref.invalidate(beecountProviderProvider);
-    _ref.read(_beecountBootstrappedProvider.notifier).state = false;
+    await _applySession(BeeCountSession(
+      serverUrl: serverUrl,
+      token: result.token,
+      userId: result.userId,
+      username: result.username,
+    ));
   }
 
   Future<void> signOut() async {
@@ -336,35 +225,11 @@ class BeeCountAuthController {
     _ref.read(beecountServerConnectionControllerProvider).markConnected();
     _ref.read(databaseScopeKeyProvider.notifier).state =
         DatabaseScopes.signedOut;
-    _ref.invalidate(databaseProvider);
-    resetInMemoryDataForAccountSwitch(_ref);
-    _ref.invalidate(beecountProviderProvider);
-    _ref.invalidate(beecountOfflineModeProvider);
     _ref.invalidate(beecountSessionProvider);
-    _ref.invalidate(beecountSyncEngineProvider);
-    _ref.invalidate(beecountPendingSyncCountProvider);
-    _ref.read(_beecountBootstrappedProvider.notifier).state = false;
-
     _ref.read(shouldShowLoginProvider.notifier).state = true;
     _ref.read(appInitStateProvider.notifier).state = AppInitState.splash;
     _ref.invalidate(loginCheckProvider);
     _ref.invalidate(appInitStateProvider);
-  }
-
-  Future<void> useOfflineMode() async {
-    final store = _ref.read(beeCountSessionStoreProvider);
-    await store.setOfflineMode(true);
-    await store.clearSession();
-    _ref.read(beecountServerConnectionControllerProvider).markConnected();
-    _ref.read(databaseScopeKeyProvider.notifier).state = DatabaseScopes.offline;
-    _ref.invalidate(databaseProvider);
-    resetInMemoryDataForAccountSwitch(_ref);
-    _ref.invalidate(beecountOfflineModeProvider);
-    _ref.invalidate(beecountSessionProvider);
-    _ref.invalidate(beecountProviderProvider);
-    _ref.invalidate(beecountSyncEngineProvider);
-    _ref.invalidate(beecountPendingSyncCountProvider);
-    _ref.read(_beecountBootstrappedProvider.notifier).state = false;
   }
 }
 

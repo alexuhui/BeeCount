@@ -44,12 +44,12 @@ class LegacyDatabaseMigrator {
 
   static String _targetScopeForLegacyData(SharedPreferences prefs) {
     final offline = prefs.getBool('beecount_offline_mode') ?? false;
-    if (offline) return DatabaseScopes.offline;
+    if (offline) return DatabaseScopes.signedOut;
     final uid = prefs.getString('beecount_user_id');
     if (uid != null && uid.isNotEmpty) {
       return DatabaseScopes.forUserId(uid);
     }
-    return DatabaseScopes.offline;
+    return DatabaseScopes.signedOut;
   }
 
   static String _scopedPath(String dir, String scopeKey) {

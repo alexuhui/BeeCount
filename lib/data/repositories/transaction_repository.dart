@@ -167,4 +167,19 @@ abstract class TransactionRepository {
     required int ledgerId,
     required DateTime month,
   });
+
+  /// Paginated transaction list (server-first).
+  Future<({List<({Transaction t, Category? category})> items, int total})>
+      fetchTransactionsPage({
+    int? ledgerId,
+    required int page,
+    required int pageSize,
+    DateTime? from,
+    DateTime? to,
+    String? type,
+    int? categoryId,
+    int? accountId,
+    int? tagId,
+    String? q,
+  });
 }

@@ -54,7 +54,8 @@ class Categories extends Table {
 class Transactions extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get ledgerId => integer()();
-  TextColumn get type => text()(); // expense / income / transfer
+  TextColumn get type =>
+      text()(); // expense / income / transfer / invest_gain / invest_loss
   RealColumn get amount => real()();
   IntColumn get categoryId => integer().nullable()();
   IntColumn get accountId => integer().nullable()();
@@ -68,6 +69,8 @@ class Transactions extends Table {
   IntColumn get payableId => integer().nullable()(); // v1.17.1: 关联的应付款ID
   IntColumn get receivablePaymentId => integer().nullable()(); // v1.19.0: 关联的应收款收款记录ID
   IntColumn get payablePaymentId => integer().nullable()(); // v1.19.0: 关联的应付款还款记录ID
+  TextColumn get investEvent =>
+      text().nullable()(); // v22: mark_to_market / manual / dividend
 }
 
 class RecurringTransactions extends Table {
@@ -349,7 +352,7 @@ class BeeDatabase extends _$BeeDatabase {
   BeeDatabase({required String scopeKey}) : super(_openConnectionForScope(scopeKey));
 
   @override
-  int get schemaVersion => 21;
+  int get schemaVersion => 22;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -828,6 +831,11 @@ class BeeDatabase extends _$BeeDatabase {
                 'ALTER TABLE payables_new RENAME TO payables;');
             logger.info('DB', 'v21: receivables/payables 可空字段迁移完成');
             print('[DB Migration] v21 迁移完成');
+          }
+          if (from < 22) {
+            await customStatement(
+                'ALTER TABLE transactions ADD COLUMN invest_event TEXT;');
+            logger.info('DB', 'v22: transactions.invest_event 已添加');
           }
         },
       );

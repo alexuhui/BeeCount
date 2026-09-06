@@ -30,6 +30,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
   bool exportIncome = true;
   bool exportExpense = true;
   bool exportTransfer = true;
+  bool exportInvestPnl = true;
   bool exportAccounts = true;
   bool exportReceivableList = true;
   bool exportPayableList = true;
@@ -291,6 +292,16 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                               controlAffinity: ListTileControlAffinity.leading,
                               dense: true,
                             ),
+                            CheckboxListTile(
+                              value: exportInvestPnl,
+                              onChanged: exporting
+                                  ? null
+                                  : (value) => setState(
+                                      () => exportInvestPnl = value ?? false),
+                              title: Text(l10n.exportInvestPnlRecords),
+                              controlAffinity: ListTileControlAffinity.leading,
+                              dense: true,
+                            ),
                           ],
                         ),
                       ),
@@ -340,6 +351,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         if (exportIncome) 'income',
         if (exportExpense) 'expense',
         if (exportTransfer) 'transfer',
+        if (exportInvestPnl) ...['invest_gain', 'invest_loss'],
       };
       final shouldExportReceivableData =
           exportReceivableList || exportPayableList;
@@ -495,6 +507,15 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         if (exportTransfer) {
           exportSheets['转账记录'] = _buildTransactionRows(
             transactions.where((tx) => tx.t.type == 'transfer').toList(),
+            accountMap,
+          );
+        }
+        if (exportInvestPnl) {
+          exportSheets['理财盈亏'] = _buildTransactionRows(
+            transactions
+                .where((tx) =>
+                    tx.t.type == 'invest_gain' || tx.t.type == 'invest_loss')
+                .toList(),
             accountMap,
           );
         }
@@ -1103,6 +1124,9 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         return l10n.exportTypeExpense;
       case 'transfer':
         return l10n.exportTypeTransfer;
+      case 'invest_gain':
+      case 'invest_loss':
+        return l10n.exportTypeInvestPnl;
       default:
         return type;
     }
@@ -1121,6 +1145,8 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         return l10n.accountTypeAlipay;
       case 'wechat':
         return l10n.accountTypeWechat;
+      case 'investment':
+        return l10n.accountTypeInvestment;
       case 'receivable':
         return '应收款';
       case 'payable':

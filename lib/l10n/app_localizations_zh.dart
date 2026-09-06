@@ -3490,6 +3490,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountTypeWechat => '微信';
 
   @override
+  String get accountTypeInvestment => '理财';
+
+  @override
   String get accountTypeOther => '其他';
 
   @override
@@ -5604,6 +5607,96 @@ class AppLocalizationsZh extends AppLocalizations {
   String categoryImportResultContent(int imported, int skipped) {
     return '成功导入 $imported 个分类，跳过 $skipped 个已存在的分类。';
   }
+
+  @override
+  String get investMarketValue => '市值';
+
+  @override
+  String get investNetIn => '净投入';
+
+  @override
+  String get investTotalPnl => '累计盈亏';
+
+  @override
+  String get investPeriodPnl => '期间盈亏';
+
+  @override
+  String get investOpeningValue => '期初市值';
+
+  @override
+  String get investClosingValue => '期末市值';
+
+  @override
+  String get investPeriodNetIn => '期间净转入';
+
+  @override
+  String get investMarkToMarket => '核对市值';
+
+  @override
+  String get investRecordPnl => '记盈亏';
+
+  @override
+  String get investDividend => '分红';
+
+  @override
+  String get investTransferIn => '转入';
+
+  @override
+  String get investTransferOut => '转出';
+
+  @override
+  String get investActionsTitle => '理财操作';
+
+  @override
+  String get investMarketValueHint => '当前整体市值';
+
+  @override
+  String get investPnlAmountHint => '盈亏金额';
+
+  @override
+  String get investDividendHint => '分红金额';
+
+  @override
+  String get investGain => '盈利';
+
+  @override
+  String get investLoss => '亏损';
+
+  @override
+  String get investEventMark => '市值核对';
+
+  @override
+  String get investEventManual => '手动盈亏';
+
+  @override
+  String get investEventDividend => '分红';
+
+  @override
+  String get investEditTitle => '编辑理财记录';
+
+  @override
+  String get investScopeMonth => '月';
+
+  @override
+  String get investScopeYear => '年';
+
+  @override
+  String get investScopeCustom => '区间';
+
+  @override
+  String get investNoDelta => '市值与当前余额一致，无需记账';
+
+  @override
+  String get investSummaryTitle => '理财合计';
+
+  @override
+  String get investSave => '保存';
+
+  @override
+  String get exportTypeInvestPnl => '理财盈亏';
+
+  @override
+  String get exportInvestPnlRecords => '理财盈亏记录';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -9092,6 +9185,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get accountTypeWechat => '微信';
 
   @override
+  String get accountTypeInvestment => '理財';
+
+  @override
   String get accountTypeOther => '其他';
 
   @override
@@ -11064,4 +11160,94 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get wholeYear => '整年';
+
+  @override
+  String get investMarketValue => '市值';
+
+  @override
+  String get investNetIn => '淨投入';
+
+  @override
+  String get investTotalPnl => '累計盈虧';
+
+  @override
+  String get investPeriodPnl => '期間盈虧';
+
+  @override
+  String get investOpeningValue => '期初市值';
+
+  @override
+  String get investClosingValue => '期末市值';
+
+  @override
+  String get investPeriodNetIn => '期間淨轉入';
+
+  @override
+  String get investMarkToMarket => '核對市值';
+
+  @override
+  String get investRecordPnl => '記盈虧';
+
+  @override
+  String get investDividend => '分紅';
+
+  @override
+  String get investTransferIn => '轉入';
+
+  @override
+  String get investTransferOut => '轉出';
+
+  @override
+  String get investActionsTitle => '理財操作';
+
+  @override
+  String get investMarketValueHint => '當前整體市值';
+
+  @override
+  String get investPnlAmountHint => '盈虧金額';
+
+  @override
+  String get investDividendHint => '分紅金額';
+
+  @override
+  String get investGain => '盈利';
+
+  @override
+  String get investLoss => '虧損';
+
+  @override
+  String get investEventMark => '市值核對';
+
+  @override
+  String get investEventManual => '手動盈虧';
+
+  @override
+  String get investEventDividend => '分紅';
+
+  @override
+  String get investEditTitle => '編輯理財記錄';
+
+  @override
+  String get investScopeMonth => '月';
+
+  @override
+  String get investScopeYear => '年';
+
+  @override
+  String get investScopeCustom => '區間';
+
+  @override
+  String get investNoDelta => '市值與當前餘額一致，無需記帳';
+
+  @override
+  String get investSummaryTitle => '理財合計';
+
+  @override
+  String get investSave => '儲存';
+
+  @override
+  String get exportTypeInvestPnl => '理財盈虧';
+
+  @override
+  String get exportInvestPnlRecords => '理財盈虧記錄';
 }

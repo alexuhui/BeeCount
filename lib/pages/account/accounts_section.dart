@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../../styles/tokens.dart';
 import '../../utils/currencies.dart';
+import '../../utils/invest_tx.dart';
 import '../../utils/ui_scale_extensions.dart';
 import '../../widgets/biz/amount_text.dart';
 import 'account_detail_page.dart';
@@ -24,6 +25,8 @@ IconData accountIconForType(String type) {
       return Icons.currency_yuan;
     case 'wechat':
       return Icons.chat;
+    case 'investment':
+      return Icons.show_chart;
     case 'receivable':
     case 'payable':
       return Icons.currency_exchange;
@@ -40,6 +43,8 @@ Color accountColorForType(String type, Color primaryColor) {
       return const Color(0xFF1677FF);
     case 'wechat':
       return const Color(0xFF07C160);
+    case 'investment':
+      return const Color(0xFF2E7D32);
     case 'cash':
       return Colors.orange;
     case 'bank_card':
@@ -68,6 +73,8 @@ String accountTypeLabel(BuildContext context, String type) {
       return l10n.accountTypeAlipay;
     case 'wechat':
       return l10n.accountTypeWechat;
+    case 'investment':
+      return l10n.accountTypeInvestment;
     case 'receivable':
       return '应收款';
     case 'payable':
@@ -219,6 +226,39 @@ class _AccountsBodyState extends ConsumerState<AccountsBody> {
               ),
               error: (_, __) => const SizedBox.shrink(),
             ),
+            if (accounts.any((a) => InvestTx.isInvestmentAccount(a.type)))
+              ref.watch(investmentAccountsSummaryProvider).when(
+                    data: (sum) => Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        16.0.scaled(context, ref),
+                        0,
+                        16.0.scaled(context, ref),
+                        8.0.scaled(context, ref),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _StatCell(
+                              label: l10n.investSummaryTitle,
+                              value: sum.marketValue,
+                              color: BeeTokens.textPrimary(context),
+                            ),
+                          ),
+                          Expanded(
+                            child: _StatCell(
+                              label: l10n.investTotalPnl,
+                              value: sum.totalPnl,
+                              color: sum.totalPnl >= 0
+                                  ? BeeTokens.incomeColor(context, ref)
+                                  : BeeTokens.expenseColor(context, ref),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
             SizedBox(height: 8.0.scaled(context, ref)),
             ...accounts.map((account) {
               final stats = allStatsAsync.asData?.value[account.id];
@@ -531,6 +571,7 @@ class _ExpandedAccountCard extends ConsumerWidget {
 
   bool get isReceivableAccount => account.type == 'receivable';
   bool get isPayableAccount => account.type == 'payable';
+  bool get isInvestmentAccount => InvestTx.isInvestmentAccount(account.type);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -539,6 +580,13 @@ class _ExpandedAccountCard extends ConsumerWidget {
         isReceivableAccount ? ref.watch(receivableStatsProvider(account.id)) : null;
     final payableStatsAsync =
         isPayableAccount ? ref.watch(payableStatsProvider(account.id)) : null;
+    final investStatsAsync = isInvestmentAccount
+        ? ref.watch(investmentPeriodStatsProvider((
+            accountId: account.id,
+            from: DateTime(1970, 1, 1),
+            to: DateTime.now().add(const Duration(days: 1)),
+          )))
+        : null;
 
     return Material(
       color: Colors.transparent,
@@ -721,6 +769,36 @@ class _ExpandedAccountCard extends ConsumerWidget {
                         _PayableStatsRow(
                           account: account,
                           statsAsync: payableStatsAsync,
+                        )
+                      else if (isInvestmentAccount && investStatsAsync != null)
+                        investStatsAsync.when(
+                          data: (s) => Row(
+                            children: [
+                              Expanded(
+                                child: _CardStatItem(
+                                  label: AppLocalizations.of(context)
+                                      .investMarketValue,
+                                  value: s.closingValue,
+                                  currencyCode: account.currency,
+                                ),
+                              ),
+                              Container(
+                                width: 1,
+                                height: 30.0.scaled(context, ref),
+                                color: Colors.white.withValues(alpha: 0.2),
+                              ),
+                              Expanded(
+                                child: _CardStatItem(
+                                  label: AppLocalizations.of(context)
+                                      .investTotalPnl,
+                                  value: s.totalPnl,
+                                  currencyCode: account.currency,
+                                ),
+                              ),
+                            ],
+                          ),
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, __) => const SizedBox.shrink(),
                         )
                       else if (stats != null)
                         Row(

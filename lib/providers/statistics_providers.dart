@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'database_providers.dart';
 import 'ui_state_providers.dart';
 import '../services/system/logger_service.dart';
+import '../utils/invest_tx.dart';
 
 // 统计：账本数量
 final ledgerCountProvider = FutureProvider.autoDispose<int>((ref) async {
@@ -121,4 +122,41 @@ final allAccountsTotalStatsProvider = FutureProvider.autoDispose<({double totalB
   final stats = await repo.getAllAccountsTotalStats();
   logger.info('AllAccountsTotalStats', '总余额: ${stats.totalBalance}, 总支出: ${stats.totalExpense}, 总收入: ${stats.totalIncome}');
   return stats;
+});
+
+final investmentPeriodStatsProvider = FutureProvider.family.autoDispose<
+    InvestmentPeriodStats,
+    ({int accountId, DateTime from, DateTime to})>((ref, args) async {
+  final repo = ref.watch(repositoryProvider);
+  ref.watch(statsRefreshProvider);
+  final link = ref.keepAlive();
+  ref.onDispose(() => link.close());
+  return repo.getInvestmentPeriodStats(
+    accountId: args.accountId,
+    from: args.from,
+    to: args.to,
+  );
+});
+
+final investmentAccountsSummaryProvider =
+    FutureProvider.autoDispose<({double marketValue, double totalPnl})>(
+        (ref) async {
+  final repo = ref.watch(repositoryProvider);
+  ref.watch(statsRefreshProvider);
+  final accounts = await repo.getAllAccounts();
+  final invest = accounts.where((a) => InvestTx.isInvestmentAccount(a.type));
+  var marketValue = 0.0;
+  var totalPnl = 0.0;
+  final from = DateTime(1970, 1, 1);
+  final to = DateTime.now().add(const Duration(days: 1));
+  for (final a in invest) {
+    final stats = await repo.getInvestmentPeriodStats(
+      accountId: a.id,
+      from: from,
+      to: to,
+    );
+    marketValue += stats.closingValue;
+    totalPnl += stats.totalPnl;
+  }
+  return (marketValue: marketValue, totalPnl: totalPnl);
 });

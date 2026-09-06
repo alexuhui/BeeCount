@@ -6578,6 +6578,12 @@ abstract class AppLocalizations {
   /// **'WeChat'**
   String get accountTypeWechat;
 
+  /// No description provided for @accountTypeInvestment.
+  ///
+  /// In en, this message translates to:
+  /// **'Investment'**
+  String get accountTypeInvestment;
+
   /// No description provided for @accountTypeOther.
   ///
   /// In en, this message translates to:
@@ -10605,6 +10611,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Successfully imported {imported} categories, skipped {skipped} existing ones.'**
   String categoryImportResultContent(int imported, int skipped);
+
+  /// No description provided for @investMarketValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Market value'**
+  String get investMarketValue;
+
+  /// No description provided for @investNetIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Net invested'**
+  String get investNetIn;
+
+  /// No description provided for @investTotalPnl.
+  ///
+  /// In en, this message translates to:
+  /// **'Total P/L'**
+  String get investTotalPnl;
+
+  /// No description provided for @investPeriodPnl.
+  ///
+  /// In en, this message translates to:
+  /// **'Period P/L'**
+  String get investPeriodPnl;
+
+  /// No description provided for @investOpeningValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening value'**
+  String get investOpeningValue;
+
+  /// No description provided for @investClosingValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Closing value'**
+  String get investClosingValue;
+
+  /// No description provided for @investPeriodNetIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Net transfers in period'**
+  String get investPeriodNetIn;
+
+  /// No description provided for @investMarkToMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'Update market value'**
+  String get investMarkToMarket;
+
+  /// No description provided for @investRecordPnl.
+  ///
+  /// In en, this message translates to:
+  /// **'Record P/L'**
+  String get investRecordPnl;
+
+  /// No description provided for @investDividend.
+  ///
+  /// In en, this message translates to:
+  /// **'Dividend'**
+  String get investDividend;
+
+  /// No description provided for @investTransferIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer in'**
+  String get investTransferIn;
+
+  /// No description provided for @investTransferOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer out'**
+  String get investTransferOut;
+
+  /// No description provided for @investActionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Investment actions'**
+  String get investActionsTitle;
+
+  /// No description provided for @investMarketValueHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Current total market value'**
+  String get investMarketValueHint;
+
+  /// No description provided for @investPnlAmountHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Gain or loss amount'**
+  String get investPnlAmountHint;
+
+  /// No description provided for @investDividendHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Dividend amount'**
+  String get investDividendHint;
+
+  /// No description provided for @investGain.
+  ///
+  /// In en, this message translates to:
+  /// **'Gain'**
+  String get investGain;
+
+  /// No description provided for @investLoss.
+  ///
+  /// In en, this message translates to:
+  /// **'Loss'**
+  String get investLoss;
+
+  /// No description provided for @investEventMark.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark to market'**
+  String get investEventMark;
+
+  /// No description provided for @investEventManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual P/L'**
+  String get investEventManual;
+
+  /// No description provided for @investEventDividend.
+  ///
+  /// In en, this message translates to:
+  /// **'Dividend'**
+  String get investEventDividend;
+
+  /// No description provided for @investEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit investment record'**
+  String get investEditTitle;
+
+  /// No description provided for @investScopeMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get investScopeMonth;
+
+  /// No description provided for @investScopeYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Year'**
+  String get investScopeYear;
+
+  /// No description provided for @investScopeCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Range'**
+  String get investScopeCustom;
+
+  /// No description provided for @investNoDelta.
+  ///
+  /// In en, this message translates to:
+  /// **'Market value matches the current balance'**
+  String get investNoDelta;
+
+  /// No description provided for @investSummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Investments total'**
+  String get investSummaryTitle;
+
+  /// No description provided for @investSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get investSave;
+
+  /// No description provided for @exportTypeInvestPnl.
+  ///
+  /// In en, this message translates to:
+  /// **'Investment P/L'**
+  String get exportTypeInvestPnl;
+
+  /// No description provided for @exportInvestPnlRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Investment P/L records'**
+  String get exportInvestPnlRecords;
 }
 
 class _AppLocalizationsDelegate

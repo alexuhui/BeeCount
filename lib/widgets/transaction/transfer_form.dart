@@ -423,6 +423,8 @@ class _TransferFormState extends ConsumerState<TransferForm> {
         return Icons.currency_yuan;
       case 'wechat':
         return Icons.chat;
+      case 'investment':
+        return Icons.show_chart;
       case 'other':
         return Icons.account_balance_outlined;
       default:

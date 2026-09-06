@@ -1,4 +1,5 @@
 import '../db.dart';
+import '../../utils/invest_tx.dart';
 
 /// 账户Repository接口
 /// 定义账户相关的所有数据操作
@@ -48,7 +49,7 @@ abstract class AccountRepository {
   /// 删除账户
   Future<void> deleteAccount(int id);
 
-  /// 获取账户余额（收入 - 支出 + 转入 - 转出）
+  /// 获取账户余额（收入 - 支出 + 转入 - 转出 + 理财盈利 - 理财亏损）
   Future<double> getAccountBalance(int accountId);
 
   /// 获取账户全局余额（跨所有账本）
@@ -96,7 +97,19 @@ abstract class AccountRepository {
   /// 响应式监听账户相关的所有交易
   Stream<List<Transaction>> watchAccountTransactions(int accountId);
 
-  /// 批量插入账户
+  /// 获取账户截止某时刻（不含该时刻）的余额。
+  Future<double> getAccountBalanceAsOf(
+    int accountId,
+    DateTime endExclusive, {
+    int? excludeTxId,
+  });
+
+  /// 理财账户区间统计：期初/期末市值、净转入、期间与累计盈亏。
+  Future<InvestmentPeriodStats> getInvestmentPeriodStats({
+    required int accountId,
+    required DateTime from,
+    required DateTime to,
+  });
   Future<void> batchInsertAccounts(List<AccountsCompanion> accounts);
 
   /// 批量获取账户信息（通过ID列表）

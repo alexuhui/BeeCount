@@ -10,6 +10,7 @@ import '../../styles/tokens.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/ui_scale_extensions.dart';
 import '../../utils/transaction_edit_utils.dart';
+import '../../utils/invest_tx.dart';
 import '../../services/data/category_service.dart';
 import '../../widgets/category_icon.dart';
 import '../receivable_payable/receivable_edit_page.dart';
@@ -17,6 +18,8 @@ import '../receivable_payable/payable_edit_page.dart';
 import '../receivable_payable/receivable_record_detail_page.dart';
 import '../receivable_payable/payable_record_detail_page.dart';
 import '../transaction/transaction_editor_page.dart';
+import 'investment_record_page.dart';
+import 'investment_transfer_page.dart';
 
 /// 与 [ReceivablePayableRepository.getReceivableOutstandingMapForAccount] 中剩余未收/未付比较
 const double _kReceivablePayableOutstandingEps = 1e-6;
@@ -33,6 +36,7 @@ class AccountDetailPage extends ConsumerWidget {
 
   bool get isReceivableAccount => account.type == 'receivable';
   bool get isPayableAccount => account.type == 'payable';
+  bool get isInvestmentAccount => InvestTx.isInvestmentAccount(account.type);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -53,7 +57,9 @@ class AccountDetailPage extends ConsumerWidget {
                 ? _ReceivableAccountContent(account: account)
                 : isPayableAccount
                     ? _PayableAccountContent(account: account)
-                    : _NormalAccountContent(account: account),
+                    : isInvestmentAccount
+                        ? _InvestmentAccountContent(account: account)
+                        : _NormalAccountContent(account: account),
           ),
         ],
       ),
@@ -79,9 +85,11 @@ class AccountDetailPage extends ConsumerWidget {
               ),
             ),
             icon: const Icon(Icons.add),
-            label: const Text(
-              '记录一笔',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            label: Text(
+              isInvestmentAccount
+                  ? AppLocalizations.of(context).investActionsTitle
+                  : '记录一笔',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -104,6 +112,8 @@ class AccountDetailPage extends ConsumerWidget {
           builder: (context) => PayableEditPage(account: account),
         ),
       );
+    } else if (isInvestmentAccount) {
+      await _showInvestmentActions(context, ref);
     } else {
       await Navigator.push(
         context,
@@ -116,6 +126,102 @@ class AccountDetailPage extends ConsumerWidget {
         ),
       );
     }
+  }
+
+  Future<void> _showInvestmentActions(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.call_received),
+                title: Text(l10n.investTransferIn),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => InvestmentTransferPage(
+                        investmentAccountId: account.id,
+                        transferIn: true,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.call_made),
+                title: Text(l10n.investTransferOut),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => InvestmentTransferPage(
+                        investmentAccountId: account.id,
+                        transferIn: false,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.insights),
+                title: Text(l10n.investMarkToMarket),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => InvestmentRecordPage(
+                        account: account,
+                        kind: InvestmentRecordKind.markToMarket,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.trending_up),
+                title: Text(l10n.investRecordPnl),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => InvestmentRecordPage(
+                        account: account,
+                        kind: InvestmentRecordKind.manual,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.card_giftcard),
+                title: Text(l10n.investDividend),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => InvestmentRecordPage(
+                        account: account,
+                        kind: InvestmentRecordKind.dividend,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   String _getTypeLabel(BuildContext context, String type) {
@@ -131,6 +237,8 @@ class AccountDetailPage extends ConsumerWidget {
         return l10n.accountTypeAlipay;
       case 'wechat':
         return l10n.accountTypeWechat;
+      case 'investment':
+        return l10n.accountTypeInvestment;
       case 'receivable':
         return '应收款';
       case 'payable':
@@ -320,10 +428,288 @@ class _NormalAccountContent extends ConsumerWidget {
         );
 
     if (!context.mounted) return;
-    await TransactionEditUtils.editTransaction(context, ref, tx, category);
+    if (InvestTx.isPnlType(tx.type)) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => InvestmentRecordPage(
+            account: account,
+            kind: InvestmentRecordKind.edit,
+            editing: tx,
+          ),
+        ),
+      );
+    } else {
+      await TransactionEditUtils.editTransaction(context, ref, tx, category);
+    }
 
     ref.invalidate(accountStatsProvider(account.id));
     ref.invalidate(accountTransactionsProvider(account.id));
+  }
+}
+
+/// 理财账户详情：市值、区间盈亏、流水
+class _InvestmentAccountContent extends ConsumerStatefulWidget {
+  final db.Account account;
+
+  const _InvestmentAccountContent({required this.account});
+
+  @override
+  ConsumerState<_InvestmentAccountContent> createState() =>
+      _InvestmentAccountContentState();
+}
+
+class _InvestmentAccountContentState
+    extends ConsumerState<_InvestmentAccountContent> {
+  String _scope = 'month'; // month | year | custom
+  late DateTime _month;
+  late int _year;
+  DateTime? _customFrom;
+  DateTime? _customTo;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _month = DateTime(now.year, now.month, 1);
+    _year = now.year;
+  }
+
+  ({DateTime from, DateTime to}) _range() {
+    if (_scope == 'year') {
+      return (from: DateTime(_year, 1, 1), to: DateTime(_year + 1, 1, 1));
+    }
+    if (_scope == 'custom' && _customFrom != null && _customTo != null) {
+      final from = DateTime(_customFrom!.year, _customFrom!.month, _customFrom!.day);
+      final to = DateTime(_customTo!.year, _customTo!.month, _customTo!.day)
+          .add(const Duration(days: 1));
+      return (from: from, to: to);
+    }
+    return (
+      from: DateTime(_month.year, _month.month, 1),
+      to: DateTime(_month.year, _month.month + 1, 1),
+    );
+  }
+
+  Future<void> _editTransaction(
+      BuildContext context, WidgetRef ref, db.Transaction tx) async {
+    if (InvestTx.isPnlType(tx.type)) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => InvestmentRecordPage(
+            account: widget.account,
+            kind: InvestmentRecordKind.edit,
+            editing: tx,
+          ),
+        ),
+      );
+    } else {
+      final categoryAsync = tx.categoryId != null
+          ? await ref.read(categoriesProvider.future)
+          : null;
+      final category = categoryAsync?.cast<db.Category?>().firstWhere(
+            (c) => c?.id == tx.categoryId,
+            orElse: () => null,
+          );
+      if (!context.mounted) return;
+      await TransactionEditUtils.editTransaction(context, ref, tx, category);
+    }
+    ref.invalidate(accountStatsProvider(widget.account.id));
+    ref.invalidate(accountTransactionsProvider(widget.account.id));
+    ref.read(statsRefreshProvider.notifier).state++;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final primaryColor = ref.watch(primaryColorProvider);
+    final range = _range();
+    final statsAsync = ref.watch(investmentPeriodStatsProvider((
+      accountId: widget.account.id,
+      from: range.from,
+      to: range.to,
+    )));
+    final transactionsAsync =
+        ref.watch(accountTransactionsProvider(widget.account.id));
+    final currentLedgerAsync = ref.watch(currentLedgerProvider);
+    final currencyCode = currentLedgerAsync.asData?.value?.currency ?? 'CNY';
+    final categoriesAsync = ref.watch(categoriesProvider);
+
+    return ListView(
+      padding: EdgeInsets.symmetric(
+        horizontal: 0,
+        vertical: 16.0.scaled(context, ref),
+      ),
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12.0.scaled(context, ref)),
+          child: SegmentedButton<String>(
+            segments: [
+              ButtonSegment(value: 'month', label: Text(l10n.investScopeMonth)),
+              ButtonSegment(value: 'year', label: Text(l10n.investScopeYear)),
+              ButtonSegment(value: 'custom', label: Text(l10n.investScopeCustom)),
+            ],
+            selected: {_scope},
+            onSelectionChanged: (s) async {
+              final next = s.first;
+              if (next == 'custom') {
+                final from = await showWheelDatePicker(
+                  context,
+                  initial: _customFrom ?? _month,
+                );
+                if (!context.mounted) return;
+                final to = await showWheelDatePicker(
+                  context,
+                  initial: _customTo ?? DateTime.now(),
+                );
+                if (from != null && to != null) {
+                  setState(() {
+                    _scope = 'custom';
+                    _customFrom = from;
+                    _customTo = to;
+                  });
+                }
+              } else {
+                setState(() => _scope = next);
+              }
+            },
+          ),
+        ),
+        SizedBox(height: 8.0.scaled(context, ref)),
+        SectionCard(
+          child: statsAsync.when(
+            data: (stats) => Padding(
+              padding: EdgeInsets.all(12.0.scaled(context, ref)),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatCell(
+                          label: l10n.investClosingValue,
+                          value: stats.closingValue,
+                          currencyCode: currencyCode,
+                          color: BeeTokens.textPrimary(context),
+                        ),
+                      ),
+                      Expanded(
+                        child: _StatCell(
+                          label: l10n.investOpeningValue,
+                          value: stats.openingValue,
+                          currencyCode: currencyCode,
+                          color: BeeTokens.textSecondary(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12.0.scaled(context, ref)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatCell(
+                          label: l10n.investPeriodNetIn,
+                          value: stats.netTransferIn,
+                          currencyCode: currencyCode,
+                          color: BeeTokens.textPrimary(context),
+                        ),
+                      ),
+                      Expanded(
+                        child: _StatCell(
+                          label: l10n.investPeriodPnl,
+                          value: stats.periodPnl,
+                          currencyCode: currencyCode,
+                          color: stats.periodPnl >= 0
+                              ? BeeTokens.incomeColor(context, ref)
+                              : BeeTokens.expenseColor(context, ref),
+                        ),
+                      ),
+                      Expanded(
+                        child: _StatCell(
+                          label: l10n.investTotalPnl,
+                          value: stats.totalPnl,
+                          currencyCode: currencyCode,
+                          color: stats.totalPnl >= 0
+                              ? BeeTokens.incomeColor(context, ref)
+                              : BeeTokens.expenseColor(context, ref),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+            error: (err, stack) => Padding(
+              padding: EdgeInsets.all(16.0.scaled(context, ref)),
+              child: Text('${l10n.commonError}: $err'),
+            ),
+          ),
+        ),
+        SizedBox(height: 8.0.scaled(context, ref)),
+        SectionCard(
+          child: transactionsAsync.when(
+            data: (transactions) {
+              if (transactions.isEmpty) {
+                return Padding(
+                  padding: EdgeInsets.all(32.0.scaled(context, ref)),
+                  child: Center(child: Text(l10n.commonEmpty)),
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(12.0.scaled(context, ref)),
+                    child: Text(
+                      l10n.accountTransactionHistory,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: BeeTokens.textPrimary(context),
+                      ),
+                    ),
+                  ),
+                  ...transactions.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final tx = entry.value;
+                    return Column(
+                      children: [
+                        if (index > 0) BeeTokens.cardDivider(context),
+                        _TransactionTile(
+                          transaction: tx,
+                          currencyCode: currencyCode,
+                          primaryColor: primaryColor,
+                          ledgers: ref.watch(ledgersStreamProvider).asData?.value ?? [],
+                          categories: categoriesAsync.asData?.value ?? [],
+                          currentAccountId: widget.account.id,
+                          onTap: () => _editTransaction(context, ref, tx),
+                        ),
+                      ],
+                    );
+                  }),
+                ],
+              );
+            },
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+            error: (err, stack) => Padding(
+              padding: EdgeInsets.all(16.0.scaled(context, ref)),
+              child: Text('${l10n.commonError}: $err'),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -1351,9 +1737,11 @@ class _TransactionTile extends ConsumerWidget {
 
     switch (transaction.type) {
       case 'income':
+      case InvestTx.gain:
         amountColor = BeeTokens.incomeColor(context, ref);
         break;
       case 'expense':
+      case InvestTx.loss:
         amountColor = BeeTokens.expenseColor(context, ref);
         break;
       case 'transfer':
@@ -1395,6 +1783,23 @@ class _TransactionTile extends ConsumerWidget {
           displaySubtitle = '${l10n.transferFromPrefix} $fromAccountName';
         }
       }
+    } else if (InvestTx.isPnlType(transaction.type)) {
+      if (transaction.note?.isNotEmpty == true) {
+        displayTitle = transaction.note!;
+      } else if (transaction.investEvent == InvestTx.eventDividend) {
+        displayTitle = l10n.investEventDividend;
+      } else if (transaction.investEvent == InvestTx.eventMarkToMarket) {
+        displayTitle = l10n.investEventMark;
+      } else {
+        displayTitle = transaction.type == InvestTx.gain
+            ? l10n.investGain
+            : l10n.investLoss;
+      }
+      displaySubtitle = transaction.investEvent == InvestTx.eventDividend
+          ? l10n.investEventDividend
+          : transaction.investEvent == InvestTx.eventMarkToMarket
+              ? l10n.investEventMark
+              : l10n.investEventManual;
     } else {
       if (transaction.note?.isNotEmpty == true) {
         displayTitle = transaction.note!;
@@ -1502,7 +1907,8 @@ class _TransactionTile extends ConsumerWidget {
               ),
             ),
             AmountText(
-              value: transaction.type == 'expense'
+              value: transaction.type == 'expense' ||
+                      transaction.type == InvestTx.loss
                   ? -transaction.amount
                   : transaction.type == 'transfer'
                       ? (isTransferOut ? -transaction.amount : transaction.amount)

@@ -98,6 +98,7 @@ class ImportTransaction {
   final int? payableId;
   final int? receivablePaymentId;
   final int? payablePaymentId;
+  final String? investEvent;
 
   const ImportTransaction({
     required this.type,
@@ -117,6 +118,7 @@ class ImportTransaction {
     this.payableId,
     this.receivablePaymentId,
     this.payablePaymentId,
+    this.investEvent,
   });
 }
 
@@ -609,6 +611,7 @@ class DataImportService {
         happenedAt: d.Value(tx.happenedAt),
         note: d.Value(tx.note),
         excludeFromStats: d.Value(tx.excludeFromStats),
+        investEvent: d.Value(tx.investEvent),
     receivableId: d.Value(tx.receivableId),
     payableId: d.Value(tx.payableId),
     receivablePaymentId: d.Value(tx.receivablePaymentId),

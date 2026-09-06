@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' as d;
 
 import '../../db.dart';
 import '../../../services/system/logger_service.dart';
+import '../../../utils/invest_tx.dart';
 import '../account_repository.dart';
 
 /// 本地账户Repository实现
@@ -140,14 +141,14 @@ class LocalAccountRepository implements AccountRepository {
         .get();
 
     for (final t in normalTxs) {
-      if (t.type == 'income') {
-        balance += t.amount;
-      } else if (t.type == 'expense') {
-        balance -= t.amount;
-      } else if (t.type == 'transfer') {
-        // 作为转出账户
-        balance -= t.amount;
-      }
+      balance = InvestTx.applyToBalance(
+        balance: balance,
+        type: t.type,
+        amount: t.amount,
+        accountId: accountId,
+        txAccountId: t.accountId,
+        txToAccountId: t.toAccountId,
+      );
     }
 
     // 作为转入账户的转账
@@ -156,7 +157,14 @@ class LocalAccountRepository implements AccountRepository {
         .get();
 
     for (final t in transfersIn) {
-      balance += t.amount;
+      balance = InvestTx.applyToBalance(
+        balance: balance,
+        type: t.type,
+        amount: t.amount,
+        accountId: accountId,
+        txAccountId: t.accountId,
+        txToAccountId: t.toAccountId,
+      );
     }
 
     return balance;
@@ -176,19 +184,14 @@ class LocalAccountRepository implements AccountRepository {
     double balance = account.initialBalance;
 
     for (final tx in transactions) {
-      if (tx.accountId == accountId) {
-        // 作为主账户
-        if (tx.type == 'income') {
-          balance += tx.amount;
-        } else if (tx.type == 'expense') {
-          balance -= tx.amount;
-        } else if (tx.type == 'transfer') {
-          balance -= tx.amount;
-        }
-      } else if (tx.toAccountId == accountId) {
-        // 作为转入账户（转账）
-        balance += tx.amount;
-      }
+      balance = InvestTx.applyToBalance(
+        balance: balance,
+        type: tx.type,
+        amount: tx.amount,
+        accountId: accountId,
+        txAccountId: tx.accountId,
+        txToAccountId: tx.toAccountId,
+      );
     }
 
     return balance;
@@ -205,22 +208,121 @@ class LocalAccountRepository implements AccountRepository {
     double balance = 0.0;
 
     for (final tx in transactions) {
-      if (tx.accountId == accountId) {
-        // 作为主账户
-        if (tx.type == 'income') {
-          balance += tx.amount;
-        } else if (tx.type == 'expense') {
-          balance -= tx.amount;
-        } else if (tx.type == 'transfer') {
-          balance -= tx.amount;
-        }
-      } else if (tx.toAccountId == accountId) {
-        // 作为转入账户（转账）
-        balance += tx.amount;
-      }
+      balance = InvestTx.applyToBalance(
+        balance: balance,
+        type: tx.type,
+        amount: tx.amount,
+        accountId: accountId,
+        txAccountId: tx.accountId,
+        txToAccountId: tx.toAccountId,
+      );
     }
 
     return balance;
+  }
+
+  Future<double> _deltaAsOf({
+    required int accountId,
+    required DateTime endExclusive,
+    int? excludeTxId,
+  }) async {
+    final row = await db.customSelect(
+      '''
+      SELECT
+        COALESCE(SUM(CASE WHEN type = 'income' AND account_id = ?1 THEN amount ELSE 0 END), 0)
+        - COALESCE(SUM(CASE WHEN type = 'expense' AND account_id = ?1 THEN amount ELSE 0 END), 0)
+        + COALESCE(SUM(CASE WHEN type = 'invest_gain' AND account_id = ?1 THEN amount ELSE 0 END), 0)
+        - COALESCE(SUM(CASE WHEN type = 'invest_loss' AND account_id = ?1 THEN amount ELSE 0 END), 0)
+        + COALESCE(SUM(CASE WHEN type = 'transfer' AND to_account_id = ?1 THEN amount ELSE 0 END), 0)
+        - COALESCE(SUM(CASE WHEN type = 'transfer' AND account_id = ?1 THEN amount ELSE 0 END), 0)
+        AS delta
+      FROM transactions
+      WHERE happened_at < ?2
+        AND (account_id = ?1 OR to_account_id = ?1)
+        AND (?3 = 0 OR id != ?3)
+      ''',
+      variables: [
+        d.Variable.withInt(accountId),
+        d.Variable.withDateTime(endExclusive),
+        d.Variable.withInt(excludeTxId ?? 0),
+      ],
+      readsFrom: {db.transactions},
+    ).getSingle();
+    return (row.data['delta'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  @override
+  Future<double> getAccountBalanceAsOf(
+    int accountId,
+    DateTime endExclusive, {
+    int? excludeTxId,
+  }) async {
+    final account = await getAccount(accountId);
+    final initial = account?.initialBalance ?? 0.0;
+    final delta = await _deltaAsOf(
+      accountId: accountId,
+      endExclusive: endExclusive,
+      excludeTxId: excludeTxId,
+    );
+    return initial + delta;
+  }
+
+  @override
+  Future<InvestmentPeriodStats> getInvestmentPeriodStats({
+    required int accountId,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final opening = await getAccountBalanceAsOf(accountId, from);
+    final closing = await getAccountBalanceAsOf(accountId, to);
+
+    final periodRow = await db.customSelect(
+      '''
+      SELECT
+        COALESCE(SUM(CASE WHEN type = 'transfer' AND to_account_id = ?1 THEN amount ELSE 0 END), 0) AS tin,
+        COALESCE(SUM(CASE WHEN type = 'transfer' AND account_id = ?1 THEN amount ELSE 0 END), 0) AS tout,
+        COALESCE(SUM(CASE WHEN type = 'invest_gain' AND account_id = ?1 THEN amount ELSE 0 END), 0) AS gain,
+        COALESCE(SUM(CASE WHEN type = 'invest_loss' AND account_id = ?1 THEN amount ELSE 0 END), 0) AS loss
+      FROM transactions
+      WHERE happened_at >= ?2 AND happened_at < ?3
+        AND (account_id = ?1 OR to_account_id = ?1)
+      ''',
+      variables: [
+        d.Variable.withInt(accountId),
+        d.Variable.withDateTime(from),
+        d.Variable.withDateTime(to),
+      ],
+      readsFrom: {db.transactions},
+    ).getSingle();
+
+    final totalRow = await db.customSelect(
+      '''
+      SELECT
+        COALESCE(SUM(CASE WHEN type = 'invest_gain' AND account_id = ?1 THEN amount ELSE 0 END), 0) AS gain,
+        COALESCE(SUM(CASE WHEN type = 'invest_loss' AND account_id = ?1 THEN amount ELSE 0 END), 0) AS loss
+      FROM transactions
+      WHERE account_id = ?1
+      ''',
+      variables: [d.Variable.withInt(accountId)],
+      readsFrom: {db.transactions},
+    ).getSingle();
+
+    final tin = (periodRow.data['tin'] as num?)?.toDouble() ?? 0.0;
+    final tout = (periodRow.data['tout'] as num?)?.toDouble() ?? 0.0;
+    final gain = (periodRow.data['gain'] as num?)?.toDouble() ?? 0.0;
+    final loss = (periodRow.data['loss'] as num?)?.toDouble() ?? 0.0;
+    final totalGain = (totalRow.data['gain'] as num?)?.toDouble() ?? 0.0;
+    final totalLoss = (totalRow.data['loss'] as num?)?.toDouble() ?? 0.0;
+
+    return InvestmentPeriodStats(
+      openingValue: opening,
+      closingValue: closing,
+      netTransferIn: tin - tout,
+      periodPnl: gain - loss,
+      totalPnl: totalGain - totalLoss,
+      periodGain: gain,
+      periodLoss: loss,
+    );
   }
 
   @override

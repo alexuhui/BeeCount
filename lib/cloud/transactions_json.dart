@@ -153,6 +153,7 @@ Future<String> exportTransactionsJson(BeeDatabase db, int ledgerId) async {
       'happenedAt': t.happenedAt.toUtc().toIso8601String(),
       'note': _sanitizeString(t.note),
       'excludeFromStats': t.excludeFromStats,
+      'investEvent': t.investEvent,
     };
 
     // 添加账户信息
@@ -165,7 +166,6 @@ Future<String> exportTransactionsJson(BeeDatabase db, int ledgerId) async {
         item['toAccountName'] = accountIdToName[t.toAccountId];
       }
     } else {
-      // 收入或支出：添加账户
       if (t.accountId != null) {
         item['accountName'] = accountIdToName[t.accountId];
       }
@@ -387,6 +387,7 @@ ImportData parseJsonToImportData(String jsonStr) {
         tagNames: tagNames,
         attachments: attachments,
         excludeFromStats: it['excludeFromStats'] as bool? ?? false,
+        investEvent: it['investEvent'] as String?,
       ));
     }
   }

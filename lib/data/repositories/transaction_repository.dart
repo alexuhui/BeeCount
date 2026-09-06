@@ -67,6 +67,7 @@ abstract class TransactionRepository {
     int? toAccountId,
     required DateTime happenedAt,
     String? note,
+    String? investEvent,
   });
 
   /// 批量新增交易，单事务内插入，返回插入条数
@@ -84,6 +85,7 @@ abstract class TransactionRepository {
     String? note,
     DateTime? happenedAt,
     dynamic accountId,
+    String? investEvent,
   });
 
   /// 删除交易

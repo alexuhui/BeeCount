@@ -707,6 +707,16 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
         type = 'expense';
       } else if (typeStr == '转账' || typeStr == '轉帳' || typeStr == 'transfer') {  // 添加繁体
         type = 'transfer';
+      } else if (typeStr == '理财盈利' ||
+          typeStr == '理財盈利' ||
+          typeStr == 'invest_gain' ||
+          typeStr == 'investment gain') {
+        type = 'invest_gain';
+      } else if (typeStr == '理财亏损' ||
+          typeStr == '理財虧損' ||
+          typeStr == 'invest_loss' ||
+          typeStr == 'investment loss') {
+        type = 'invest_loss';
       }
 
       // 收集分类信息（仅非转账）
@@ -831,6 +841,16 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
         type = 'expense';
       } else if (typeStr == '转账' || typeStr == '轉帳' || typeStr == 'transfer') {  // 添加繁体
         type = 'transfer';
+      } else if (typeStr == '理财盈利' ||
+          typeStr == '理財盈利' ||
+          typeStr == 'invest_gain' ||
+          typeStr == 'investment gain') {
+        type = 'invest_gain';
+      } else if (typeStr == '理财亏损' ||
+          typeStr == '理財虧損' ||
+          typeStr == 'invest_loss' ||
+          typeStr == 'investment loss') {
+        type = 'invest_loss';
       } else {
         // 未识别的类型：记录并跳过
         skippedTypes[typeRaw.trim()] = (skippedTypes[typeRaw.trim()] ?? 0) + 1;

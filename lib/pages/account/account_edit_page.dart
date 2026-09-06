@@ -42,6 +42,7 @@ class _AccountEditPageState extends ConsumerState<AccountEditPage> {
     'credit_card',
     'alipay',
     'wechat',
+    'investment',
     'receivable',
     'payable',
     'other',
@@ -111,7 +112,9 @@ class _AccountEditPageState extends ConsumerState<AccountEditPage> {
       case 'alipay':
         return Icons.local_atm; // 使用ATM图标代表支付宝
       case 'wechat':
-        return Icons.chat; // 使用聊天图标代表微信
+        return Icons.chat;
+      case 'investment':
+        return Icons.show_chart; // 使用聊天图标代表微信
       case 'receivable':
         return Icons.currency_exchange;
       case 'payable':
@@ -136,6 +139,8 @@ class _AccountEditPageState extends ConsumerState<AccountEditPage> {
         return l10n.accountTypeAlipay;
       case 'wechat':
         return l10n.accountTypeWechat;
+      case 'investment':
+        return l10n.accountTypeInvestment;
       case 'receivable':
         return '应收款';
       case 'payable':

@@ -7,6 +7,7 @@ import 'package:path/path.dart' as path;
 import '../../db.dart';
 import '../transaction_repository.dart';
 import '../../../services/system/logger_service.dart';
+import '../../../utils/invest_tx.dart';
 
 /// 本地交易Repository实现
 /// 基于 Drift 数据库实现
@@ -21,7 +22,7 @@ class LocalTransactionRepository implements TransactionRepository {
     int limit = 20,
   }) {
     return (db.select(db.transactions)
-          ..where((t) => t.ledgerId.equals(ledgerId) & t.excludeFromStats.equals(false))
+          ..where((t) => t.ledgerId.equals(ledgerId) & InvestTx.dailyVisible(t))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -41,7 +42,7 @@ class LocalTransactionRepository implements TransactionRepository {
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
               t.happenedAt.isBetweenValues(start, end) &
-              t.excludeFromStats.equals(false))
+              InvestTx.dailyVisible(t))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -56,9 +57,9 @@ class LocalTransactionRepository implements TransactionRepository {
   }) {
     final select = db.select(db.transactions);
     if (ledgerId != null) {
-      select.where((t) => t.ledgerId.equals(ledgerId) & t.excludeFromStats.equals(false));
+      select.where((t) => t.ledgerId.equals(ledgerId) & InvestTx.dailyVisible(t));
     } else {
-      select.where((t) => t.excludeFromStats.equals(false));
+      select.where((t) => InvestTx.dailyVisible(t));
     }
     select.orderBy([
       (t) => d.OrderingTerm(
@@ -88,7 +89,7 @@ class LocalTransactionRepository implements TransactionRepository {
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
               t.happenedAt.isBetweenValues(start, end) &
-              t.excludeFromStats.equals(false))
+              InvestTx.dailyVisible(t))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -117,7 +118,7 @@ class LocalTransactionRepository implements TransactionRepository {
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
               t.happenedAt.isBetweenValues(start, end) &
-              t.excludeFromStats.equals(false))
+              InvestTx.dailyVisible(t))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -148,7 +149,7 @@ class LocalTransactionRepository implements TransactionRepository {
               t.ledgerId.equals(ledgerId) &
               t.type.equals(type) &
               t.happenedAt.isBetweenValues(start, end) &
-              t.excludeFromStats.equals(false))
+              InvestTx.dailyVisible(t))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -180,6 +181,7 @@ class LocalTransactionRepository implements TransactionRepository {
     int? toAccountId,
     required DateTime happenedAt,
     String? note,
+    String? investEvent,
   }) async {
     return db.into(db.transactions).insert(TransactionsCompanion.insert(
           ledgerId: ledgerId,
@@ -190,6 +192,7 @@ class LocalTransactionRepository implements TransactionRepository {
           toAccountId: d.Value(toAccountId),
           happenedAt: d.Value(happenedAt),
           note: d.Value(note),
+          investEvent: d.Value(investEvent),
         ));
   }
 
@@ -211,6 +214,7 @@ class LocalTransactionRepository implements TransactionRepository {
     String? note,
     DateTime? happenedAt,
     dynamic accountId,
+    String? investEvent,
   }) async {
     // 处理 accountId 参数
     final d.Value<int?> accountIdValue;
@@ -231,6 +235,9 @@ class LocalTransactionRepository implements TransactionRepository {
         happenedAt:
             happenedAt != null ? d.Value(happenedAt) : const d.Value.absent(),
         accountId: accountIdValue,
+        investEvent: investEvent != null
+            ? d.Value(investEvent)
+            : const d.Value.absent(),
       ),
     );
   }
@@ -314,7 +321,7 @@ class LocalTransactionRepository implements TransactionRepository {
     required int limit,
   }) async {
     final q = (db.select(db.transactions)
-          ..where((t) => t.ledgerId.equals(ledgerId) & t.excludeFromStats.equals(false))
+          ..where((t) => t.ledgerId.equals(ledgerId) & InvestTx.dailyVisible(t))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -546,7 +553,7 @@ class LocalTransactionRepository implements TransactionRepository {
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
               t.happenedAt.isBetweenValues(startOfDay, endOfDay) &
-              t.excludeFromStats.equals(false))
+              InvestTx.dailyVisible(t))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -648,7 +655,7 @@ class LocalTransactionRepository implements TransactionRepository {
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
               t.happenedAt.isBetweenValues(startDate, endDate) &
-              t.excludeFromStats.equals(false))
+              InvestTx.dailyVisible(t))
           ..orderBy([
             (t) => d.OrderingTerm(
                   expression: t.happenedAt,

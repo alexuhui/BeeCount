@@ -3621,6 +3621,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountTypeWechat => 'WeChat';
 
   @override
+  String get accountTypeInvestment => 'Investment';
+
+  @override
   String get accountTypeOther => 'Other';
 
   @override
@@ -5840,4 +5843,94 @@ class AppLocalizationsEn extends AppLocalizations {
   String categoryImportResultContent(int imported, int skipped) {
     return 'Successfully imported $imported categories, skipped $skipped existing ones.';
   }
+
+  @override
+  String get investMarketValue => 'Market value';
+
+  @override
+  String get investNetIn => 'Net invested';
+
+  @override
+  String get investTotalPnl => 'Total P/L';
+
+  @override
+  String get investPeriodPnl => 'Period P/L';
+
+  @override
+  String get investOpeningValue => 'Opening value';
+
+  @override
+  String get investClosingValue => 'Closing value';
+
+  @override
+  String get investPeriodNetIn => 'Net transfers in period';
+
+  @override
+  String get investMarkToMarket => 'Update market value';
+
+  @override
+  String get investRecordPnl => 'Record P/L';
+
+  @override
+  String get investDividend => 'Dividend';
+
+  @override
+  String get investTransferIn => 'Transfer in';
+
+  @override
+  String get investTransferOut => 'Transfer out';
+
+  @override
+  String get investActionsTitle => 'Investment actions';
+
+  @override
+  String get investMarketValueHint => 'Current total market value';
+
+  @override
+  String get investPnlAmountHint => 'Gain or loss amount';
+
+  @override
+  String get investDividendHint => 'Dividend amount';
+
+  @override
+  String get investGain => 'Gain';
+
+  @override
+  String get investLoss => 'Loss';
+
+  @override
+  String get investEventMark => 'Mark to market';
+
+  @override
+  String get investEventManual => 'Manual P/L';
+
+  @override
+  String get investEventDividend => 'Dividend';
+
+  @override
+  String get investEditTitle => 'Edit investment record';
+
+  @override
+  String get investScopeMonth => 'Month';
+
+  @override
+  String get investScopeYear => 'Year';
+
+  @override
+  String get investScopeCustom => 'Range';
+
+  @override
+  String get investNoDelta => 'Market value matches the current balance';
+
+  @override
+  String get investSummaryTitle => 'Investments total';
+
+  @override
+  String get investSave => 'Save';
+
+  @override
+  String get exportTypeInvestPnl => 'Investment P/L';
+
+  @override
+  String get exportInvestPnlRecords => 'Investment P/L records';
 }

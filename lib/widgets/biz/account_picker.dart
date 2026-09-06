@@ -75,6 +75,8 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
         return Icons.currency_yuan;
       case 'wechat':
         return Icons.chat;
+      case 'investment':
+        return Icons.show_chart;
       case 'other':
         return Icons.account_balance_outlined;
       default:
@@ -95,6 +97,8 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
         return l10n.accountTypeAlipay;
       case 'wechat':
         return l10n.accountTypeWechat;
+      case 'investment':
+        return l10n.accountTypeInvestment;
       case 'other':
         return l10n.accountTypeOther;
       default:

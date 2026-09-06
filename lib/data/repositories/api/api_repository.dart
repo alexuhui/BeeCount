@@ -5,6 +5,7 @@ import 'dart:io';
 import '../../../config/page_sizes.dart';
 import '../../../services/api/api_json.dart';
 import '../../../services/api/beecount_api_client.dart';
+import '../../../utils/invest_tx.dart';
 import '../../category_node.dart';
 import '../../db.dart';
 import '../local/local_repository.dart';
@@ -56,6 +57,7 @@ class ApiRepository extends LocalRepository {
     int? accountId,
     int? tagId,
     String? q,
+    bool includeInvestPnl = false,
   }) =>
       {
         if (ledgerId != null) 'ledger_id': '$ledgerId',
@@ -66,6 +68,7 @@ class ApiRepository extends LocalRepository {
         if (accountId != null) 'account_id': '$accountId',
         if (tagId != null) 'tag_id': '$tagId',
         if (q != null && q.isNotEmpty) 'q': q,
+        if (includeInvestPnl) 'include_invest_pnl': 'true',
       };
 
   List<Category>? _categoryCache;
@@ -445,6 +448,7 @@ class ApiRepository extends LocalRepository {
     int? toAccountId,
     required DateTime happenedAt,
     String? note,
+    String? investEvent,
   }) async {
     final row = await api.post('/transactions', {
       'ledger_id': ledgerId,
@@ -455,6 +459,7 @@ class ApiRepository extends LocalRepository {
       'to_account_id': toAccountId,
       'happened_at': happenedAt.toIso8601String(),
       'note': note,
+      if (investEvent != null) 'invest_event': investEvent,
     });
     notifyChanged();
     return asInt(row['id']);
@@ -473,6 +478,7 @@ class ApiRepository extends LocalRepository {
           ? item.happenedAt.value
           : DateTime.now(),
       note: item.note.present ? item.note.value : null,
+      investEvent: item.investEvent.present ? item.investEvent.value : null,
     );
   }
 
@@ -495,6 +501,7 @@ class ApiRepository extends LocalRepository {
     String? note,
     DateTime? happenedAt,
     dynamic accountId,
+    String? investEvent,
   }) async {
     await api.put('/transactions/$id', {
       'type': type,
@@ -503,6 +510,7 @@ class ApiRepository extends LocalRepository {
       'note': note,
       if (happenedAt != null) 'happened_at': happenedAt.toIso8601String(),
       if (accountId != null) 'account_id': accountId,
+      if (investEvent != null) 'invest_event': investEvent,
     });
     notifyChanged();
   }
@@ -1104,6 +1112,22 @@ class ApiRepository extends LocalRepository {
       });
 
   @override
+  Stream<List<Transaction>> watchAccountTransactions(int accountId) =>
+      _watch(() async {
+        final rows = await _allPages(
+          '/transactions',
+          _txQuery(accountId: accountId, includeInvestPnl: true),
+        );
+        final txs = rows.map(txFromJson).toList();
+        txs.sort((a, b) {
+          final byDate = b.happenedAt.compareTo(a.happenedAt);
+          if (byDate != 0) return byDate;
+          return b.id.compareTo(a.id);
+        });
+        return txs;
+      });
+
+  @override
   Future<List<Account>> getAllAccounts() => _accounts();
 
   @override
@@ -1167,6 +1191,40 @@ class ApiRepository extends LocalRepository {
   Future<double> getAccountBalance(int accountId) async {
     final data = await api.get('/accounts/$accountId/balance');
     return asDouble(data['balance']);
+  }
+
+  @override
+  Future<double> getAccountBalanceAsOf(
+    int accountId,
+    DateTime endExclusive, {
+    int? excludeTxId,
+  }) async {
+    final data = await api.get('/accounts/$accountId/balance', query: {
+      'as_of': endExclusive.toIso8601String(),
+      if (excludeTxId != null) 'exclude_tx_id': '$excludeTxId',
+    });
+    return asDouble(data['balance']);
+  }
+
+  @override
+  Future<InvestmentPeriodStats> getInvestmentPeriodStats({
+    required int accountId,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final data = await api.get('/accounts/$accountId/invest_stats', query: {
+      'from': from.toIso8601String(),
+      'to': to.toIso8601String(),
+    });
+    return InvestmentPeriodStats(
+      openingValue: asDouble(data['opening_value']),
+      closingValue: asDouble(data['closing_value']),
+      netTransferIn: asDouble(data['net_transfer_in']),
+      periodPnl: asDouble(data['period_pnl']),
+      totalPnl: asDouble(data['total_pnl']),
+      periodGain: asDouble(data['period_gain']),
+      periodLoss: asDouble(data['period_loss']),
+    );
   }
 
   @override

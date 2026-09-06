@@ -1,4 +1,5 @@
 import '../../../services/system/logger_service.dart';
+import '../../../utils/invest_tx.dart';
 import '../../db.dart';
 import '../base_repository.dart';
 import '../budget_repository.dart';
@@ -176,6 +177,7 @@ class LocalRepository extends BaseRepository {
     int? toAccountId,
     required DateTime happenedAt,
     String? note,
+    String? investEvent,
   }) =>
       _transactionRepo.addTransaction(
         ledgerId: ledgerId,
@@ -186,6 +188,7 @@ class LocalRepository extends BaseRepository {
         toAccountId: toAccountId,
         happenedAt: happenedAt,
         note: note,
+        investEvent: investEvent,
       );
 
   @override
@@ -201,6 +204,7 @@ class LocalRepository extends BaseRepository {
     String? note,
     DateTime? happenedAt,
     dynamic accountId,
+    String? investEvent,
   }) =>
       _transactionRepo.updateTransaction(
         id: id,
@@ -210,6 +214,7 @@ class LocalRepository extends BaseRepository {
         note: note,
         happenedAt: happenedAt,
         accountId: accountId,
+        investEvent: investEvent,
       );
 
   @override
@@ -629,6 +634,30 @@ class LocalRepository extends BaseRepository {
   @override
   Future<double> getAccountBalanceInLedger(int accountId, int ledgerId) =>
       _accountRepo.getAccountBalanceInLedger(accountId, ledgerId);
+
+  @override
+  Future<double> getAccountBalanceAsOf(
+    int accountId,
+    DateTime endExclusive, {
+    int? excludeTxId,
+  }) =>
+      _accountRepo.getAccountBalanceAsOf(
+        accountId,
+        endExclusive,
+        excludeTxId: excludeTxId,
+      );
+
+  @override
+  Future<InvestmentPeriodStats> getInvestmentPeriodStats({
+    required int accountId,
+    required DateTime from,
+    required DateTime to,
+  }) =>
+      _accountRepo.getInvestmentPeriodStats(
+        accountId: accountId,
+        from: from,
+        to: to,
+      );
 
   @override
   Future<Map<int, double>> getAllAccountBalances(int ledgerId) =>

@@ -160,6 +160,31 @@ class _AccountsBodyState extends ConsumerState<AccountsBody> {
   int? _expandedAccountId;
   final Set<String> _expandedTypeGroups = {};
 
+  /// 应收/应付分组显示待收/待付，不能用流水余额（借出隐藏转账会把应收打成负数）。
+  double _groupHeaderTotal(
+    String type,
+    List<db.Account> group,
+    Map<int, ({double balance, double expense, double income})>? allStats,
+  ) {
+    if (type == 'receivable') {
+      return group.fold<double>(0, (sum, a) {
+        return sum +
+            (ref.watch(receivableStatsProvider(a.id)).valueOrNull?.pending ??
+                0);
+      });
+    }
+    if (type == 'payable') {
+      return group.fold<double>(0, (sum, a) {
+        return sum +
+            (ref.watch(payableStatsProvider(a.id)).valueOrNull?.pending ?? 0);
+      });
+    }
+    return group.fold<double>(
+      0,
+      (sum, a) => sum + (allStats?[a.id]?.balance ?? a.initialBalance),
+    );
+  }
+
   List<Widget> _accountTiles(
     List<db.Account> accounts,
     Map<int, ({double balance, double expense, double income})>? allStats,
@@ -287,11 +312,7 @@ class _AccountsBodyState extends ConsumerState<AccountsBody> {
                 final type = entry.key;
                 final group = entry.value;
                 final expanded = _expandedTypeGroups.contains(type);
-                final total = group.fold<double>(
-                  0,
-                  (sum, a) =>
-                      sum + (allStats?[a.id]?.balance ?? a.initialBalance),
-                );
+                final total = _groupHeaderTotal(type, group, allStats);
                 return [
                   Padding(
                     padding: EdgeInsets.only(

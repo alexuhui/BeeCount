@@ -11,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../../utils/ui_scale_extensions.dart';
 import '../../utils/transaction_edit_utils.dart';
 import '../../utils/invest_tx.dart';
+import '../../services/billing/post_processor.dart';
 import '../../services/data/category_service.dart';
 import '../../widgets/category_icon.dart';
 import '../receivable_payable/receivable_edit_page.dart';
@@ -23,6 +24,62 @@ import 'investment_transfer_page.dart';
 
 /// 与 [ReceivablePayableRepository.getReceivableOutstandingMapForAccount] 中剩余未收/未付比较
 const double _kReceivablePayableOutstandingEps = 1e-6;
+
+Widget _swipeToDelete({
+  required Key dismissKey,
+  required Future<bool> Function() onConfirmDelete,
+  required Widget child,
+}) {
+  return Dismissible(
+    key: dismissKey,
+    direction: DismissDirection.endToStart,
+    background: Container(
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: 16),
+      color: Colors.red,
+      child: const Icon(Icons.delete, color: Colors.white),
+    ),
+    confirmDismiss: (_) => onConfirmDelete(),
+    onDismissed: (_) {},
+    child: child,
+  );
+}
+
+Future<bool> _confirmDeleteRecord(
+  BuildContext context, {
+  required Future<void> Function() delete,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  final confirmed = await AppDialog.confirm<bool>(
+        context,
+        title: l10n.deleteConfirmTitle,
+        message: l10n.deleteConfirmMessage,
+      ) ??
+      false;
+  if (!confirmed) return false;
+  try {
+    await delete();
+    if (context.mounted) {
+      showToast(context, l10n.ledgersDeleted);
+    }
+    return true;
+  } catch (e) {
+    if (context.mounted) {
+      showToast(context, '${l10n.commonError}: $e');
+    }
+    return false;
+  }
+}
+
+void _afterTransactionDeleted(WidgetRef ref, {required int accountId}) {
+  ref.invalidate(accountStatsProvider(accountId));
+  ref.invalidate(accountTransactionsProvider(accountId));
+  ref.invalidate(investmentPeriodStatsProvider);
+  final curLedger = ref.read(currentLedgerIdProvider);
+  ref.invalidate(countsForLedgerProvider(curLedger));
+  ref.read(statsRefreshProvider.notifier).state++;
+  PostProcessor.sync(ref, ledgerId: curLedger);
+}
 
 /// 账户详情页面
 /// 显示账户的统计信息和相关交易
@@ -383,14 +440,26 @@ class _NormalAccountContent extends ConsumerWidget {
                     return Column(
                       children: [
                         if (index > 0) BeeTokens.cardDivider(context),
-                        _TransactionTile(
-                          transaction: tx,
-                          currencyCode: currencyCode,
-                          primaryColor: primaryColor,
-                          ledgers: ref.watch(ledgersStreamProvider).asData?.value ?? [],
-                          categories: categoriesAsync.asData?.value ?? [],
-                          currentAccountId: account.id,
-                          onTap: () => _editTransaction(context, ref, tx),
+                        _swipeToDelete(
+                          dismissKey: ValueKey('account-tx-${tx.id}'),
+                          onConfirmDelete: () => _confirmDeleteRecord(
+                            context,
+                            delete: () async {
+                              await ref
+                                  .read(repositoryProvider)
+                                  .deleteTransaction(tx.id);
+                              _afterTransactionDeleted(ref, accountId: account.id);
+                            },
+                          ),
+                          child: _TransactionTile(
+                            transaction: tx,
+                            currencyCode: currencyCode,
+                            primaryColor: primaryColor,
+                            ledgers: ref.watch(ledgersStreamProvider).asData?.value ?? [],
+                            categories: categoriesAsync.asData?.value ?? [],
+                            currentAccountId: account.id,
+                            onTap: () => _editTransaction(context, ref, tx),
+                          ),
                         ),
                       ],
                     );
@@ -752,14 +821,29 @@ class _InvestmentAccountContentState
                     return Column(
                       children: [
                         if (index > 0) BeeTokens.cardDivider(context),
-                        _TransactionTile(
-                          transaction: tx,
-                          currencyCode: currencyCode,
-                          primaryColor: primaryColor,
-                          ledgers: ref.watch(ledgersStreamProvider).asData?.value ?? [],
-                          categories: categoriesAsync.asData?.value ?? [],
-                          currentAccountId: widget.account.id,
-                          onTap: () => _editTransaction(context, ref, tx),
+                        _swipeToDelete(
+                          dismissKey: ValueKey('account-tx-${tx.id}'),
+                          onConfirmDelete: () => _confirmDeleteRecord(
+                            context,
+                            delete: () async {
+                              await ref
+                                  .read(repositoryProvider)
+                                  .deleteTransaction(tx.id);
+                              _afterTransactionDeleted(
+                                ref,
+                                accountId: widget.account.id,
+                              );
+                            },
+                          ),
+                          child: _TransactionTile(
+                            transaction: tx,
+                            currencyCode: currencyCode,
+                            primaryColor: primaryColor,
+                            ledgers: ref.watch(ledgersStreamProvider).asData?.value ?? [],
+                            categories: categoriesAsync.asData?.value ?? [],
+                            currentAccountId: widget.account.id,
+                            onTap: () => _editTransaction(context, ref, tx),
+                          ),
                         ),
                       ],
                     );
@@ -1021,13 +1105,50 @@ class _ReceivableAccountContentState extends ConsumerState<_ReceivableAccountCon
                             return Column(
                               children: [
                                 BeeTokens.cardDivider(context),
-                                Padding(
-                                  padding: EdgeInsets.only(left: 44.0.scaled(context, ref)),
-                                  child: _ReceivableTile(
-                                    receivable: r,
-                                    outstanding: outstandingMap[r.id] ?? 0,
-                                    currencyCode: currencyCode,
-                                    onTap: () => _viewReceivableDetail(context, ref, r, currencyCode),
+                                _swipeToDelete(
+                                  dismissKey: ValueKey('account-receivable-${r.id}'),
+                                  onConfirmDelete: () => _confirmDeleteRecord(
+                                    context,
+                                    delete: () async {
+                                      await ref
+                                          .read(repositoryProvider)
+                                          .deleteReceivable(r.id);
+                                      ref.invalidate(
+                                        receivablesByAccountProvider(
+                                            widget.account.id),
+                                      );
+                                      ref.invalidate(
+                                        receivableBalanceProvider(
+                                            widget.account.id),
+                                      );
+                                      ref.invalidate(
+                                        receivableStatsProvider(
+                                            widget.account.id),
+                                      );
+                                      ref.invalidate(
+                                        receivableOutstandingMapProvider(
+                                            widget.account.id),
+                                      );
+                                      ref.invalidate(allAccountStatsProvider);
+                                      ref.invalidate(
+                                          allAccountsTotalStatsProvider);
+                                      final curLedger =
+                                          ref.read(currentLedgerIdProvider);
+                                      ref.read(statsRefreshProvider.notifier)
+                                          .state++;
+                                      PostProcessor.sync(ref, ledgerId: curLedger);
+                                    },
+                                  ),
+                                  child: Padding(
+                                    padding: EdgeInsets.only(
+                                        left: 44.0.scaled(context, ref)),
+                                    child: _ReceivableTile(
+                                      receivable: r,
+                                      outstanding: outstandingMap[r.id] ?? 0,
+                                      currencyCode: currencyCode,
+                                      onTap: () => _viewReceivableDetail(
+                                          context, ref, r, currencyCode),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -1354,13 +1475,49 @@ class _PayableAccountContentState extends ConsumerState<_PayableAccountContent> 
                             return Column(
                               children: [
                                 BeeTokens.cardDivider(context),
-                                Padding(
-                                  padding: EdgeInsets.only(left: 44.0.scaled(context, ref)),
-                                  child: _PayableTile(
-                                    payable: p,
-                                    outstanding: outstandingMap[p.id] ?? 0,
-                                    currencyCode: currencyCode,
-                                    onTap: () => _viewPayableDetail(context, ref, p, currencyCode),
+                                _swipeToDelete(
+                                  dismissKey: ValueKey('account-payable-${p.id}'),
+                                  onConfirmDelete: () => _confirmDeleteRecord(
+                                    context,
+                                    delete: () async {
+                                      await ref
+                                          .read(repositoryProvider)
+                                          .deletePayable(p.id);
+                                      ref.invalidate(
+                                        payablesByAccountProvider(
+                                            widget.account.id),
+                                      );
+                                      ref.invalidate(
+                                        payableBalanceProvider(
+                                            widget.account.id),
+                                      );
+                                      ref.invalidate(
+                                        payableStatsProvider(widget.account.id),
+                                      );
+                                      ref.invalidate(
+                                        payableOutstandingMapProvider(
+                                            widget.account.id),
+                                      );
+                                      ref.invalidate(allAccountStatsProvider);
+                                      ref.invalidate(
+                                          allAccountsTotalStatsProvider);
+                                      final curLedger =
+                                          ref.read(currentLedgerIdProvider);
+                                      ref.read(statsRefreshProvider.notifier)
+                                          .state++;
+                                      PostProcessor.sync(ref, ledgerId: curLedger);
+                                    },
+                                  ),
+                                  child: Padding(
+                                    padding: EdgeInsets.only(
+                                        left: 44.0.scaled(context, ref)),
+                                    child: _PayableTile(
+                                      payable: p,
+                                      outstanding: outstandingMap[p.id] ?? 0,
+                                      currencyCode: currencyCode,
+                                      onTap: () => _viewPayableDetail(
+                                          context, ref, p, currencyCode),
+                                    ),
                                   ),
                                 ),
                               ],

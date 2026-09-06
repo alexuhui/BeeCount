@@ -491,6 +491,58 @@ class _InvestmentAccountContentState
     );
   }
 
+  String _periodLabel() {
+    String ymd(DateTime d) =>
+        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    if (_scope == 'year') {
+      return '$_year';
+    }
+    if (_scope == 'custom' && _customFrom != null && _customTo != null) {
+      return '${ymd(_customFrom!)} – ${ymd(_customTo!)}';
+    }
+    return '${_month.year}-${_month.month.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _pickPeriod() async {
+    if (_scope == 'year') {
+      final picked = await showWheelDatePicker(
+        context,
+        initial: DateTime(_year),
+        mode: WheelDatePickerMode.y,
+      );
+      if (picked != null && mounted) {
+        setState(() => _year = picked.year);
+      }
+      return;
+    }
+    if (_scope == 'custom') {
+      final from = await showWheelDatePicker(
+        context,
+        initial: _customFrom ?? _month,
+      );
+      if (!mounted) return;
+      final to = await showWheelDatePicker(
+        context,
+        initial: _customTo ?? DateTime.now(),
+      );
+      if (from != null && to != null && mounted) {
+        setState(() {
+          _customFrom = from;
+          _customTo = to;
+        });
+      }
+      return;
+    }
+    final picked = await showWheelDatePicker(
+      context,
+      initial: _month,
+      mode: WheelDatePickerMode.ym,
+    );
+    if (picked != null && mounted) {
+      setState(() => _month = DateTime(picked.year, picked.month, 1));
+    }
+  }
+
   Future<void> _editTransaction(
       BuildContext context, WidgetRef ref, db.Transaction tx) async {
     if (InvestTx.isPnlType(tx.type)) {
@@ -576,6 +628,21 @@ class _InvestmentAccountContentState
             },
           ),
         ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            12.0.scaled(context, ref),
+            8.0.scaled(context, ref),
+            12.0.scaled(context, ref),
+            0,
+          ),
+          child: Align(
+            alignment: Alignment.center,
+            child: TextButton(
+              onPressed: _pickPeriod,
+              child: Text(_periodLabel()),
+            ),
+          ),
+        ),
         SizedBox(height: 8.0.scaled(context, ref)),
         SectionCard(
           child: statsAsync.when(
@@ -655,7 +722,11 @@ class _InvestmentAccountContentState
         SectionCard(
           child: transactionsAsync.when(
             data: (transactions) {
-              if (transactions.isEmpty) {
+              final inPeriod = transactions.where((tx) {
+                return !tx.happenedAt.isBefore(range.from) &&
+                    tx.happenedAt.isBefore(range.to);
+              }).toList();
+              if (inPeriod.isEmpty) {
                 return Padding(
                   padding: EdgeInsets.all(32.0.scaled(context, ref)),
                   child: Center(child: Text(l10n.commonEmpty)),
@@ -675,7 +746,7 @@ class _InvestmentAccountContentState
                       ),
                     ),
                   ),
-                  ...transactions.asMap().entries.map((entry) {
+                  ...inPeriod.asMap().entries.map((entry) {
                     final index = entry.key;
                     final tx = entry.value;
                     return Column(

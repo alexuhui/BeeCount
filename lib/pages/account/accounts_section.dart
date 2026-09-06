@@ -88,6 +88,7 @@ Future<void> openAddAccount(BuildContext context, WidgetRef ref) async {
   );
   ref.invalidate(allAccountStatsProvider);
   ref.invalidate(allAccountsTotalStatsProvider);
+  ref.invalidate(accountsProvider);
   ref.invalidate(statsRefreshProvider);
 }
 
@@ -107,6 +108,7 @@ Future<void> openEditAccount(
   );
   ref.invalidate(allAccountStatsProvider);
   ref.invalidate(allAccountsTotalStatsProvider);
+  ref.invalidate(accountsProvider);
   ref.invalidate(statsRefreshProvider);
 }
 

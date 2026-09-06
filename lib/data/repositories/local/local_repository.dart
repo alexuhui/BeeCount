@@ -565,6 +565,10 @@ class LocalRepository extends BaseRepository {
   Future<List<Account>> getAllAccounts() => _accountRepo.getAllAccounts();
 
   @override
+  Future<List<Account>> refreshAllAccounts() =>
+      _accountRepo.refreshAllAccounts();
+
+  @override
   Future<Account?> getAccount(int accountId) => _accountRepo.getAccount(accountId);
 
   @override

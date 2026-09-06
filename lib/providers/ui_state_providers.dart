@@ -221,6 +221,13 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
       logger.warning(tag, '分类预加载失败: $e');
       return <Category>[];
     });
+    final accountPreload = timed(
+      '账户列表',
+      ref.read(accountsProvider.future),
+    ).then((value) => value, onError: (Object e, StackTrace _) {
+      logger.warning(tag, '账户预加载失败: $e');
+      return <Account>[];
+    });
 
     try {
       final results = await Future.wait([
@@ -230,6 +237,7 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
             repo.getRecentTransactionsWithCategory(
                 ledgerId: ledgerId, limit: preloadLimit)),
         categoryPreload,
+        accountPreload,
       ]);
       monthlyResult = results[0] as (double, double);
       transactionsWithCategory =

@@ -188,6 +188,11 @@ final allAccountsStreamProvider = StreamProvider<List<Account>>((ref) {
   return stream;
 });
 
+final accountsProvider = FutureProvider<List<Account>>((ref) async {
+  final repo = ref.watch(repositoryProvider);
+  return await repo.getAllAccounts();
+});
+
 // 获取单个账户信息
 final accountByIdProvider =
     FutureProvider.family<Account?, int>((ref, accountId) async {

@@ -12,6 +12,9 @@ abstract class AccountRepository {
   /// 获取所有账户（不限账本，Future版本）
   Future<List<Account>> getAllAccounts();
 
+  /// 强制从数据源全量刷新账户（丢弃内存缓存）
+  Future<List<Account>> refreshAllAccounts();
+
   /// 获取单个账户信息
   Future<Account?> getAccount(int accountId);
 

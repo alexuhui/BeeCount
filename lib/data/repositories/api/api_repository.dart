@@ -105,6 +105,43 @@ class ApiRepository extends LocalRepository {
     _categoryCacheGen++;
   }
 
+  List<Account>? _accountCache;
+  Future<List<Account>>? _accountInFlight;
+  int _accountCacheGen = 0;
+
+  Future<List<Account>> _accounts({bool force = false}) {
+    if (force) {
+      _invalidateAccountCache();
+    } else {
+      final cached = _accountCache;
+      if (cached != null) return Future<List<Account>>.value(cached);
+      final inFlight = _accountInFlight;
+      if (inFlight != null) return inFlight;
+    }
+
+    final gen = _accountCacheGen;
+    final future = () async {
+      final rows = await api.listAll('/accounts');
+      final list = rows.map(accountFromJson).toList();
+      if (gen == _accountCacheGen) {
+        _accountCache = list;
+      }
+      return list;
+    }();
+    _accountInFlight = future.whenComplete(() {
+      if (identical(_accountInFlight, future)) {
+        _accountInFlight = null;
+      }
+    });
+    return future;
+  }
+
+  void _invalidateAccountCache() {
+    _accountCache = null;
+    _accountInFlight = null;
+    _accountCacheGen++;
+  }
+
   Future<Map<int, Category>> _catMap() async {
     final list = await _cats();
     return {for (final c in list) c.id: c};
@@ -1067,10 +1104,10 @@ class ApiRepository extends LocalRepository {
       });
 
   @override
-  Future<List<Account>> getAllAccounts() async {
-    final rows = await api.listAll('/accounts');
-    return rows.map(accountFromJson).toList();
-  }
+  Future<List<Account>> getAllAccounts() => _accounts();
+
+  @override
+  Future<List<Account>> refreshAllAccounts() => _accounts(force: true);
 
   @override
   Future<Account?> getAccount(int accountId) async {
@@ -1096,6 +1133,7 @@ class ApiRepository extends LocalRepository {
       'currency': currency,
       'initial_balance': initialBalance,
     });
+    _invalidateAccountCache();
     notifyChanged();
     return asInt(row['id']);
   }
@@ -1114,12 +1152,14 @@ class ApiRepository extends LocalRepository {
       if (currency != null) 'currency': currency,
       if (initialBalance != null) 'initial_balance': initialBalance,
     });
+    _invalidateAccountCache();
     notifyChanged();
   }
 
   @override
   Future<void> deleteAccount(int id) async {
     await api.delete('/accounts/$id');
+    _invalidateAccountCache();
     notifyChanged();
   }
 

@@ -29,6 +29,9 @@ class LocalAccountRepository implements AccountRepository {
   }
 
   @override
+  Future<List<Account>> refreshAllAccounts() => getAllAccounts();
+
+  @override
   Future<Account?> getAccount(int accountId) async {
     return await (db.select(db.accounts)
           ..where((a) => a.id.equals(accountId)))

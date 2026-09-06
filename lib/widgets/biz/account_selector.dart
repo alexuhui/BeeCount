@@ -26,12 +26,9 @@ class AccountSelector extends ConsumerStatefulWidget {
 }
 
 class _AccountSelectorState extends ConsumerState<AccountSelector> {
-  List<Account> _accounts = [];
   List<int> _lruOrder = [];
   late LRUCache _lruCache;
-  bool _isLoading = true;
 
-  // 记录初始选中的账户ID，用于排序（不随点击变化）
   int? _initialSelectedAccountId;
 
   @override
@@ -39,79 +36,48 @@ class _AccountSelectorState extends ConsumerState<AccountSelector> {
     super.initState();
     _initialSelectedAccountId = widget.selectedAccountId;
     _lruCache = LRUCache(key: 'account_lru_${widget.ledgerId}', maxSize: 20);
-    _loadAccounts();
+    _loadLru();
   }
 
-  Future<void> _loadAccounts() async {
-    try {
-      final repo = ref.read(repositoryProvider);
-
-      // 使用 provider 查询账本信息
-      final ledger = await ref.read(ledgerByIdProvider(widget.ledgerId).future);
-      if (ledger == null) {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-        return;
-      }
-
-      // 获取所有账户，然后过滤与当前账本币种相同的账户
-      // 同时过滤掉应收/应付类型的账户（这些账户在新增记账时不应该显示）
-      final allAccounts = await repo.getAllAccounts();
-      final accounts = allAccounts.where((a) =>
-        a.currency == ledger.currency &&
-        a.type != 'receivable' &&
-        a.type != 'payable'
-      ).toList();
-
-      // 获取 LRU 排序
-      final lruOrder = await _lruCache.getOrderedIds();
-
-      logger.debug('AccountSelector', '加载账户完成，初始选中: $_initialSelectedAccountId, LRU顺序: $lruOrder');
-
-      if (mounted) {
-        setState(() {
-          _accounts = accounts;
-          _lruOrder = lruOrder;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+  Future<void> _loadLru() async {
+    final lruOrder = await _lruCache.getOrderedIds();
+    if (mounted) {
+      setState(() => _lruOrder = lruOrder);
     }
   }
 
-  /// 根据 LRU 排序账户
-  /// 使用初始选中的账户ID进行排序，避免点击时立即重排
-  List<Account> _getSortedAccounts() {
-    if (_accounts.isEmpty) return [];
+  List<Account> _filterAccounts(List<Account> all, String? currency) {
+    return all
+        .where((a) =>
+            (currency == null || a.currency == currency) &&
+            a.type != 'receivable' &&
+            a.type != 'payable')
+        .toList();
+  }
+
+  List<Account> _getSortedAccounts(List<Account> accounts) {
+    if (accounts.isEmpty) return [];
 
     final List<Account> sorted = [];
 
-    // 将初始选中的账户放在第一个（如果存在）
     if (_initialSelectedAccountId != null) {
-      final selected = _accounts.where((a) => a.id == _initialSelectedAccountId).firstOrNull;
+      final selected =
+          accounts.where((a) => a.id == _initialSelectedAccountId).firstOrNull;
       if (selected != null) {
         sorted.add(selected);
       }
     }
 
-    // 按 LRU 顺序添加其他账户
     for (final id in _lruOrder) {
-      final account = _accounts.where((a) => a.id == id && a.id != _initialSelectedAccountId).firstOrNull;
+      final account = accounts
+          .where((a) => a.id == id && a.id != _initialSelectedAccountId)
+          .firstOrNull;
       if (account != null && !sorted.contains(account)) {
         sorted.add(account);
       }
     }
 
-    // 添加未在 LRU 中的账户（按创建顺序）
-    for (final account in _accounts) {
+    for (final account in accounts) {
       if (!sorted.contains(account)) {
         sorted.add(account);
       }
@@ -121,19 +87,25 @@ class _AccountSelectorState extends ConsumerState<AccountSelector> {
   }
 
   void _onAccountTap(int? accountId) {
-    logger.debug('AccountSelector', '点击账户: $accountId, 当前LRU顺序: $_lruOrder');
+    logger.debug(
+        'AccountSelector', '点击账户: $accountId, 当前LRU顺序: $_lruOrder');
     widget.onAccountSelected(accountId);
 
-    // 只记录使用，不立即更新排序（下次加载时才生效）
     if (accountId != null) {
       _lruCache.recordUsage(accountId);
-      logger.debug('AccountSelector', '已记录使用，但不更新当前排序');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    final accountsAsync = ref.watch(allAccountsStreamProvider);
+    final ledgerAsync = ref.watch(ledgerByIdProvider(widget.ledgerId));
+    final accounts = _filterAccounts(
+      accountsAsync.valueOrNull ?? const [],
+      ledgerAsync.valueOrNull?.currency,
+    );
+
+    if (accountsAsync.isLoading && accounts.isEmpty) {
       return const SizedBox(
         height: 32,
         child: Center(
@@ -146,17 +118,16 @@ class _AccountSelectorState extends ConsumerState<AccountSelector> {
       );
     }
 
-    final sortedAccounts = _getSortedAccounts();
+    final sortedAccounts = _getSortedAccounts(accounts);
 
     return SizedBox(
       height: 32,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 2),
-        itemCount: sortedAccounts.length + 1, // +1 for "无账户" option
+        itemCount: sortedAccounts.length + 1,
         separatorBuilder: (_, __) => const SizedBox(width: 6),
         itemBuilder: (context, index) {
-          // "无账户"永远在第一位
           if (index == 0) {
             final isSelected = widget.selectedAccountId == null;
             return _buildAccountChip(
@@ -166,9 +137,7 @@ class _AccountSelectorState extends ConsumerState<AccountSelector> {
             );
           }
 
-          // 其他账户从索引 1 开始
-          final accountIndex = index - 1;
-          final account = sortedAccounts[accountIndex];
+          final account = sortedAccounts[index - 1];
           final isSelected = widget.selectedAccountId == account.id;
 
           return _buildAccountChip(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/category_node.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -51,29 +52,37 @@ class _CategorySelectorState extends ConsumerState<CategorySelector> {
   Future<void> _initializeExpandedState() async {
     if (widget.initialCategoryId == null) return;
 
-    final repo = ref.read(repositoryProvider);
-    final initialCategory = await repo.getCategoryById(widget.initialCategoryId!);
+    final all = await ref.read(categoriesProvider.future);
+    Category? initialCategory;
+    for (final c in all) {
+      if (c.id == widget.initialCategoryId) {
+        initialCategory = c;
+        break;
+      }
+    }
 
     if (initialCategory != null && initialCategory.level == 2 && initialCategory.parentId != null) {
-      // 如果是二级分类，展开其父分类
+      final parentId = initialCategory.parentId;
+      if (!mounted) return;
       setState(() {
-        _expandedCategoryId = initialCategory.parentId;
+        _expandedCategoryId = parentId;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final repo = ref.watch(repositoryProvider);
+    final catsAsync = ref.watch(categoriesProvider);
 
-    return FutureBuilder<List<Category>>(
-      future: repo.getTopLevelCategories(widget.kind),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final topLevelCategories = snapshot.data!;
+    return catsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(
+        child: Text(AppLocalizations.of(context).categoryLoadFailed(error.toString())),
+      ),
+      data: (all) {
+        final topLevelCategories = CategoryHierarchy.getTopLevelOnly(all)
+            .where((c) => c.kind == widget.kind)
+            .toList();
 
         if (topLevelCategories.isEmpty) {
           return Center(
@@ -81,30 +90,32 @@ class _CategorySelectorState extends ConsumerState<CategorySelector> {
           );
         }
 
-        return FutureBuilder<Map<int, List<Category>>>(
-          future: _loadSubCategories(topLevelCategories),
-          builder: (context, subSnapshot) {
-            if (!subSnapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            final subCategoriesMap = subSnapshot.data!;
+        final subCategoriesMap = <int, List<Category>>{};
+        for (final cat in topLevelCategories) {
+          final children = CategoryHierarchy.getSubCategoriesOf(all, cat.id);
+          if (children.isNotEmpty) {
+            subCategoriesMap[cat.id] = children;
+          }
+        }
 
             // 滚动到初始选中的分类
             if (!_scrolled && widget.initialCategoryId != null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) async {
-                // 获取初始分类信息以确定滚动目标
-                final repo = ref.read(repositoryProvider);
-                final initialCategory = await repo.getCategoryById(widget.initialCategoryId!);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Category? initialCategory;
+                for (final c in all) {
+                  if (c.id == widget.initialCategoryId) {
+                    initialCategory = c;
+                    break;
+                  }
+                }
 
                 if (initialCategory != null) {
-                  int scrollTargetId;
-
-                  // 如果是二级分类，滚动到父分类；否则滚动到自己
-                  if (initialCategory.level == 2 && initialCategory.parentId != null) {
-                    scrollTargetId = initialCategory.parentId!;
+                  final cat = initialCategory;
+                  final int scrollTargetId;
+                  if (cat.level == 2 && cat.parentId != null) {
+                    scrollTargetId = cat.parentId!;
                   } else {
-                    scrollTargetId = initialCategory.id;
+                    scrollTargetId = cat.id;
                   }
 
                   final key = _keys[scrollTargetId];
@@ -259,25 +270,8 @@ class _CategorySelectorState extends ConsumerState<CategorySelector> {
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
               children: displayItems,
             );
-          },
-        );
       },
     );
-  }
-
-  Future<Map<int, List<Category>>> _loadSubCategories(
-      List<Category> topLevelCategories) async {
-    final repo = ref.read(repositoryProvider);
-    final result = <int, List<Category>>{};
-
-    for (final cat in topLevelCategories) {
-      final children = await repo.getSubCategories(cat.id);
-      if (children.isNotEmpty) {
-        result[cat.id] = children;
-      }
-    }
-
-    return result;
   }
 }
 

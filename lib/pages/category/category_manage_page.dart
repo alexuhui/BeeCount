@@ -34,6 +34,7 @@ class CategoryManagePage extends ConsumerStatefulWidget {
 
 class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with TickerProviderStateMixin {
   late TabController _tabController;
+  bool _refreshing = false;
 
   @override
   void initState() {
@@ -68,6 +69,20 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
             title: l10n.categoryTitle,
             showBack: true,
             actions: [
+              IconButton(
+                onPressed: _refreshing ? null : _refreshCategories,
+                tooltip: l10n.categoryRefresh,
+                icon: _refreshing
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: BeeTokens.textPrimary(context),
+                        ),
+                      )
+                    : const Icon(Icons.refresh),
+              ),
               IconButton(
                 onPressed: _handleShare,
                 icon: const Icon(Icons.share_outlined),
@@ -113,6 +128,28 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
         ],
       ),
     );
+  }
+
+  Future<void> _refreshCategories() async {
+    if (_refreshing) return;
+    setState(() => _refreshing = true);
+    try {
+      final repo = ref.read(repositoryProvider);
+      await repo.refreshAllCategories();
+      ref.invalidate(categoriesProvider);
+      ref.invalidate(categoriesWithCountProvider);
+      ref.invalidate(transferCategoryProvider);
+      if (!mounted) return;
+      showToast(context, AppLocalizations.of(context).categoryRefreshSuccess);
+    } catch (e) {
+      if (!mounted) return;
+      showToast(
+        context,
+        AppLocalizations.of(context).categoryLoadFailed(e.toString()),
+      );
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
   }
 
   void _addCategory() async {
@@ -183,6 +220,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
           builder: (_) => const CategoryImportPage(),
         ),
       );
+      ref.invalidate(categoriesProvider);
       ref.invalidate(categoriesWithCountProvider);
     } else {
       await _importCategories();
@@ -387,6 +425,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
           importResult.iconsImported,
         ),
       );
+      ref.invalidate(categoriesProvider);
       ref.invalidate(categoriesWithCountProvider);
     } catch (e) {
       logger.error('CategoryManage', '导入分类失败: $e');
@@ -473,6 +512,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
 
       if (!mounted) return;
       showToast(context, l10n.categoryClearUnusedSuccess(ids.length));
+      ref.invalidate(categoriesProvider);
       ref.invalidate(categoriesWithCountProvider);
     } catch (e) {
       logger.error('CategoryManage', '清空未使用分类失败: $e');
@@ -753,6 +793,7 @@ class _CategoryGridViewState extends ConsumerState<_CategoryGridView> {
     await repo.updateCategorySortOrders(updates);
 
     // 3. 刷新 provider 以同步其他地方的数据
+    ref.invalidate(categoriesProvider);
     ref.invalidate(categoriesWithCountProvider);
   }
 

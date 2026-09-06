@@ -305,6 +305,8 @@
   "categoryDefault": "默认分类",
   "categoryReorderTip": "长按分类可拖拽调整顺序",
   "categoryLoadFailed": "加载失败: {error}",
+  "categoryRefresh": "刷新分类",
+  "categoryRefreshSuccess": "分类已刷新",
   "iconPickerTitle": "选择图标",
   "iconCategoryTransport": "交通",
   "iconCategoryShopping": "购物",

@@ -409,6 +409,8 @@
   "categoryDefault": "Default Category",
   "categoryReorderTip": "Long press to drag and reorder categories",
   "categoryLoadFailed": "Load failed: {error}",
+  "categoryRefresh": "Refresh categories",
+  "categoryRefreshSuccess": "Categories refreshed",
   "@categoryLoadFailed": {
     "placeholders": {
       "error": {

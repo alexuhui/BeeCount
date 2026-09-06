@@ -68,9 +68,41 @@ class ApiRepository extends LocalRepository {
         if (q != null && q.isNotEmpty) 'q': q,
       };
 
-  Future<List<Category>> _cats() async {
-    final rows = await api.listAll('/categories');
-    return rows.map(categoryFromJson).toList();
+  List<Category>? _categoryCache;
+  Future<List<Category>>? _categoryInFlight;
+  int _categoryCacheGen = 0;
+
+  Future<List<Category>> _cats({bool force = false}) {
+    if (force) {
+      _invalidateCategoryCache();
+    } else {
+      final cached = _categoryCache;
+      if (cached != null) return Future<List<Category>>.value(cached);
+      final inFlight = _categoryInFlight;
+      if (inFlight != null) return inFlight;
+    }
+
+    final gen = _categoryCacheGen;
+    final future = () async {
+      final rows = await api.listAll('/categories');
+      final list = rows.map(categoryFromJson).toList();
+      if (gen == _categoryCacheGen) {
+        _categoryCache = list;
+      }
+      return list;
+    }();
+    _categoryInFlight = future.whenComplete(() {
+      if (identical(_categoryInFlight, future)) {
+        _categoryInFlight = null;
+      }
+    });
+    return future;
+  }
+
+  void _invalidateCategoryCache() {
+    _categoryCache = null;
+    _categoryInFlight = null;
+    _categoryCacheGen++;
   }
 
   Future<Map<int, Category>> _catMap() async {
@@ -719,6 +751,9 @@ class ApiRepository extends LocalRepository {
   Future<List<Category>> getAllCategories() => _cats();
 
   @override
+  Future<List<Category>> refreshAllCategories() => _cats(force: true);
+
+  @override
   Future<List<Category>> getTopLevelCategories(String kind) async {
     return CategoryHierarchy.getTopLevelOnly(await _cats())
         .where((c) => c.kind == kind)
@@ -831,6 +866,7 @@ class ApiRepository extends LocalRepository {
       'icon': icon,
       'sort_order': sortOrder ?? 0,
     });
+    _invalidateCategoryCache();
     notifyChanged();
     return asInt(row['id']);
   }
@@ -851,6 +887,7 @@ class ApiRepository extends LocalRepository {
       'parent_id': parentId,
       'level': 2,
     });
+    _invalidateCategoryCache();
     notifyChanged();
     return asInt(row['id']);
   }
@@ -864,12 +901,23 @@ class ApiRepository extends LocalRepository {
       if (parentId != null) 'parent_id': parentId,
       if (level != null) 'level': level,
     });
+    _invalidateCategoryCache();
     notifyChanged();
   }
 
   @override
   Future<void> deleteCategory(int id) async {
     await api.delete('/categories/$id');
+    _invalidateCategoryCache();
+    notifyChanged();
+  }
+
+  @override
+  Future<void> deleteCategoriesByIds(List<int> ids) async {
+    for (final id in ids) {
+      await api.delete('/categories/$id');
+    }
+    _invalidateCategoryCache();
     notifyChanged();
   }
 

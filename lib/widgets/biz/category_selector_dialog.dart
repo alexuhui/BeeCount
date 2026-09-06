@@ -118,24 +118,13 @@ class _CategorySelectorDialogState extends ConsumerState<CategorySelectorDialog>
   /// 加载所有分类
   Future<List<Category>> _loadAllCategories() async {
     final repo = ref.read(repositoryProvider);
-
-    // 获取收入和支出分类
-    final incomeCategories = await repo.getTopLevelCategories('income');
-    final expenseCategories = await repo.getTopLevelCategories('expense');
-
-    // 获取所有二级分类
-    final allCategories = <Category>[];
-    allCategories.addAll(incomeCategories);
-    allCategories.addAll(expenseCategories);
-
-    // 如果只显示一级分类，不加载子分类
-    if (!widget.onlyTopLevel) {
-      // 为每个一级分类获取子分类
-      for (final category in [...incomeCategories, ...expenseCategories]) {
-        final subs = await repo.getSubCategories(category.id);
-        allCategories.addAll(subs);
-      }
-    }
+    final all = await repo.getAllCategories();
+    final allCategories = all
+        .where((c) => c.kind == 'income' || c.kind == 'expense')
+        .where((c) => widget.onlyTopLevel
+            ? (c.level == 1 || c.parentId == null)
+            : true)
+        .toList();
 
     // 如果有过滤器，计算每个分类的可选状态
     if (widget.categoryFilter != null) {

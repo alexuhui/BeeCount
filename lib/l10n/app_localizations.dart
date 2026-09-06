@@ -1239,6 +1239,18 @@ abstract class AppLocalizations {
   /// **'Load failed: {error}'**
   String categoryLoadFailed(String error);
 
+  /// No description provided for @categoryRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh categories'**
+  String get categoryRefresh;
+
+  /// No description provided for @categoryRefreshSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories refreshed'**
+  String get categoryRefreshSuccess;
+
   /// No description provided for @iconPickerTitle.
   ///
   /// In en, this message translates to:

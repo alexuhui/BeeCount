@@ -214,6 +214,14 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
     (double, double)? monthlyResult;
     List<({Transaction t, Category? category})> transactionsWithCategory;
 
+    final categoryPreload = timed(
+      '分类列表',
+      ref.read(categoriesProvider.future),
+    ).then((value) => value, onError: (Object e, StackTrace _) {
+      logger.warning(tag, '分类预加载失败: $e');
+      return <Category>[];
+    });
+
     try {
       final results = await Future.wait([
         timed('月度统计', ref.read(monthlyTotalsProvider(monthlyParams).future)),
@@ -221,6 +229,7 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
             '交易列表(前$preloadLimit条)',
             repo.getRecentTransactionsWithCategory(
                 ledgerId: ledgerId, limit: preloadLimit)),
+        categoryPreload,
       ]);
       monthlyResult = results[0] as (double, double);
       transactionsWithCategory =

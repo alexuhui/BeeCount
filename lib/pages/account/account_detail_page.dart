@@ -110,6 +110,7 @@ class AccountDetailPage extends ConsumerWidget {
         MaterialPageRoute(
           builder: (context) => TransactionEditorPage(
             initialKind: 'expense',
+            quickAdd: true,
             initialAccountId: account.id,
           ),
         ),

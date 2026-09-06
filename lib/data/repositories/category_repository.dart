@@ -49,6 +49,9 @@ abstract class CategoryRepository {
   /// 获取所有分类
   Future<List<Category>> getAllCategories();
 
+  /// 强制从数据源全量刷新分类（丢弃内存缓存）
+  Future<List<Category>> refreshAllCategories();
+
   /// 获取所有一级分类
   Future<List<Category>> getTopLevelCategories(String kind);
 

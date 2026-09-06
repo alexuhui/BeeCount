@@ -653,6 +653,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get categoryRefresh => 'Refresh categories';
+
+  @override
+  String get categoryRefreshSuccess => 'Categories refreshed';
+
+  @override
   String get iconPickerTitle => 'Select Icon';
 
   @override

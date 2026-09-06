@@ -643,6 +643,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get categoryRefresh => '刷新分类';
+
+  @override
+  String get categoryRefreshSuccess => '分类已刷新';
+
+  @override
   String get iconPickerTitle => '选择图标';
 
   @override
@@ -6237,6 +6243,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String categoryLoadFailed(String error) {
     return '載入失敗: $error';
   }
+
+  @override
+  String get categoryRefresh => '重新整理分類';
+
+  @override
+  String get categoryRefreshSuccess => '分類已重新整理';
 
   @override
   String get iconPickerTitle => '選擇圖示';

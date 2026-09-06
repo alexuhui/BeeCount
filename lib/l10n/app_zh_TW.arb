@@ -625,6 +625,8 @@
   "categoryIncomeTaxRefund": "退稅-個稅退稅-其他退費",
   "categoryIncomeType": "收入分類",
   "categoryLoadFailed": "載入失敗: {error}",
+  "categoryRefresh": "重新整理分類",
+  "categoryRefreshSuccess": "分類已重新整理",
   "categoryMigrationCannotMessage": "選擇的分類無法進行遷移，請檢查分類狀態。",
   "categoryMigrationCannotTitle": "無法遷移",
   "categoryMigrationCompleteMessage": "成功將 {count} 筆交易從「{fromName}」遷移到「{toName}」。",

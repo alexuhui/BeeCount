@@ -513,6 +513,10 @@ class LocalRepository extends BaseRepository {
   Future<List<Category>> getAllCategories() => _categoryRepo.getAllCategories();
 
   @override
+  Future<List<Category>> refreshAllCategories() =>
+      _categoryRepo.refreshAllCategories();
+
+  @override
   Future<void> batchInsertCategories(List<CategoriesCompanion> categories) =>
       _categoryRepo.batchInsertCategories(categories);
 

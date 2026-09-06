@@ -608,6 +608,9 @@ class LocalCategoryRepository implements CategoryRepository {
   }
 
   @override
+  Future<List<Category>> refreshAllCategories() => getAllCategories();
+
+  @override
   Future<void> batchInsertCategories(List<CategoriesCompanion> categories) async {
     await db.batch((batch) {
       batch.insertAll(db.categories, categories);

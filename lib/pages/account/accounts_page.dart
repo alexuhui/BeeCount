@@ -7,6 +7,7 @@ import '../../utils/ui_scale_extensions.dart';
 import '../../widgets/biz/section_card.dart';
 import '../../widgets/ui/ui.dart';
 import 'accounts_section.dart';
+import 'account_settings_page.dart';
 
 class AccountsPage extends ConsumerWidget {
   const AccountsPage({super.key});
@@ -24,6 +25,13 @@ class AccountsPage extends ConsumerWidget {
             title: l10n.accountsTitle,
             showBack: true,
             actions: [
+              IconButton(
+                onPressed: () {
+                  openAccountSettings(context);
+                },
+                icon: const Icon(Icons.settings_outlined),
+                tooltip: l10n.commonSettings,
+              ),
               IconButton(
                 onPressed: () => openAddAccount(context, ref),
                 icon: const Icon(Icons.add),

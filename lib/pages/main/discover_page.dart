@@ -15,6 +15,7 @@ import '../../widgets/biz/ledger_picker_sheet.dart';
 import '../../widgets/biz/section_card.dart';
 import '../../widgets/ui/ui.dart';
 import '../account/accounts_section.dart';
+import '../account/account_settings_page.dart';
 import '../ai/ai_settings_page.dart';
 import '../budget/budget_page.dart';
 import '../settings/config_import_export_page.dart';
@@ -647,6 +648,16 @@ class _AccountsCard extends ConsumerWidget {
                       ),
                     ),
                   ],
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  openAccountSettings(context);
+                },
+                tooltip: l10n.commonSettings,
+                icon: Icon(
+                  Icons.settings_outlined,
+                  color: BeeTokens.iconSecondary(context),
                 ),
               ),
               IconButton(

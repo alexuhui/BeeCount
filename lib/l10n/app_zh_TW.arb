@@ -30,6 +30,9 @@
       }
     }
   },
+  "accountSettingsTitle": "帳戶設定",
+  "accountGroupByTypeTitle": "按分類摺疊帳戶",
+  "accountGroupByTypeDesc": "開啟後按帳戶類型分組，點擊分類展開",
   "accountDeleteConfirm": "確認刪除該帳戶吗？",
   "accountDeleteWarningMessage": "該帳戶有 {count} 筆關聯交易，刪除后交易记錄中的帳戶信息將被清空。確認刪除吗？",
   "accountDeleteWarningTitle": "確認刪除",

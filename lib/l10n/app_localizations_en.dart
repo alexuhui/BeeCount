@@ -4485,6 +4485,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get accountSettingsTitle => 'Account settings';
+
+  @override
+  String get accountGroupByTypeTitle => 'Collapse accounts by type';
+
+  @override
+  String get accountGroupByTypeDesc =>
+      'Group the list by account type; tap a group to expand';
+
+  @override
   String get commonNotice => 'Notice';
 
   @override

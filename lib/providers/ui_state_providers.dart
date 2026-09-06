@@ -391,6 +391,27 @@ final defaultAccountSetterProvider = Provider<DefaultAccountSetter>((ref) {
   return DefaultAccountSetter();
 });
 
+/// 账户列表是否按类型折叠。仅保存在本机，默认关闭。
+final accountsGroupByTypeProvider =
+    FutureProvider.autoDispose<bool>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  final link = ref.keepAlive();
+  ref.onDispose(() => link.close());
+  return prefs.getBool('accounts_group_by_type') ?? false;
+});
+
+class AccountsGroupByTypeSetter {
+  Future<void> setEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('accounts_group_by_type', enabled);
+  }
+}
+
+final accountsGroupByTypeSetterProvider =
+    Provider<AccountsGroupByTypeSetter>((ref) {
+  return AccountsGroupByTypeSetter();
+});
+
 // AI小助手开关状态持久化
 final aiAssistantEnabledProvider =
     FutureProvider.autoDispose<bool>((ref) async {

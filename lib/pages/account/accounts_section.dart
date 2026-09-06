@@ -119,7 +119,36 @@ Future<void> openEditAccount(
   ref.invalidate(statsRefreshProvider);
 }
 
-/// 账户主体：默认收支账户、净资产、可展开账户列表
+const _accountTypeOrder = [
+  'cash',
+  'bank_card',
+  'credit_card',
+  'alipay',
+  'wechat',
+  'investment',
+  'receivable',
+  'payable',
+  'other',
+];
+
+int _typeSortIndex(String type) {
+  final i = _accountTypeOrder.indexOf(type);
+  return i < 0 ? 1000 : i;
+}
+
+List<MapEntry<String, List<db.Account>>> groupAccountsByType(
+    List<db.Account> accounts) {
+  final map = <String, List<db.Account>>{};
+  for (final account in accounts) {
+    map.putIfAbsent(account.type, () => []).add(account);
+  }
+  final keys = map.keys.toList()
+    ..sort((a, b) {
+      final cmp = _typeSortIndex(a).compareTo(_typeSortIndex(b));
+      return cmp != 0 ? cmp : a.compareTo(b);
+    });
+  return [for (final k in keys) MapEntry(k, map[k]!)];
+}
 class AccountsBody extends ConsumerStatefulWidget {
   const AccountsBody({super.key});
 
@@ -129,6 +158,46 @@ class AccountsBody extends ConsumerStatefulWidget {
 
 class _AccountsBodyState extends ConsumerState<AccountsBody> {
   int? _expandedAccountId;
+  final Set<String> _expandedTypeGroups = {};
+
+  List<Widget> _accountTiles(
+    List<db.Account> accounts,
+    Map<int, ({double balance, double expense, double income})>? allStats,
+    Color primaryColor,
+  ) {
+    return [
+      for (final account in accounts)
+        Padding(
+          padding: EdgeInsets.only(
+            left: 8.0.scaled(context, ref),
+            right: 8.0.scaled(context, ref),
+            bottom: 10.0.scaled(context, ref),
+          ),
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _expandedAccountId == account.id
+                ? _ExpandedAccountCard(
+                    account: account,
+                    primaryColor: primaryColor,
+                    stats: allStats?[account.id],
+                    onCollapse: () =>
+                        setState(() => _expandedAccountId = null),
+                    onEdit: () => openEditAccount(context, ref, account),
+                  )
+                : _CompactAccountBar(
+                    account: account,
+                    balance: allStats?[account.id]?.balance ??
+                        account.initialBalance,
+                    primaryColor: primaryColor,
+                    onExpand: () =>
+                        setState(() => _expandedAccountId = account.id),
+                  ),
+          ),
+        ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,6 +206,8 @@ class _AccountsBodyState extends ConsumerState<AccountsBody> {
     final totalStatsAsync = ref.watch(allAccountsTotalStatsProvider);
     final allStatsAsync = ref.watch(allAccountStatsProvider);
     final primaryColor = ref.watch(primaryColorProvider);
+    final groupByType =
+        ref.watch(accountsGroupByTypeProvider).valueOrNull ?? false;
 
     return accountsAsync.when(
       data: (accounts) {
@@ -147,73 +218,57 @@ class _AccountsBodyState extends ConsumerState<AccountsBody> {
           );
         }
 
+        final hasInvest =
+            accounts.any((a) => InvestTx.isInvestmentAccount(a.type));
+        final investSum = hasInvest
+            ? ref.watch(investmentAccountsSummaryProvider).asData?.value
+            : null;
+        final allStats = allStatsAsync.asData?.value;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _DefaultAccountSelector(
-              accounts: accounts,
-              primaryColor: primaryColor,
-              type: 'expense',
-            ),
-            Divider(
-              height: 1,
-              indent: 16,
-              endIndent: 16,
-              color: BeeTokens.divider(context),
-            ),
-            _DefaultAccountSelector(
-              accounts: accounts,
-              primaryColor: primaryColor,
-              type: 'income',
-            ),
-            Divider(
-              height: 1,
-              color: BeeTokens.divider(context),
-            ),
             totalStatsAsync.when(
-              data: (stats) => Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 16.0.scaled(context, ref),
-                  vertical: 12.0.scaled(context, ref),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _StatCell(
-                        label: l10n.accountTotalBalance,
-                        value: stats.totalBalance,
-                        color: stats.totalBalance >= 0
-                            ? BeeTokens.textPrimary(context)
-                            : Colors.red,
-                      ),
+              data: (stats) {
+                final items = <({
+                  String label,
+                  double value,
+                  Color color
+                })>[
+                  (
+                    label: l10n.accountTotalBalance,
+                    value: stats.totalBalance,
+                    color: stats.totalBalance >= 0
+                        ? BeeTokens.textPrimary(context)
+                        : Colors.red,
+                  ),
+                  (
+                    label: l10n.accountTotalIncome,
+                    value: stats.totalIncome,
+                    color: BeeTokens.incomeColor(context, ref),
+                  ),
+                  (
+                    label: l10n.accountTotalExpense,
+                    value: stats.totalExpense,
+                    color: BeeTokens.expenseColor(context, ref),
+                  ),
+                  if (investSum != null) ...[
+                    (
+                      label: l10n.investSummaryTitle,
+                      value: investSum.marketValue,
+                      color: BeeTokens.textPrimary(context),
                     ),
-                    Container(
-                      width: 1,
-                      height: 40.0.scaled(context, ref),
-                      color: BeeTokens.border(context),
-                    ),
-                    Expanded(
-                      child: _StatCell(
-                        label: l10n.accountTotalIncome,
-                        value: stats.totalIncome,
-                        color: BeeTokens.incomeColor(context, ref),
-                      ),
-                    ),
-                    Container(
-                      width: 1,
-                      height: 40.0.scaled(context, ref),
-                      color: BeeTokens.border(context),
-                    ),
-                    Expanded(
-                      child: _StatCell(
-                        label: l10n.accountTotalExpense,
-                        value: stats.totalExpense,
-                        color: BeeTokens.expenseColor(context, ref),
-                      ),
+                    (
+                      label: l10n.investTotalPnl,
+                      value: investSum.totalPnl,
+                      color: investSum.totalPnl >= 0
+                          ? BeeTokens.incomeColor(context, ref)
+                          : BeeTokens.expenseColor(context, ref),
                     ),
                   ],
-                ),
-              ),
+                ];
+                return _StatsGrid(items: items);
+              },
               loading: () => const Padding(
                 padding: EdgeInsets.all(16),
                 child: Center(
@@ -226,73 +281,46 @@ class _AccountsBodyState extends ConsumerState<AccountsBody> {
               ),
               error: (_, __) => const SizedBox.shrink(),
             ),
-            if (accounts.any((a) => InvestTx.isInvestmentAccount(a.type)))
-              ref.watch(investmentAccountsSummaryProvider).when(
-                    data: (sum) => Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        16.0.scaled(context, ref),
-                        0,
-                        16.0.scaled(context, ref),
-                        8.0.scaled(context, ref),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _StatCell(
-                              label: l10n.investSummaryTitle,
-                              value: sum.marketValue,
-                              color: BeeTokens.textPrimary(context),
-                            ),
-                          ),
-                          Expanded(
-                            child: _StatCell(
-                              label: l10n.investTotalPnl,
-                              value: sum.totalPnl,
-                              color: sum.totalPnl >= 0
-                                  ? BeeTokens.incomeColor(context, ref)
-                                  : BeeTokens.expenseColor(context, ref),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
-                  ),
             SizedBox(height: 8.0.scaled(context, ref)),
-            ...accounts.map((account) {
-              final stats = allStatsAsync.asData?.value[account.id];
-              final balance = stats?.balance ?? account.initialBalance;
-              final expanded = _expandedAccountId == account.id;
-              return Padding(
-                padding: EdgeInsets.only(
-                  left: 8.0.scaled(context, ref),
-                  right: 8.0.scaled(context, ref),
-                  bottom: 10.0.scaled(context, ref),
-                ),
-                child: AnimatedSize(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeInOut,
-                  alignment: Alignment.topCenter,
-                  child: expanded
-                      ? _ExpandedAccountCard(
-                          account: account,
-                          primaryColor: primaryColor,
-                          stats: stats,
-                          onCollapse: () =>
-                              setState(() => _expandedAccountId = null),
-                          onEdit: () => openEditAccount(context, ref, account),
-                        )
-                      : _CompactAccountBar(
-                          account: account,
-                          balance: balance,
-                          primaryColor: primaryColor,
-                          onExpand: () =>
-                              setState(() => _expandedAccountId = account.id),
-                        ),
-                ),
-              );
-            }),
+            if (groupByType)
+              ...groupAccountsByType(accounts).expand((entry) {
+                final type = entry.key;
+                final group = entry.value;
+                final expanded = _expandedTypeGroups.contains(type);
+                final total = group.fold<double>(
+                  0,
+                  (sum, a) =>
+                      sum + (allStats?[a.id]?.balance ?? a.initialBalance),
+                );
+                return [
+                  Padding(
+                    padding: EdgeInsets.only(
+                      left: 8.0.scaled(context, ref),
+                      right: 8.0.scaled(context, ref),
+                      bottom: 8.0.scaled(context, ref),
+                    ),
+                    child: _TypeGroupHeader(
+                      type: type,
+                      count: group.length,
+                      totalBalance: total,
+                      expanded: expanded,
+                      onToggle: () {
+                        setState(() {
+                          if (expanded) {
+                            _expandedTypeGroups.remove(type);
+                          } else {
+                            _expandedTypeGroups.add(type);
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                  if (expanded)
+                    ..._accountTiles(group, allStats, primaryColor),
+                ];
+              })
+            else
+              ..._accountTiles(accounts, allStats, primaryColor),
           ],
         );
       },
@@ -309,6 +337,118 @@ class _AccountsBodyState extends ConsumerState<AccountsBody> {
       error: (err, _) => Padding(
         padding: const EdgeInsets.all(16),
         child: Text('${l10n.commonError}: $err'),
+      ),
+    );
+  }
+}
+
+class _StatsGrid extends ConsumerWidget {
+  final List<({String label, double value, Color color})> items;
+
+  const _StatsGrid({required this.items});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rows = <Widget>[];
+    for (var i = 0; i < items.length; i += 3) {
+      rows.add(
+        Padding(
+          padding: EdgeInsets.only(
+            bottom: i + 3 < items.length ? 12.0.scaled(context, ref) : 0,
+          ),
+          child: Row(
+            children: [
+              for (var j = 0; j < 3; j++)
+                Expanded(
+                  child: j + i < items.length
+                      ? Align(
+                          alignment: Alignment.centerLeft,
+                          child: _StatCell(
+                            label: items[i + j].label,
+                            value: items[i + j].value,
+                            color: items[i + j].color,
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: 16.0.scaled(context, ref),
+        vertical: 12.0.scaled(context, ref),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: rows,
+      ),
+    );
+  }
+}
+
+class _TypeGroupHeader extends ConsumerWidget {
+  final String type;
+  final int count;
+  final double totalBalance;
+  final bool expanded;
+  final VoidCallback onToggle;
+
+  const _TypeGroupHeader({
+    required this.type,
+    required this.count,
+    required this.totalBalance,
+    required this.expanded,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final primaryColor = ref.watch(primaryColorProvider);
+    final typeColor = accountColorForType(type, primaryColor);
+    return Material(
+      color: BeeTokens.surface(context),
+      borderRadius: BorderRadius.circular(8.0.scaled(context, ref)),
+      child: InkWell(
+        onTap: onToggle,
+        borderRadius: BorderRadius.circular(8.0.scaled(context, ref)),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: 12.0.scaled(context, ref),
+            vertical: 10.0.scaled(context, ref),
+          ),
+          child: Row(
+            children: [
+              Icon(accountIconForType(type), color: typeColor, size: 20),
+              SizedBox(width: 8.0.scaled(context, ref)),
+              Expanded(
+                child: Text(
+                  '${accountTypeLabel(context, type)} ($count)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: BeeTokens.textPrimary(context),
+                  ),
+                ),
+              ),
+              AmountText(
+                value: totalBalance,
+                signed: false,
+                showCurrency: false,
+                useCompactFormat: ref.watch(compactAmountProvider),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: BeeTokens.textPrimary(context),
+                ),
+              ),
+              Icon(
+                expanded ? Icons.expand_less : Icons.expand_more,
+                color: BeeTokens.iconSecondary(context),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -368,6 +508,7 @@ class _StatCell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AmountText(
           value: value,
@@ -387,7 +528,7 @@ class _StatCell extends ConsumerWidget {
             fontSize: 12,
             color: BeeTokens.textSecondary(context),
           ),
-          textAlign: TextAlign.center,
+          textAlign: TextAlign.left,
         ),
       ],
     );
@@ -1058,12 +1199,13 @@ class _PayableStatsRow extends ConsumerWidget {
   }
 }
 
-class _DefaultAccountSelector extends ConsumerWidget {
+class DefaultAccountSelector extends ConsumerWidget {
   final List<db.Account> accounts;
   final Color primaryColor;
   final String type;
 
-  const _DefaultAccountSelector({
+  const DefaultAccountSelector({
+    super.key,
     required this.accounts,
     required this.primaryColor,
     required this.type,

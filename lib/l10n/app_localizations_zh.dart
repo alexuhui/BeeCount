@@ -4305,6 +4305,15 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get accountSettingsTitle => '账户设置';
+
+  @override
+  String get accountGroupByTypeTitle => '按分类折叠账户';
+
+  @override
+  String get accountGroupByTypeDesc => '开启后按账户类型分组，点击分类展开';
+
+  @override
   String get commonNotice => '提示';
 
   @override
@@ -9998,6 +10007,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String accountDefaultSet(String name) {
     return '已設定: $name';
   }
+
+  @override
+  String get accountSettingsTitle => '帳戶設定';
+
+  @override
+  String get accountGroupByTypeTitle => '按分類摺疊帳戶';
+
+  @override
+  String get accountGroupByTypeDesc => '開啟後按帳戶類型分組，點擊分類展開';
 
   @override
   String get commonNotice => '提示';

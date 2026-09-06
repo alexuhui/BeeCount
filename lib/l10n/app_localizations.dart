@@ -8126,6 +8126,24 @@ abstract class AppLocalizations {
   /// **'Set: {name}'**
   String accountDefaultSet(String name);
 
+  /// No description provided for @accountSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account settings'**
+  String get accountSettingsTitle;
+
+  /// No description provided for @accountGroupByTypeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse accounts by type'**
+  String get accountGroupByTypeTitle;
+
+  /// No description provided for @accountGroupByTypeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Group the list by account type; tap a group to expand'**
+  String get accountGroupByTypeDesc;
+
   /// No description provided for @commonNotice.
   ///
   /// In en, this message translates to:

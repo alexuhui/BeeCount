@@ -1980,6 +1980,9 @@
       }
     }
   },
+  "accountSettingsTitle": "Account settings",
+  "accountGroupByTypeTitle": "Collapse accounts by type",
+  "accountGroupByTypeDesc": "Group the list by account type; tap a group to expand",
   "commonNotice": "Notice",
   "transferTitle": "Transfer",
   "transferIconSettings": "Transfer Icon Settings",

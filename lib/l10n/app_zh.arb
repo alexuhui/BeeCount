@@ -1825,6 +1825,9 @@
       }
     }
   },
+  "accountSettingsTitle": "账户设置",
+  "accountGroupByTypeTitle": "按分类折叠账户",
+  "accountGroupByTypeDesc": "开启后按账户类型分组，点击分类展开",
   "commonNotice": "提示",
   "transferTitle": "转账",
   "transferIconSettings": "转账图标设置",

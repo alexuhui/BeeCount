@@ -59,7 +59,7 @@
   "accountsEnableFeature": "啟用帳戶功能",
   "accountsFeatureDescription": "啟用后可以管理多个支付帳戶，追踪每个帳戶的余額變化",
   "accountsManageDesc": "管理支付帳戶與餘額",
-  "accountsTitle": "帳戶管理",
+  "accountsTitle": "帳戶",
   "aiChatClearHistory": "清除對話歷史",
   "aiChatClearHistoryDialogContent": "確定要清除所有對話記錄嗎？此操作不可恢復。",
   "aiChatClearHistoryDialogTitle": "清除對話歷史",
@@ -978,7 +978,7 @@
   "disableSuccess": "自動記帳已停用",
   "disabled": "已停用",
   "discoverAISettings": "AI 設定",
-  "discoverAccounts": "帳戶總覽",
+  "discoverAccounts": "帳戶",
   "discoverAccountsCount": "{count} 個帳戶",
   "@discoverAccountsCount": {
     "placeholders": {

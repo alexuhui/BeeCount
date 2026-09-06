@@ -6473,7 +6473,7 @@ abstract class AppLocalizations {
   /// No description provided for @accountsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Account Management'**
+  /// **'Accounts'**
   String get accountsTitle;
 
   /// No description provided for @accountsManageDesc.

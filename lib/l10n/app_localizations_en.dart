@@ -3565,7 +3565,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Remote directory path for data storage';
 
   @override
-  String get accountsTitle => 'Account Management';
+  String get accountsTitle => 'Accounts';
 
   @override
   String get accountsManageDesc => 'Manage payment accounts and balances';

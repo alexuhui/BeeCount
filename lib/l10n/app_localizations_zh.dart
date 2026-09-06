@@ -3436,7 +3436,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cloudWebdavRemotePathHelperText => '数据存储的远程目录路径';
 
   @override
-  String get accountsTitle => '账户管理';
+  String get accountsTitle => '账户';
 
   @override
   String get accountsManageDesc => '管理支付账户与余额';
@@ -4985,7 +4985,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get discoverBudgetEmpty => '设置预算，控制支出';
 
   @override
-  String get discoverAccounts => '账户总览';
+  String get discoverAccounts => '账户';
 
   @override
   String get discoverAccountsEmpty => '添加账户，追踪资金流向';
@@ -9038,7 +9038,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get cloudWebdavRemotePathHelperText => '資料儲存的遠端目錄路徑';
 
   @override
-  String get accountsTitle => '帳戶管理';
+  String get accountsTitle => '帳戶';
 
   @override
   String get accountsManageDesc => '管理支付帳戶與餘額';
@@ -10587,7 +10587,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get discoverBudgetEmpty => '設定預算，控制支出';
 
   @override
-  String get discoverAccounts => '帳戶總覽';
+  String get discoverAccounts => '帳戶';
 
   @override
   String get discoverAccountsEmpty => '新增帳戶，追蹤資金流向';

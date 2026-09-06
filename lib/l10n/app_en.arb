@@ -1603,7 +1603,7 @@
   "cloudWebdavRemotePathHelp": "Remote directory path for data storage",
   "cloudWebdavRemotePathLabel": "Remote Path",
   "cloudWebdavRemotePathHelperText": "Remote directory path for data storage",
-  "accountsTitle": "Account Management",
+  "accountsTitle": "Accounts",
   "accountsManageDesc": "Manage payment accounts and balances",
   "accountsEmptyMessage": "No accounts yet, tap the top right to add",
   "accountAddTooltip": "Add Account",

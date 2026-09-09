@@ -158,7 +158,7 @@ class _AccountEditPageState extends ConsumerState<AccountEditPage> {
     final primaryColor = ref.watch(primaryColorProvider);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

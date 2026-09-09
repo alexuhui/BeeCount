@@ -174,6 +174,7 @@ A lightweight, open-source, privacy-focused **personal finance management** and 
   - **Bill Information Extraction**: Intelligently identifies amount, merchant, category and more
   - **One-Click Confirmation**: Confirm and complete billing after AI extraction
   - Powered by Zhipu GLM-4 large model for complex semantic understanding
+  - **No API Key setup**: release builds bake in the Zhipu key; optional custom providers remain in AI settings
 
 - **📸 OCR Image Recognition / Photo Billing**
   - Support camera or album to select payment screenshots

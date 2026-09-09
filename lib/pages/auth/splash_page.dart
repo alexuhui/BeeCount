@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/ui/ui.dart';
 
 class SplashPage extends ConsumerWidget {
   const SplashPage({super.key});
@@ -10,7 +11,7 @@ class SplashPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final primaryColor = theme.primaryColor;
     
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: primaryColor,
       body: SafeArea(
         child: Padding(

@@ -114,7 +114,7 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
   @override
   Widget build(BuildContext context) {
     if (parsing) {
-      return Scaffold(
+      return BeeScaffold(
         body: Column(
           children: [
             PrimaryHeader(
@@ -144,7 +144,7 @@ class _ImportConfirmPageState extends ConsumerState<ImportConfirmPage> {
               value: i, child: Text(label, overflow: TextOverflow.ellipsis));
         });
 
-    return Scaffold(
+    return BeeScaffold(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

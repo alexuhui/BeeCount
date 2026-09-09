@@ -62,7 +62,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
     final primaryColor = ref.watch(primaryColorProvider);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    return Scaffold(
+    return BeeScaffold(
       body: Column(
         children: [
           PrimaryHeader(

@@ -174,7 +174,8 @@ class OcrService {
     try {
       // 检查是否启用AI
       final prefs = await SharedPreferences.getInstance();
-      final aiEnabled = prefs.getBool(AIConstants.keyAiBillExtractionEnabled) ?? false;
+      final aiEnabled = prefs.getBool(AIConstants.keyAiBillExtractionEnabled) ??
+          AIConstants.hasBuiltinGlmKey;
 
       if (!aiEnabled) {
         return baseResult;

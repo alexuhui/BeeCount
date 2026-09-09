@@ -42,7 +42,7 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

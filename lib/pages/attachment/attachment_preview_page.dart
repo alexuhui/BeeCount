@@ -122,7 +122,8 @@ class _AttachmentPreviewPageState extends ConsumerState<AttachmentPreviewPage> {
 
     // 加载中状态
     if (_isLoading) {
-      return const Scaffold(
+      return const BeeScaffold(
+        protectSystemNav: false,
         backgroundColor: Colors.black,
         body: Center(
           child: CircularProgressIndicator(color: Colors.white),
@@ -132,7 +133,8 @@ class _AttachmentPreviewPageState extends ConsumerState<AttachmentPreviewPage> {
 
     // 空状态
     if (_totalCount == 0) {
-      return Scaffold(
+      return BeeScaffold(
+        protectSystemNav: false,
         backgroundColor: Colors.black,
         body: Center(
           child: Text(
@@ -143,7 +145,8 @@ class _AttachmentPreviewPageState extends ConsumerState<AttachmentPreviewPage> {
       );
     }
 
-    return Scaffold(
+    return BeeScaffold(
+      protectSystemNav: false,
       backgroundColor: Colors.black,
       body: Stack(
         children: [

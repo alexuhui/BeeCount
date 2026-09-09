@@ -98,7 +98,7 @@ class _RecurringTransactionEditPageState extends ConsumerState<RecurringTransact
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
+    return BeeScaffold(
       body: Column(
         children: [
           PrimaryHeader(

@@ -45,7 +45,7 @@ class _AIModelSelectionPageState extends ConsumerState<AIModelSelectionPage> {
     final l10n = AppLocalizations.of(context);
 
     if (_loading) {
-      return Scaffold(
+      return BeeScaffold(
         backgroundColor: BeeTokens.scaffoldBackground(context),
         body: Column(
           children: [
@@ -61,7 +61,7 @@ class _AIModelSelectionPageState extends ConsumerState<AIModelSelectionPage> {
       );
     }
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

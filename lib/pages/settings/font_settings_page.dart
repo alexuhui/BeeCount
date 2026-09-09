@@ -25,7 +25,7 @@ class FontSettingsPage extends ConsumerWidget {
       _FontOption(label: AppLocalizations.of(context)!.fontSettingsExtraBig, value: 4, preview: AppLocalizations.of(context)!.fontSettingsScaleExample),
     ];
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

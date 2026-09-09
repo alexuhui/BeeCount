@@ -149,7 +149,7 @@ class _AIChatPageState extends ConsumerState<AIChatPage>
   @override
   Widget build(BuildContext context) {
     if (_conversationId == null) {
-      return Scaffold(
+      return BeeScaffold(
         backgroundColor: BeeTokens.scaffoldBackground(context),
         body: const Center(child: CircularProgressIndicator()),
       );
@@ -157,7 +157,7 @@ class _AIChatPageState extends ConsumerState<AIChatPage>
 
     final messagesAsync = ref.watch(messagesProvider(_conversationId!));
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

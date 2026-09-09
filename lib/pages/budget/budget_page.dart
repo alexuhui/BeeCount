@@ -24,7 +24,7 @@ class BudgetPage extends ConsumerWidget {
     final overviewAsync = ref.watch(budgetOverviewForYearMonthProvider);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

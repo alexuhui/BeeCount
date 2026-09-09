@@ -20,7 +20,7 @@ class ShortcutsGuidePage extends ConsumerWidget {
     final theme = Theme.of(context);
     final primaryColor = ref.watch(primaryColorProvider);
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

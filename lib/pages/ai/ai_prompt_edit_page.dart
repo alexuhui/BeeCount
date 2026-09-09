@@ -257,7 +257,7 @@ class _AIPromptEditPageState extends ConsumerState<AIPromptEditPage> {
     final primaryColor = ref.watch(primaryColorProvider);
 
     if (_loading) {
-      return Scaffold(
+      return BeeScaffold(
         backgroundColor: BeeTokens.scaffoldBackground(context),
         body: Column(
           children: [
@@ -273,7 +273,7 @@ class _AIPromptEditPageState extends ConsumerState<AIPromptEditPage> {
       );
     }
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

@@ -579,7 +579,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final hide = ref.watch(hideAmountsProvider);
     final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

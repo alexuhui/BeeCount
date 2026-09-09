@@ -220,7 +220,7 @@ class _AnnualReportPageState extends ConsumerState<AnnualReportPage> {
     final primaryColor = ref.watch(primaryColorProvider);
     final dataAsync = ref.watch(annualReportDataProvider(_selectedYear));
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: primaryColor,
       body: dataAsync.when(
         loading: () => _buildLoading(l10n),

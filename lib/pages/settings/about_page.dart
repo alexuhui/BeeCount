@@ -51,7 +51,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

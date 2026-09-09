@@ -37,7 +37,7 @@ class _AIProviderManagePageState extends ConsumerState<AIProviderManagePage> {
     final l10n = AppLocalizations.of(context);
     final providersAsync = ref.watch(aiProvidersProvider);
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [
@@ -365,6 +365,9 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
       _textTestStatus == TestStatus.testing ||
       _visionTestStatus == TestStatus.testing ||
       _speechTestStatus == TestStatus.testing;
+  bool get _hasUsableApiKey =>
+      _apiKeyController.text.trim().isNotEmpty ||
+      (_isBuiltIn && AIConstants.hasBuiltinGlmKey);
 
   @override
   void initState() {
@@ -394,7 +397,7 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
     final l10n = AppLocalizations.of(context);
     final primaryColor = ref.watch(primaryColorProvider);
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [
@@ -491,7 +494,7 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
                             _buildInlineTestButton(
                               status: _textTestStatus,
                               onTest: _testTextCapability,
-                              enabled: _apiKeyController.text.isNotEmpty,
+                              enabled: _hasUsableApiKey,
                             ),
                           ],
                         ),
@@ -499,6 +502,7 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
                         TextField(
                           controller: _apiKeyController,
                           obscureText: _obscureApiKey,
+                          onChanged: (_) => setState(() {}),
                           decoration: InputDecoration(
                             hintText: l10n.aiCloudApiKeyHintCustom,
                             border: const OutlineInputBorder(),
@@ -535,42 +539,53 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
                           ),
                         ],
 
-                        // 内置服务商显示获取Key和教程链接
+                        // 内置服务商：已编译进包的 Key 无需用户填写
                         if (_isBuiltIn) ...[
                           const SizedBox(height: 8),
-                          Text(
-                            l10n.aiCloudApiKeyHelper,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: BeeTokens.textTertiary(context),
+                          if (AIConstants.hasBuiltinGlmKey &&
+                              _apiKeyController.text.trim().isEmpty)
+                            Text(
+                              l10n.aiProviderBuiltinKeyHint,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: BeeTokens.textTertiary(context),
+                              ),
+                            )
+                          else ...[
+                            Text(
+                              l10n.aiCloudApiKeyHelper,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: BeeTokens.textTertiary(context),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              TextButton.icon(
-                                onPressed: _openGlmWebsite,
-                                icon: const Icon(Icons.open_in_new, size: 16),
-                                label: Text(l10n.aiCloudApiGetKey),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: primaryColor,
-                                  textStyle: const TextStyle(fontSize: 13),
-                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                TextButton.icon(
+                                  onPressed: _openGlmWebsite,
+                                  icon: const Icon(Icons.open_in_new, size: 16),
+                                  label: Text(l10n.aiCloudApiGetKey),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: primaryColor,
+                                    textStyle: const TextStyle(fontSize: 13),
+                                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  ),
                                 ),
-                              ),
-                              const Spacer(),
-                              TextButton.icon(
-                                onPressed: _openTutorial,
-                                icon: const Icon(Icons.help_outline, size: 16),
-                                label: Text(l10n.aiCloudApiTutorial),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: primaryColor,
-                                  textStyle: const TextStyle(fontSize: 13),
-                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                const Spacer(),
+                                TextButton.icon(
+                                  onPressed: _openTutorial,
+                                  icon: const Icon(Icons.help_outline, size: 16),
+                                  label: Text(l10n.aiCloudApiTutorial),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: primaryColor,
+                                    textStyle: const TextStyle(fontSize: 13),
+                                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                          ],
                         ],
                       ],
                     ),
@@ -659,7 +674,12 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
       id: widget.provider?.id ?? 'test',
       name: _nameController.text,
       isBuiltIn: _isBuiltIn,
-      apiKey: _apiKeyController.text,
+      apiKey: () {
+        final typed = _apiKeyController.text.trim();
+        if (typed.isNotEmpty) return typed;
+        if (_isBuiltIn) return AIConstants.builtinGlmApiKey;
+        return '';
+      }(),
       baseUrl: _baseUrlController.text,
       textModel: _textModelController.text,
       visionModel: _visionModelController.text,
@@ -672,7 +692,7 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
   Future<void> _testTextCapability() async {
     final l10n = AppLocalizations.of(context);
 
-    if (_apiKeyController.text.isEmpty) {
+    if (!_hasUsableApiKey) {
       showToast(context, l10n.aiProviderNoApiKey);
       return;
     }
@@ -706,7 +726,7 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
   Future<void> _testVisionCapability() async {
     final l10n = AppLocalizations.of(context);
 
-    if (_apiKeyController.text.isEmpty) {
+    if (!_hasUsableApiKey) {
       showToast(context, l10n.aiProviderNoApiKey);
       return;
     }
@@ -740,7 +760,7 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
   Future<void> _testSpeechCapability() async {
     final l10n = AppLocalizations.of(context);
 
-    if (_apiKeyController.text.isEmpty) {
+    if (!_hasUsableApiKey) {
       showToast(context, l10n.aiProviderNoApiKey);
       return;
     }
@@ -852,7 +872,7 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
             _buildInlineTestButton(
               status: testStatus,
               onTest: onTest,
-              enabled: _apiKeyController.text.isNotEmpty && controller.text.isNotEmpty,
+              enabled: _hasUsableApiKey && controller.text.isNotEmpty,
             ),
           ],
         ),
@@ -933,7 +953,7 @@ class _AIProviderEditPageState extends ConsumerState<AIProviderEditPage> {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
-        onPressed: allTesting || _apiKeyController.text.isEmpty
+        onPressed: allTesting || !_hasUsableApiKey
             ? null
             : _testAllCapabilities,
         icon: allTesting

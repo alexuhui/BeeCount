@@ -5584,6 +5584,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calendarToday => 'Today';
 
   @override
+  String get calendarSelectMonth => 'Select month';
+
+  @override
   String get calendarNoTransactions => 'No transactions';
 
   @override
@@ -5609,6 +5612,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiProviderNoApiKey => 'API Key not configured';
+
+  @override
+  String get aiProviderBuiltinKeyHint =>
+      'API Key is built into the app. No setup needed.';
 
   @override
   String get aiProviderTapToEdit => 'Tap to edit';

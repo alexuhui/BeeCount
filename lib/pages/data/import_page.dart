@@ -42,7 +42,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BeeScaffold(
       body: Column(
         children: [
           PrimaryHeader(

@@ -26,6 +26,7 @@ class CalendarPage extends ConsumerStatefulWidget {
 class _CalendarPageState extends ConsumerState<CalendarPage> {
   late DateTime _focusedMonth;
   DateTime? _selectedDay;
+  int _calendarEpoch = 0;
 
   @override
   void initState() {
@@ -63,9 +64,36 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
     setState(() {
       _focusedMonth = DateTime(now.year, now.month, 1);
       _selectedDay = now;
+      _calendarEpoch++;
     });
     ref.read(calendarSelectedMonthProvider.notifier).state = _focusedMonth;
     ref.read(calendarSelectedDateProvider.notifier).state = _selectedDay;
+  }
+
+  Future<void> _pickYearMonth() async {
+    final picked = await showWheelDatePicker(
+      context,
+      initial: _focusedMonth,
+      mode: WheelDatePickerMode.ym,
+      minDate: DateTime(2020, 1, 1),
+      maxDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked == null || !mounted) return;
+
+    final month = DateTime(picked.year, picked.month, 1);
+    DateTime? selected = _selectedDay;
+    if (selected != null &&
+        (selected.year != month.year || selected.month != month.month)) {
+      selected = null;
+    }
+
+    setState(() {
+      _focusedMonth = month;
+      _selectedDay = selected;
+      _calendarEpoch++;
+    });
+    ref.read(calendarSelectedMonthProvider.notifier).state = month;
+    ref.read(calendarSelectedDateProvider.notifier).state = selected;
   }
 
   @override
@@ -88,7 +116,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
       dailyTotalsByMonthProvider((ledgerId: ledgerId, month: _focusedMonth)),
     );
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [
@@ -178,6 +206,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
     }
 
     return TableCalendar(
+      key: ValueKey(_calendarEpoch),
       locale: locale.toString(),
       firstDay: DateTime(2020, 1, 1),
       lastDay: DateTime.now().add(const Duration(days: 365)),
@@ -187,6 +216,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
       },
       onDaySelected: _onDaySelected,
       onPageChanged: _onPageChanged,
+      onHeaderTapped: (_) => _pickYearMonth(),
       calendarFormat: CalendarFormat.month,
       startingDayOfWeek: StartingDayOfWeek.monday,
       availableGestures: AvailableGestures.horizontalSwipe,
@@ -265,7 +295,34 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
 
       // 日期标记构建器
       calendarBuilders: CalendarBuilders(
-        // 自定义默认日期单元格
+        headerTitleBuilder: (context, day) {
+          final title = DateFormat.yMMMM(locale.toString()).format(day);
+          return Semantics(
+            button: true,
+            label: AppLocalizations.of(context).calendarSelectMonth,
+            child: GestureDetector(
+              onTap: _pickYearMonth,
+              behavior: HitTestBehavior.opaque,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: BeeTokens.textPrimary(context),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Icon(Icons.arrow_drop_down, color: primaryColor),
+                ],
+              ),
+            ),
+          );
+        },
         defaultBuilder: (context, day, focusedDay) {
           return _buildDateCell(
               context, day, dailyTotals, primaryColor, false, false, false);

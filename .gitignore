@@ -58,3 +58,7 @@ keystore.zip
 .docs
 .tmp
 tmp
+
+# Compile-time AI key (do not commit)
+.cursor/zhipu.env
+dart_defines.json

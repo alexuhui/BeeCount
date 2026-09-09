@@ -5358,6 +5358,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get calendarToday => '今天';
 
   @override
+  String get calendarSelectMonth => '选择年月';
+
+  @override
   String get calendarNoTransactions => '当天无交易';
 
   @override
@@ -5383,6 +5386,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiProviderNoApiKey => '未配置 API Key';
+
+  @override
+  String get aiProviderBuiltinKeyHint => 'API Key 已内置，无需配置。';
 
   @override
   String get aiProviderTapToEdit => '点击编辑';
@@ -11063,6 +11069,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get calendarToday => '今天';
 
   @override
+  String get calendarSelectMonth => '選擇年月';
+
+  @override
   String get calendarNoTransactions => '當天無交易';
 
   @override
@@ -11088,6 +11097,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiProviderNoApiKey => '未設定 API Key';
+
+  @override
+  String get aiProviderBuiltinKeyHint => 'API Key 已內建，無需設定。';
 
   @override
   String get aiProviderTapToEdit => '點擊編輯';

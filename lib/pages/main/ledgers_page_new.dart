@@ -48,7 +48,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       }
     });
 
-    return Scaffold(
+    return BeeScaffold(
       body: Column(
         children: [
           PrimaryHeader(

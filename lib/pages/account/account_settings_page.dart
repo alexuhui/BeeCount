@@ -19,7 +19,7 @@ class AccountSettingsPage extends ConsumerWidget {
     final accounts =
         ref.watch(allAccountsStreamProvider).asData?.value ?? const [];
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

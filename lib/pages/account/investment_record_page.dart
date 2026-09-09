@@ -216,7 +216,7 @@ class _InvestmentRecordPageState extends ConsumerState<InvestmentRecordPage> {
             ? l10n.investDividend
             : l10n.investPnlAmountHint;
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

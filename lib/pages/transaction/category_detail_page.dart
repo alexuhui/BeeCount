@@ -79,7 +79,7 @@ class _CategoryDetailPageState extends ConsumerState<CategoryDetailPage> {
       },
     );
     
-    return Scaffold(
+    return BeeScaffold(
       body: Column(
         children: [
           categoryAsync.when(

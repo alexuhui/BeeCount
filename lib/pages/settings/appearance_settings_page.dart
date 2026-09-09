@@ -68,7 +68,7 @@ class AppearanceSettingsPage extends ConsumerWidget {
         patternDisplay = l10n.appearancePatternIcons;
     }
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

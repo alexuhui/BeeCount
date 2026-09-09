@@ -29,7 +29,7 @@ class _AISettingsPageState extends ConsumerState<AISettingsPage> {
     final l10n = AppLocalizations.of(context);
     final config = ref.watch(aiConfigProvider);
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

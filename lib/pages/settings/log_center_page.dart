@@ -80,7 +80,7 @@ class _LogCenterPageState extends ConsumerState<LogCenterPage> {
     final primaryColor = ref.watch(primaryColorProvider);
     final filteredLogs = _filteredLogs;
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

@@ -83,7 +83,9 @@ class AIConfigData {
   String get apiKey {
     switch (provider) {
       case AIServiceProvider.zhipuGLM:
-        return glmApiKey;
+        return glmApiKey.isNotEmpty
+            ? glmApiKey
+            : AIConstants.builtinGlmApiKey;
       case AIServiceProvider.custom:
         return customApiKey;
     }
@@ -209,6 +211,13 @@ class AIConfigNotifier extends StateNotifier<AIConfigData> {
           prefs.getString(AIConstants.keyAiStrategy) ?? 'cloud_first';
       final strategy = _parseStrategy(strategyStr);
 
+      final enabledPref = prefs.getBool(AIConstants.keyAiBillExtractionEnabled);
+      final enabled =
+          enabledPref ?? AIConstants.hasBuiltinGlmKey;
+      if (enabledPref == null && enabled) {
+        await prefs.setBool(AIConstants.keyAiBillExtractionEnabled, true);
+      }
+
       state = AIConfigData(
         provider: provider,
         glmApiKey: prefs.getString(AIConstants.keyGlmApiKey) ?? '',
@@ -222,7 +231,7 @@ class AIConfigNotifier extends StateNotifier<AIConfigData> {
         customTextModel: prefs.getString(AIConstants.keyCustomTextModel),
         customVisionModel: prefs.getString(AIConstants.keyCustomVisionModel),
         customAudioModel: prefs.getString(AIConstants.keyCustomAudioModel),
-        enabled: prefs.getBool(AIConstants.keyAiBillExtractionEnabled) ?? false,
+        enabled: enabled,
         useVision: prefs.getBool(AIConstants.keyAiUseVision) ?? true,
         strategy: strategy,
       );

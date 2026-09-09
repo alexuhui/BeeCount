@@ -186,7 +186,7 @@ class _CategoryEditPageState extends ConsumerState<CategoryEditPage> {
       BuildContext context, String headerTitle, String? headerSubtitle) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     
-    return Scaffold(
+    return BeeScaffold(
       body: Column(
         children: [
           PrimaryHeader(

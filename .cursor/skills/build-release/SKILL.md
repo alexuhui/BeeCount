@@ -13,12 +13,32 @@ description: >-
 
 Work from `beecount_client`.
 
+## AI key (required for in-app GLM)
+
+Copy `.cursor/zhipu.env.example` to `.cursor/zhipu.env` and set `ZHIPU_API_KEY`. The key is compiled into the APK/exe; users do not configure it.
+
+```powershell
+$defineArgs = @()
+$envFile = Join-Path (Get-Location) ".cursor\zhipu.env"
+if (Test-Path $envFile) {
+  Get-Content $envFile | ForEach-Object {
+    if ($_ -match '^\s*([A-Z0-9_]+)\s*=\s*(.*)$') {
+      $defineArgs += "--dart-define=$($Matches[1])=$($Matches[2].Trim().Trim('\"'))"
+    }
+  }
+} else {
+  Write-Warning "Missing .cursor/zhipu.env — GLM AI key will not be baked in"
+}
+```
+
+Pass `@defineArgs` to every `flutter build` / `flutter run`.
+
 ## Commands
 
-```bash
+```powershell
 flutter pub get
-flutter build apk --flavor prod --release
-flutter build windows --release
+flutter build apk --flavor prod --release @defineArgs
+flutter build windows --release @defineArgs
 ```
 
 Windows needs Developer Mode (symlinks) and VS 2022 workload **Desktop development with C++**.

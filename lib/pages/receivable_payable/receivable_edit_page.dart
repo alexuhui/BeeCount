@@ -63,7 +63,7 @@ class _ReceivableEditPageState extends ConsumerState<ReceivableEditPage> {
     final currentLedgerAsync = ref.watch(currentLedgerProvider);
     final currencyCode = currentLedgerAsync.asData?.value?.currency ?? 'CNY';
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

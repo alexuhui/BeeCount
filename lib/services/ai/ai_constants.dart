@@ -21,6 +21,12 @@ class AIConstants {
   static const String keyCustomVisionModel = 'ai_custom_vision_model';
   static const String keyCustomAudioModel = 'ai_custom_audio_model';
 
+  /// Compile-time Zhipu GLM key, baked into the binary via
+  /// `--dart-define=ZHIPU_API_KEY=...` (see `.cursor/zhipu.env.example`).
+  static const String builtinGlmApiKey = String.fromEnvironment('ZHIPU_API_KEY');
+
+  static bool get hasBuiltinGlmKey => builtinGlmApiKey.isNotEmpty;
+
   // 默认模型
   /// 默认文本模型
   static const String defaultGlmModel = 'glm-4-flash';

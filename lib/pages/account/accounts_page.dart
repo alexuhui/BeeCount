@@ -17,7 +17,7 @@ class AccountsPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

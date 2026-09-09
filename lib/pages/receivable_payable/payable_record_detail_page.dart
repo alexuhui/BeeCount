@@ -27,7 +27,7 @@ class PayableRecordDetailPage extends ConsumerWidget {
     final paymentsAsync = ref.watch(payablePaymentsProvider(payable.id));
     final primaryColor = ref.watch(primaryColorProvider);
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

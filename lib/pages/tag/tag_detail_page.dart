@@ -74,7 +74,7 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
     final statsAsync = ref.watch(_tagStatsProvider(widget.tagId));
     final transactionsAsync = ref.watch(_tagTransactionsStreamProvider(widget.tagId));
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

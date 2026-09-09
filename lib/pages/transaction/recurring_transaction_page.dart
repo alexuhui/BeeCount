@@ -19,7 +19,7 @@ class RecurringTransactionPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final recurringTransactionsAsync = ref.watch(allRecurringTransactionsProvider);
 
-    return Scaffold(
+    return BeeScaffold(
       body: Column(
         children: [
           PrimaryHeader(

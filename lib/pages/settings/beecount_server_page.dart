@@ -7,6 +7,7 @@ import '../../providers/all_providers.dart';
 import '../../providers/beecount_server_providers.dart';
 import '../../services/system/logger_service.dart';
 import '../../utils/local_storage_utils.dart';
+import '../../widgets/ui/ui.dart';
 
 class BeeCountServerPage extends ConsumerStatefulWidget {
   const BeeCountServerPage({super.key});
@@ -22,7 +23,7 @@ class _BeeCountServerPageState extends ConsumerState<BeeCountServerPage> {
     final sessionAsync = ref.watch(beecountSessionProvider);
     final session = sessionAsync.asData?.value;
 
-    return Scaffold(
+    return BeeScaffold(
       appBar: AppBar(
         title: Text(l10n.cloudCustomBeeCountTitle),
       ),

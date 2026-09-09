@@ -39,7 +39,7 @@ class _IconPickerPageState extends State<IconPickerPage> with TickerProviderStat
   Widget build(BuildContext context) {
     final categories = _getIconCategories();
     
-    return Scaffold(
+    return BeeScaffold(
       body: Column(
         children: [
           PrimaryHeader(

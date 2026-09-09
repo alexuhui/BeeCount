@@ -14,7 +14,7 @@ class LanguageSettingsPage extends ConsumerWidget {
     final currentLanguage = ref.watch(languageProvider);
     final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

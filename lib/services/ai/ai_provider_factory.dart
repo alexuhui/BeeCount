@@ -25,7 +25,7 @@ class AIProviderFactory {
     ));
     _dio!.options.baseUrl = config.baseUrl;
     _dio!.options.headers = {
-      'Authorization': 'Bearer ${config.apiKey}',
+      'Authorization': 'Bearer ${config.resolvedApiKey}',
       'Content-Type': 'application/json',
     };
     return _dio!;
@@ -385,7 +385,7 @@ class AIProviderFactory {
     double temperature,
   ) async {
     final provider = ZhipuGLMProvider(
-      apiKey: config.apiKey,
+      apiKey: config.resolvedApiKey,
       model: config.textModel,
       temperature: temperature,
     );
@@ -406,7 +406,7 @@ class AIProviderFactory {
     String prompt,
   ) async {
     final provider = ZhipuGLMProvider(
-      apiKey: config.apiKey,
+      apiKey: config.resolvedApiKey,
       model: config.visionModel,
       imageFile: image,
       temperature: 0.3,
@@ -427,7 +427,7 @@ class AIProviderFactory {
     File audio,
   ) async {
     final provider = ZhipuGLMProvider(
-      apiKey: config.apiKey,
+      apiKey: config.resolvedApiKey,
       model: config.audioModel,
       audioFile: audio,
     );

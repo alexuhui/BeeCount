@@ -17,7 +17,7 @@ class ReminderSettingsPage extends ConsumerWidget {
 
     final isDark = BeeTokens.isDark(context);
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

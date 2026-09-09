@@ -50,7 +50,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     final repo = ref.watch(repositoryProvider);
     final ledgerId = ref.watch(currentLedgerIdProvider);
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
+    return BeeScaffold(
       body: Column(
         children: [
           PrimaryHeader(title: l10n.exportTitle, showBack: true),

@@ -228,14 +228,15 @@ class _BeeAppState extends ConsumerState<BeeApp>
     }
   }
 
-  /// 检查语音识别是否可用（需要开启AI智能识别并配置GLM API Key）
+  /// 检查语音识别是否可用（AI 已开启，且有用户 Key 或内置 Key）
   Future<bool> _checkGlmApiKeyConfigured() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final aiEnabled =
-          prefs.getBool(AIConstants.keyAiBillExtractionEnabled) ?? false;
+      final aiEnabled = prefs.getBool(AIConstants.keyAiBillExtractionEnabled) ??
+          AIConstants.hasBuiltinGlmKey;
       final apiKey = prefs.getString(AIConstants.keyGlmApiKey) ?? '';
-      return aiEnabled && apiKey.isNotEmpty;
+      return aiEnabled &&
+          (apiKey.isNotEmpty || AIConstants.hasBuiltinGlmKey);
     } catch (e) {
       return false;
     }

@@ -90,7 +90,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     
-    return Scaffold(
+    return BeeScaffold(
       body: Column(
         children: [
           // 紧凑顶部：去除多余留白 + 选中下划线

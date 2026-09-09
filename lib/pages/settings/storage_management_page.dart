@@ -191,7 +191,7 @@ class _StorageManagementPageState extends ConsumerState<StorageManagementPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

@@ -5,6 +5,7 @@ import '../../widgets/ui/primary_header.dart';
 import '../../providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/platform_info.dart';
+import '../../widgets/ui/ui.dart';
 
 /// iOS自动记账配置页面
 /// 通过快捷指令实现截图自动识别
@@ -24,7 +25,7 @@ class _IOSAutoBillingPageState extends ConsumerState<IOSAutoBillingPage> {
     final l10n = AppLocalizations.of(context);
     final supportsAppIntents = PlatformInfo.supportsAppIntents;
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: theme.colorScheme.surface,
       body: Column(
         children: [

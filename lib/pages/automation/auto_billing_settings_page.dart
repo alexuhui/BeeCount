@@ -11,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../../utils/notification_factory.dart';
 import '../../utils/notification_android.dart';
 import 'ios_auto_billing_page.dart';
+import '../../widgets/ui/ui.dart';
 
 /// 自动记账设置页面（根据平台路由）
 class AutoBillingSettingsPage extends StatelessWidget {
@@ -164,7 +165,7 @@ class _AndroidAutoBillingPageState extends ConsumerState<AndroidAutoBillingPage>
     final primaryColor = ref.watch(primaryColorProvider);
     final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: theme.colorScheme.surface,
       body: Column(
         children: [

@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../widget/home_widget_view.dart';
 import '../../widgets/ui/primary_header.dart';
 import '../../providers.dart';
+import '../../widgets/ui/ui.dart';
 
 /// 小组件管理页面
 class WidgetManagementPage extends ConsumerWidget {
@@ -16,7 +17,7 @@ class WidgetManagementPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final primaryColor = ref.watch(primaryColorProvider);
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: theme.colorScheme.surface,
       body: Column(
         children: [

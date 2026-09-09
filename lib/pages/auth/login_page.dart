@@ -75,7 +75,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     return Stack(
       children: [
-        Scaffold(
+        BeeScaffold(
           backgroundColor: theme.primaryColor,
           body: SafeArea(
         child: Column(

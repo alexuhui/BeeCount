@@ -52,7 +52,7 @@ class _PersonalizePageState extends ConsumerState<PersonalizePage> {
       _ThemeOption(l10n.personalizeThemeLime, Colors.lime),
     ];
 
-    return Scaffold(
+    return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [

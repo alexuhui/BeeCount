@@ -45,7 +45,7 @@ class _CategoryMigrationPageState extends ConsumerState<CategoryMigrationPage> {
   Widget build(BuildContext context) {
     final categoriesWithCountAsync = ref.watch(categoriesWithCountProvider);
     
-    return Scaffold(
+    return BeeScaffold(
       body: Column(
         children: [
           PrimaryHeader(

@@ -10126,6 +10126,12 @@ abstract class AppLocalizations {
   /// **'Today'**
   String get calendarToday;
 
+  /// No description provided for @calendarSelectMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Select month'**
+  String get calendarSelectMonth;
+
   /// No description provided for @calendarNoTransactions.
   ///
   /// In en, this message translates to:
@@ -10179,6 +10185,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'API Key not configured'**
   String get aiProviderNoApiKey;
+
+  /// No description provided for @aiProviderBuiltinKeyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'API Key is built into the app. No setup needed.'**
+  String get aiProviderBuiltinKeyHint;
 
   /// No description provided for @aiProviderTapToEdit.
   ///

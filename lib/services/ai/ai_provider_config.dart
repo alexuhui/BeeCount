@@ -1,3 +1,5 @@
+import 'ai_constants.dart';
+
 /// AI 服务商配置
 ///
 /// 存储单个服务商的完整配置信息
@@ -53,8 +55,19 @@ class AIServiceProviderConfig {
         createdAt: DateTime(2024, 1, 1),
       );
 
-  /// 配置是否有效（至少有 API Key）
-  bool get isValid => apiKey.isNotEmpty;
+  /// 配置是否有效（用户填写的 Key，或内置智谱 Key）
+  bool get isValid => resolvedApiKey.isNotEmpty;
+
+  /// 运行时实际使用的 Key：用户配置优先，否则用编译进包内的智谱 Key。
+  String get resolvedApiKey {
+    if (apiKey.isNotEmpty) return apiKey;
+    if (id == 'zhipu_glm') return AIConstants.builtinGlmApiKey;
+    return '';
+  }
+
+  /// 正在使用编译进 APK 的内置 Key（界面上不展示明文）
+  bool get usesBuiltinKey =>
+      apiKey.isEmpty && id == 'zhipu_glm' && AIConstants.hasBuiltinGlmKey;
 
   /// 是否支持文本对话
   bool get supportsText => textModel.isNotEmpty;

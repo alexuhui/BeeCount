@@ -1964,6 +1964,8 @@
   "accountNoTransactions": "No transactions",
   "accountTransactionHistory": "Transaction History",
   "accountTotalBalance": "Net Assets",
+  "accountAvailableFunds": "Available Funds",
+  "accountTypeOtherAvailableFundsHint": "Other accounts are not included in Available Funds. Choose Cash, Bank Card, WeChat, or Alipay to include them.",
   "accountTotalExpense": "Total Expense",
   "accountTotalIncome": "Total Income",
   "accountCurrencyLocked": "This account has transactions and cannot change currency",

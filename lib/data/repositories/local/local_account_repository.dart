@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' as d;
 
 import '../../db.dart';
 import '../../../services/system/logger_service.dart';
+import '../../../utils/account_funds.dart';
 import '../../../utils/invest_tx.dart';
 import '../account_repository.dart';
 
@@ -434,7 +435,7 @@ class LocalAccountRepository implements AccountRepository {
   }
 
   @override
-  Future<({double totalBalance, double totalExpense, double totalIncome})> getAllAccountsTotalStats() async {
+  Future<({double totalBalance, double availableFunds, double totalExpense, double totalIncome})> getAllAccountsTotalStats() async {
     final accounts = await db.select(db.accounts).get();
 
     // 净资产 ≈ 现金类账户余额之和 + 全部应收未收本金 − 全部应付未付本金。
@@ -447,12 +448,14 @@ class LocalAccountRepository implements AccountRepository {
     // 现金未动，未收本金增加总资产。两种都在「未收本金」里体现，与列表「待收」一致。
     // 应付款同理（未付本金）。
     double totalBalance = 0.0;
+    final balancesForFunds = <({String type, double balance})>[];
     for (final account in accounts) {
       if (account.type == 'receivable' || account.type == 'payable') {
         continue;
       }
       final balance = await getAccountBalance(account.id);
       totalBalance += balance;
+      balancesForFunds.add((type: account.type, balance: balance));
     }
 
     double outstandingReceivable = 0.0;
@@ -490,6 +493,10 @@ class LocalAccountRepository implements AccountRepository {
     }
 
     totalBalance += outstandingReceivable - outstandingPayable;
+    final availableFunds = AccountFunds.available(
+      accounts: balancesForFunds,
+      outstandingPayable: outstandingPayable,
+    );
 
     // 总收入/支出：直接从交易表查询，排除转账类型
     final accountIds = accounts.map((a) => a.id).toSet();
@@ -513,7 +520,12 @@ class LocalAccountRepository implements AccountRepository {
       }
     }
 
-    return (totalBalance: totalBalance, totalExpense: totalExpense, totalIncome: totalIncome);
+    return (
+      totalBalance: totalBalance,
+      availableFunds: availableFunds,
+      totalExpense: totalExpense,
+      totalIncome: totalIncome,
+    );
   }
 
   @override

@@ -1809,6 +1809,8 @@
   "accountNoTransactions": "暂无交易记录",
   "accountTransactionHistory": "交易记录",
   "accountTotalBalance": "净资产",
+  "accountAvailableFunds": "可用资金",
+  "accountTypeOtherAvailableFundsHint": "「其他」类型暂不计入可用资金。若需纳入统计，请选择现金、银行卡、微信或支付宝。",
   "accountTotalExpense": "总支出",
   "accountTotalIncome": "总收入",
   "accountCurrencyLocked": "该账户已有交易记录，不允许修改币种",

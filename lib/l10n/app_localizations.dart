@@ -8072,6 +8072,18 @@ abstract class AppLocalizations {
   /// **'Net Assets'**
   String get accountTotalBalance;
 
+  /// No description provided for @accountAvailableFunds.
+  ///
+  /// In en, this message translates to:
+  /// **'Available Funds'**
+  String get accountAvailableFunds;
+
+  /// No description provided for @accountTypeOtherAvailableFundsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Other accounts are not included in Available Funds. Choose Cash, Bank Card, WeChat, or Alipay to include them.'**
+  String get accountTypeOtherAvailableFundsHint;
+
   /// No description provided for @accountTotalExpense.
   ///
   /// In en, this message translates to:

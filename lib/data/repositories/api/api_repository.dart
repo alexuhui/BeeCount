@@ -5,6 +5,7 @@ import 'dart:io';
 import '../../../config/page_sizes.dart';
 import '../../../services/api/api_json.dart';
 import '../../../services/api/beecount_api_client.dart';
+import '../../../utils/account_funds.dart';
 import '../../../utils/invest_tx.dart';
 import '../../category_node.dart';
 import '../../db.dart';
@@ -1253,12 +1254,15 @@ class ApiRepository extends LocalRepository {
   }
 
   @override
-  Future<({double totalBalance, double totalExpense, double totalIncome})>
+  Future<({double totalBalance, double availableFunds, double totalExpense, double totalIncome})>
       getAllAccountsTotalStats() async {
     final data = await api.get('/accounts/stats');
     if (data.containsKey('total_balance')) {
       return (
         totalBalance: asDouble(data['total_balance']),
+        availableFunds: data.containsKey('available_funds')
+            ? asDouble(data['available_funds'])
+            : await _availableFundsFromStatItems(data),
         totalExpense: asDouble(data['total_expense']),
         totalIncome: asDouble(data['total_income']),
       );
@@ -1269,18 +1273,45 @@ class ApiRepository extends LocalRepository {
     var totalBalance = 0.0;
     var totalExpense = 0.0;
     var totalIncome = 0.0;
+    final itemBalances = <({String type, double balance})>[];
     for (final m in asItemMaps(data)) {
       final type = typeById[asInt(m['id'])];
       totalIncome += asDouble(m['income']);
       totalExpense += asDouble(m['expense']);
       if (type != 'receivable' && type != 'payable') {
-        totalBalance += asDouble(m['balance']);
+        final balance = asDouble(m['balance']);
+        totalBalance += balance;
+        if (type != null) {
+          itemBalances.add((type: type, balance: balance));
+        }
       }
     }
     return (
       totalBalance: totalBalance,
+      availableFunds: AccountFunds.available(
+        accounts: itemBalances,
+        outstandingPayable: 0,
+      ),
       totalExpense: totalExpense,
       totalIncome: totalIncome,
+    );
+  }
+
+  Future<double> _availableFundsFromStatItems(Map<String, dynamic> data) async {
+    final typeById = {
+      for (final a in await getAllAccounts()) a.id: a.type,
+    };
+    final itemBalances = <({String type, double balance})>[];
+    for (final m in asItemMaps(data)) {
+      final type = typeById[asInt(m['id'])];
+      if (type == null || type == 'receivable' || type == 'payable') {
+        continue;
+      }
+      itemBalances.add((type: type, balance: asDouble(m['balance'])));
+    }
+    return AccountFunds.available(
+      accounts: itemBalances,
+      outstandingPayable: 0,
     );
   }
 

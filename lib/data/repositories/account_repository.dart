@@ -76,8 +76,8 @@ abstract class AccountRepository {
   /// 批量获取所有账户的统计信息
   Future<Map<int, ({double balance, double expense, double income})>> getAllAccountStats();
 
-  /// 获取所有账户的汇总统计（总余额、总支出、总收入）
-  Future<({double totalBalance, double totalExpense, double totalIncome})> getAllAccountsTotalStats();
+  /// 获取所有账户的汇总统计（净资产、可用资金、总支出、总收入）
+  Future<({double totalBalance, double availableFunds, double totalExpense, double totalIncome})> getAllAccountsTotalStats();
 
   /// 获取账户在多个账本中的使用情况
   Future<Map<int, int>> getAccountUsageInLedgers(int accountId);

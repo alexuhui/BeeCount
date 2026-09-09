@@ -268,6 +268,13 @@ class _AccountsBodyState extends ConsumerState<AccountsBody> {
                         : Colors.red,
                   ),
                   (
+                    label: l10n.accountAvailableFunds,
+                    value: stats.availableFunds,
+                    color: stats.availableFunds >= 0
+                        ? BeeTokens.textPrimary(context)
+                        : Colors.red,
+                  ),
+                  (
                     label: l10n.accountTotalIncome,
                     value: stats.totalIncome,
                     color: BeeTokens.incomeColor(context, ref),

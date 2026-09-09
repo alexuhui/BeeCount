@@ -48,6 +48,8 @@
   "accountNone": "不選擇帳戶",
   "accountSelectTitle": "選擇帳戶",
   "accountTotalBalance": "淨資產",
+  "accountAvailableFunds": "可用資金",
+  "accountTypeOtherAvailableFundsHint": "「其他」類型暫不計入可用資金。若需納入統計，請選擇現金、銀行卡、微信或支付寶。",
   "accountTotalExpense": "總支出",
   "accountTotalIncome": "總收入",
   "accountTransactionHistory": "交易歷史",

@@ -4276,6 +4276,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountTotalBalance => '净资产';
 
   @override
+  String get accountAvailableFunds => '可用资金';
+
+  @override
+  String get accountTypeOtherAvailableFundsHint =>
+      '「其他」类型暂不计入可用资金。若需纳入统计，请选择现金、银行卡、微信或支付宝。';
+
+  @override
   String get accountTotalExpense => '总支出';
 
   @override
@@ -9978,6 +9985,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get accountTotalBalance => '淨資產';
+
+  @override
+  String get accountAvailableFunds => '可用資金';
+
+  @override
+  String get accountTypeOtherAvailableFundsHint =>
+      '「其他」類型暫不計入可用資金。若需納入統計，請選擇現金、銀行卡、微信或支付寶。';
 
   @override
   String get accountTotalExpense => '總支出';

@@ -281,6 +281,30 @@ class _AccountEditPageState extends ConsumerState<AccountEditPage> {
                               );
                             }).toList(),
                           ),
+                          if (_selectedType == 'other') ...[
+                            SizedBox(height: 12.0.scaled(context, ref)),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  size: 16,
+                                  color: BeeTokens.textTertiary(context),
+                                ),
+                                SizedBox(width: 6.0.scaled(context, ref)),
+                                Expanded(
+                                  child: Text(
+                                    l10n.accountTypeOtherAvailableFundsHint,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      height: 1.4,
+                                      color: BeeTokens.textTertiary(context),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),

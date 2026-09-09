@@ -4453,6 +4453,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountTotalBalance => 'Net Assets';
 
   @override
+  String get accountAvailableFunds => 'Available Funds';
+
+  @override
+  String get accountTypeOtherAvailableFundsHint =>
+      'Other accounts are not included in Available Funds. Choose Cash, Bank Card, WeChat, or Alipay to include them.';
+
+  @override
   String get accountTotalExpense => 'Total Expense';
 
   @override

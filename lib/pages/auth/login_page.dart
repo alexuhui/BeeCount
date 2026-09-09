@@ -28,7 +28,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       TextEditingController();
 
   bool _isSubmitting = false;
-  bool _loggedIn = false;
   bool _isRegister = false;
 
   /// 线上服务器（release 固定使用）
@@ -127,18 +126,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       style: theme.textTheme.headlineSmall?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _isSubmitting
-                          ? l10n.mineCloudServiceOffline
-                          : (_loggedIn
-                              ? l10n.mineSyncInSyncSimple
-                              : l10n.mineSyncNotLoggedIn),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -386,7 +373,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
       if (!mounted) return;
       await _saveCredentials(username, password);
-      setState(() => _loggedIn = true);
       await _finishLogin(context);
     } catch (e, st) {
       logger.error('Login', '登录/注册失败', e, st);

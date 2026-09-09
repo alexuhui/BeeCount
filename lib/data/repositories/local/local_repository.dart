@@ -684,7 +684,7 @@ class LocalRepository extends BaseRepository {
       _accountRepo.getAllAccountStats();
 
   @override
-  Future<({double totalBalance, double totalExpense, double totalIncome})> getAllAccountsTotalStats() =>
+  Future<({double totalBalance, double availableFunds, double totalExpense, double totalIncome})> getAllAccountsTotalStats() =>
       _accountRepo.getAllAccountsTotalStats();
 
   @override

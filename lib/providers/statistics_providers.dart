@@ -111,7 +111,7 @@ final allAccountStatsProvider = FutureProvider.autoDispose<Map<int, ({double bal
 
 // 统计：所有账户汇总统计（总余额、总支出、总收入）
 // v1.15.0: 不再限制账本，获取所有账户
-final allAccountsTotalStatsProvider = FutureProvider.autoDispose<({double totalBalance, double totalExpense, double totalIncome})>(
+final allAccountsTotalStatsProvider = FutureProvider.autoDispose<({double totalBalance, double availableFunds, double totalExpense, double totalIncome})>(
         (ref) async {
   final repo = ref.watch(repositoryProvider);
   logger.info('AllAccountsTotalStats', '使用的 Repository 类型: ${repo.runtimeType}');
@@ -120,7 +120,7 @@ final allAccountsTotalStatsProvider = FutureProvider.autoDispose<({double totalB
   final link = ref.keepAlive();
   ref.onDispose(() => link.close());
   final stats = await repo.getAllAccountsTotalStats();
-  logger.info('AllAccountsTotalStats', '总余额: ${stats.totalBalance}, 总支出: ${stats.totalExpense}, 总收入: ${stats.totalIncome}');
+  logger.info('AllAccountsTotalStats', '总余额: ${stats.totalBalance}, 可用资金: ${stats.availableFunds}, 总支出: ${stats.totalExpense}, 总收入: ${stats.totalIncome}');
   return stats;
 });
 

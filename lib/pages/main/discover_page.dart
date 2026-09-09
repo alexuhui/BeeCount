@@ -257,7 +257,7 @@ class _DiscoverSectionSwitcher extends ConsumerWidget {
     final budget = overview?.totalBudget;
     double? rate;
     Color? color;
-    if (budget != null) {
+    if (budget != null && (budget.budget > 0 || budget.used > 0)) {
       rate = budget.budget > 0
           ? (budget.used / budget.budget).clamp(0.0, 1.0)
           : budget.used > 0
@@ -508,7 +508,10 @@ class _BudgetCardContent extends StatelessWidget {
 
         return overviewAsync.when(
           data: (overview) {
-            if (overview == null || overview.totalBudget == null) {
+            final total = overview?.totalBudget;
+            if (overview == null ||
+                total == null ||
+                (total.budget <= 0 && overview.categoryBudgets.isEmpty)) {
               return _buildEmptyState(context, l10n, primaryColor);
             }
             return _buildBudgetContent(context, ref, overview, l10n, primaryColor);

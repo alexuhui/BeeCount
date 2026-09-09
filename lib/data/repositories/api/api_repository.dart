@@ -6,9 +6,11 @@ import '../../../config/page_sizes.dart';
 import '../../../services/api/api_json.dart';
 import '../../../services/api/beecount_api_client.dart';
 import '../../../utils/account_funds.dart';
+import '../../../utils/budget_overview.dart';
 import '../../../utils/invest_tx.dart';
 import '../../category_node.dart';
 import '../../db.dart';
+import '../budget_repository.dart';
 import '../local/local_repository.dart';
 
 /// Server-first repository: ledger data over HTTP, AI still uses local Drift.
@@ -1373,15 +1375,257 @@ class ApiRepository extends LocalRepository {
   Stream<List<RecurringTransaction>> watchAllRecurringTransactions() =>
       _watch(getAllRecurringTransactions);
 
+  Future<List<Budget>> _allBudgets() async {
+    final rows = await api.listAll('/budgets');
+    return rows.map(budgetFromJson).toList();
+  }
+
+  List<({int id, String name, String? icon, int? parentId})> _catRefs(
+      List<Category> cats) {
+    return [
+      for (final c in cats)
+        (id: c.id, name: c.name, icon: c.icon, parentId: c.parentId),
+    ];
+  }
+
+  List<({int id, int? categoryId, double amount})> _budgetRefs(
+      Iterable<Budget> budgets) {
+    return [
+      for (final b in budgets)
+        (id: b.id, categoryId: b.categoryId, amount: b.amount),
+    ];
+  }
+
+  Future<Map<int, double>> _expenseByCategory({
+    required int ledgerId,
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    final rows = await totalsByCategory(
+      ledgerId: ledgerId,
+      type: 'expense',
+      start: start,
+      end: end,
+    );
+    final map = <int, double>{};
+    for (final r in rows) {
+      final id = r.id;
+      if (id == null) continue;
+      map[id] = (map[id] ?? 0) + r.total;
+    }
+    return map;
+  }
+
+  @override
+  Future<int> createBudget({
+    required int ledgerId,
+    required int year,
+    required int month,
+    int? categoryId,
+    required double amount,
+    required bool prompt,
+    int? promptDay,
+    bool? ignored,
+  }) async {
+    final row = await api.post('/budgets', {
+      'ledger_id': ledgerId,
+      'year': year,
+      'month': month,
+      'category_id': categoryId,
+      'amount': amount,
+      'prompt': prompt,
+      if (promptDay != null) 'prompt_day': promptDay,
+      if (ignored != null) 'ignored': ignored,
+    });
+    notifyChanged();
+    return asInt(row['id']);
+  }
+
+  @override
+  Future<void> updateBudget(
+    int id, {
+    double? amount,
+    int? startDay,
+    bool? enabled,
+  }) async {
+    await api.put('/budgets/$id', {
+      if (amount != null) 'amount': amount,
+      if (enabled != null) 'enabled': enabled,
+    });
+    notifyChanged();
+  }
+
+  @override
+  Future<void> deleteBudget(int id) async {
+    await api.delete('/budgets/$id');
+    notifyChanged();
+  }
+
   @override
   Future<List<Budget>> getAllBudgets(int ledgerId) async {
-    final rows = await api.listAll('/budgets');
-    return rows.map(budgetFromJson).where((b) => b.ledgerId == ledgerId).toList();
+    return (await _allBudgets())
+        .where((b) => b.ledgerId == ledgerId)
+        .toList();
   }
+
+  @override
+  Future<List<Budget>> getAllBudgetsForExport() => _allBudgets();
 
   @override
   Stream<List<Budget>> watchBudgets(int ledgerId) =>
       _watch(() => getAllBudgets(ledgerId));
+
+  @override
+  Future<List<Budget>> getCategoryBudgets(int ledgerId) async {
+    return (await getAllBudgets(ledgerId))
+        .where((b) => b.enabled)
+        .toList();
+  }
+
+  @override
+  Future<List<Budget>> getCategoryBudgetsByMonth(
+      int ledgerId, int year, int month) async {
+    return (await getCategoryBudgets(ledgerId))
+        .where((b) => b.year == year && b.month == month)
+        .toList();
+  }
+
+  @override
+  Future<Budget?> getBudgetByCategory(int ledgerId, int categoryId) async {
+    for (final b in await getCategoryBudgets(ledgerId)) {
+      if (b.categoryId == categoryId) return b;
+    }
+    return null;
+  }
+
+  @override
+  Future<Budget?> getTotalBudget(int ledgerId) async {
+    final budgets = await getCategoryBudgets(ledgerId);
+    var total = 0.0;
+    Budget? first;
+    for (final budget in budgets) {
+      total += budget.amount;
+      first ??= budget;
+    }
+    final now = DateTime.now();
+    return Budget(
+      id: 0,
+      ledgerId: ledgerId,
+      year: first?.year ?? now.year,
+      month: first?.month ?? now.month,
+      categoryId: null,
+      amount: total,
+      enabled: true,
+      createdAt: now,
+      updatedAt: now,
+      prompt: false,
+      promptDay: null,
+      ignored: false,
+    );
+  }
+
+  @override
+  Future<BudgetUsage> getBudgetUsage(int budgetId, DateTime date) async {
+    Budget? budget;
+    for (final b in await _allBudgets()) {
+      if (b.id == budgetId) {
+        budget = b;
+        break;
+      }
+    }
+    if (budget == null) return BudgetUsage(used: 0, budget: 0);
+    final categoryId = budget.categoryId;
+    if (categoryId == null) {
+      return BudgetUsage(used: 0, budget: budget.amount);
+    }
+    final start = DateTime(date.year, date.month);
+    final end = DateTime(date.year, date.month + 1);
+    final cats = await _cats();
+    final used = BudgetOverviewCalc.usedForCategory(
+      categoryId: categoryId,
+      categories: [
+        for (final c in cats) (id: c.id, parentId: c.parentId),
+      ],
+      expenseByCategoryId: await _expenseByCategory(
+        ledgerId: budget.ledgerId,
+        start: start,
+        end: end,
+      ),
+    );
+    return BudgetUsage(used: used, budget: budget.amount);
+  }
+
+  @override
+  Future<List<CategoryBudgetUsage>> getCategoryBudgetUsages(
+    int ledgerId,
+    DateTime date,
+  ) async {
+    final all = await getCategoryBudgetUsagesAll(ledgerId, date);
+    return all.where((u) => u.budgetId != 0).toList();
+  }
+
+  @override
+  Future<List<CategoryBudgetUsage>> getCategoryBudgetUsagesAll(
+    int ledgerId,
+    DateTime date,
+  ) async {
+    final start = DateTime(date.year, date.month);
+    final end = DateTime(date.year, date.month + 1);
+    final budgets =
+        await getCategoryBudgetsByMonth(ledgerId, date.year, date.month);
+    final cats = await _cats();
+    return BudgetOverviewCalc.monthly(
+      budgets: _budgetRefs(budgets),
+      categories: _catRefs(cats),
+      expenseByCategoryId: await _expenseByCategory(
+        ledgerId: ledgerId,
+        start: start,
+        end: end,
+      ),
+    );
+  }
+
+  @override
+  Future<List<CategoryBudgetUsage>> getYearlyCategoryBudgetUsagesAll(
+    int ledgerId,
+    int year,
+  ) async {
+    final start = DateTime(year, 1, 1);
+    final end = DateTime(year + 1, 1, 1);
+    final budgets = (await getCategoryBudgets(ledgerId))
+        .where((b) => b.year == year && b.categoryId != null)
+        .toList();
+    final cats = await _cats();
+    return BudgetOverviewCalc.yearly(
+      budgets: _budgetRefs(budgets),
+      categories: _catRefs(cats),
+      expenseByCategoryId: await _expenseByCategory(
+        ledgerId: ledgerId,
+        start: start,
+        end: end,
+      ),
+    );
+  }
+
+  @override
+  Future<BudgetOverview> getBudgetOverview(int ledgerId, DateTime date) async {
+    final usages = await getCategoryBudgetUsagesAll(ledgerId, date);
+    return BudgetOverviewCalc.overview(
+      categoryUsages: usages,
+      year: date.year,
+      month: date.month,
+    );
+  }
+
+  @override
+  Future<BudgetOverview> getYearlyBudgetOverview(int ledgerId, int year) async {
+    final usages = await getYearlyCategoryBudgetUsagesAll(ledgerId, year);
+    return BudgetOverviewCalc.overview(
+      categoryUsages: usages,
+      year: year,
+      month: 0,
+    );
+  }
 
   @override
   Future<List<TransactionAttachment>> getAttachmentsByTransaction(

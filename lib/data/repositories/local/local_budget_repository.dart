@@ -335,7 +335,12 @@ class LocalBudgetRepository implements BudgetRepository {
 
     // 获取所有分类预算
     final budgets = await getCategoryBudgetsByMonth(ledgerId, date.year, date.month);
-    final budgetMap = {for (final b in budgets) b.categoryId!: b};
+    final budgetMap = <int, Budget>{};
+    for (final b in budgets) {
+      final categoryId = b.categoryId;
+      if (categoryId == null) continue;
+      budgetMap[categoryId] = b;
+    }
 
      // 查询所有分类在该周期内的支出（按分类分组）
     final results = await db.customSelect(

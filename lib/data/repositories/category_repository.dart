@@ -160,3 +160,28 @@ abstract class CategoryRepository {
   /// 如果不存在则创建
   Future<Category> getTransferCategory();
 }
+
+/// 一级分类笔数 = 该分类自身 + 所有二级子分类。
+Map<int, int> rollUpParentCategoryTransactionCounts(
+  Iterable<Category> categories,
+  Map<int, int> directCounts,
+) {
+  final childIdsByParent = <int, List<int>>{};
+  for (final c in categories) {
+    final parentId = c.parentId;
+    if (parentId != null) {
+      childIdsByParent.putIfAbsent(parentId, () => []).add(c.id);
+    }
+  }
+  final out = Map<int, int>.from(directCounts);
+  for (final c in categories) {
+    final children = childIdsByParent[c.id];
+    if (children == null || children.isEmpty) continue;
+    var total = directCounts[c.id] ?? 0;
+    for (final childId in children) {
+      total += directCounts[childId] ?? 0;
+    }
+    out[c.id] = total;
+  }
+  return out;
+}

@@ -11,6 +11,7 @@ import '../../../utils/invest_tx.dart';
 import '../../category_node.dart';
 import '../../db.dart';
 import '../budget_repository.dart';
+import '../category_repository.dart';
 import '../local/local_repository.dart';
 
 /// 线上数据仓储：账本数据走 HTTP API。本地 Drift 仅作缓存/AI 等辅助存储。
@@ -912,8 +913,12 @@ class ApiRepository extends LocalRepository {
   Stream<List<({Category category, int transactionCount})>>
       watchCategoriesWithCount() => _watch(() async {
             final cats = await _cats();
-            final counts = await getAllCategoryTransactionCounts();
-            return cats
+            final visible =
+                cats.where((c) => c.kind != 'transfer').toList();
+            final direct = await getAllCategoryTransactionCounts();
+            final counts =
+                rollUpParentCategoryTransactionCounts(visible, direct);
+            return visible
                 .map((c) =>
                     (category: c, transactionCount: counts[c.id] ?? 0))
                 .toList();

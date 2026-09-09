@@ -576,21 +576,19 @@ class LocalCategoryRepository implements CategoryRepository {
         categoryMap[category.id] = (category: category, directCount: directCount);
       }
 
-      // 第二遍：计算包含子分类的总交易数
+      // 第二遍：一级分类笔数包含所有子分类
+      final directCounts = {
+        for (final entry in categoryMap.entries) entry.key: entry.value.directCount,
+      };
+      final rolledUp = rollUpParentCategoryTransactionCounts(
+        categoryMap.values.map((e) => e.category),
+        directCounts,
+      );
       for (final entry in categoryMap.values) {
-        final category = entry.category;
-        var totalCount = entry.directCount;
-
-        // 如果是父分类（level=1），累加所有子分类的交易数
-        if (category.level == 1) {
-          for (final child in categoryMap.values) {
-            if (child.category.parentId == category.id && child.category.level == 2) {
-              totalCount += child.directCount;
-            }
-          }
-        }
-
-        results.add((category: category, transactionCount: totalCount));
+        results.add((
+          category: entry.category,
+          transactionCount: rolledUp[entry.category.id] ?? entry.directCount,
+        ));
       }
 
       final totalTime = DateTime.now().difference(startTime);

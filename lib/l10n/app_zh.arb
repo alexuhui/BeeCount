@@ -1390,6 +1390,15 @@
   "accountAddTooltip": "添加账户",
   "accountAddButton": "添加账户",
   "accountBalance": "余额",
+  "accountInflow": "进账",
+  "accountOutflow": "出账",
+  "accountMonthTitle": "{year}年{month}月",
+  "@accountMonthTitle": {
+    "placeholders": {
+      "year": {"type": "int"},
+      "month": {"type": "int"}
+    }
+  },
   "accountEditTitle": "编辑账户",
   "accountNewTitle": "新建账户",
   "accountNameLabel": "账户名称",

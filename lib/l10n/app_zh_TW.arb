@@ -16,6 +16,15 @@
   "accountAddButton": "添加帳戶",
   "accountAddTooltip": "添加帳戶",
   "accountBalance": "余額",
+  "accountInflow": "進帳",
+  "accountOutflow": "出帳",
+  "accountMonthTitle": "{year}年{month}月",
+  "@accountMonthTitle": {
+    "placeholders": {
+      "year": {"type": "int"},
+      "month": {"type": "int"}
+    }
+  },
   "accountCurrencyLocked": "該帳戶已有交易記錄，無法變更幣別",
   "accountDefaultExpenseDescription": "新建支出時自動選中此帳戶",
   "accountDefaultExpenseTitle": "預設支出帳戶",

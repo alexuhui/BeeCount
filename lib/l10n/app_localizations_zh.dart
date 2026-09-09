@@ -3454,6 +3454,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountBalance => '余额';
 
   @override
+  String get accountInflow => '进账';
+
+  @override
+  String get accountOutflow => '出账';
+
+  @override
+  String accountMonthTitle(int year, int month) {
+    return '$year年$month月';
+  }
+
+  @override
   String get accountEditTitle => '编辑账户';
 
   @override
@@ -9169,6 +9180,17 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get accountBalance => '余額';
+
+  @override
+  String get accountInflow => '進帳';
+
+  @override
+  String get accountOutflow => '出帳';
+
+  @override
+  String accountMonthTitle(int year, int month) {
+    return '$year年$month月';
+  }
 
   @override
   String get accountEditTitle => '編輯帳戶';

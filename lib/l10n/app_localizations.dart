@@ -6506,6 +6506,24 @@ abstract class AppLocalizations {
   /// **'Balance'**
   String get accountBalance;
 
+  /// No description provided for @accountInflow.
+  ///
+  /// In en, this message translates to:
+  /// **'Inflow'**
+  String get accountInflow;
+
+  /// No description provided for @accountOutflow.
+  ///
+  /// In en, this message translates to:
+  /// **'Outflow'**
+  String get accountOutflow;
+
+  /// No description provided for @accountMonthTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{year}-{month}'**
+  String accountMonthTitle(int year, int month);
+
   /// No description provided for @accountEditTitle.
   ///
   /// In en, this message translates to:

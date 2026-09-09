@@ -3584,6 +3584,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountBalance => 'Balance';
 
   @override
+  String get accountInflow => 'Inflow';
+
+  @override
+  String get accountOutflow => 'Outflow';
+
+  @override
+  String accountMonthTitle(int year, int month) {
+    return '$year-$month';
+  }
+
+  @override
   String get accountEditTitle => 'Edit Account';
 
   @override

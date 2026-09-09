@@ -308,21 +308,176 @@ class AccountDetailPage extends ConsumerWidget {
   }
 }
 
+class _AccountMonthGroup {
+  final int year;
+  final int month;
+  final List<db.Transaction> transactions;
+  final double inflow;
+  final double outflow;
+  final double endBalance;
+
+  const _AccountMonthGroup({
+    required this.year,
+    required this.month,
+    required this.transactions,
+    required this.inflow,
+    required this.outflow,
+    required this.endBalance,
+  });
+
+  String get key => '$year-$month';
+}
+
+List<_AccountMonthGroup> _groupAccountTransactionsByMonth({
+  required List<db.Transaction> transactions,
+  required int accountId,
+  required double initialBalance,
+}) {
+  if (transactions.isEmpty) return const [];
+
+  final monthOrder = <String>[];
+  final byMonth = <String, List<db.Transaction>>{};
+  for (final tx in transactions) {
+    final local = tx.happenedAt.toLocal();
+    final key = '${local.year}-${local.month}';
+    final bucket = byMonth.putIfAbsent(key, () {
+      monthOrder.add(key);
+      return <db.Transaction>[];
+    });
+    bucket.add(tx);
+  }
+
+  final chronological = [...transactions]..sort((a, b) {
+      final byTime = a.happenedAt.compareTo(b.happenedAt);
+      if (byTime != 0) return byTime;
+      return a.id.compareTo(b.id);
+    });
+
+  var running = initialBalance;
+  final endBalanceByKey = <String, double>{};
+  final inflowByKey = <String, double>{};
+  final outflowByKey = <String, double>{};
+
+  for (final tx in chronological) {
+    final local = tx.happenedAt.toLocal();
+    final key = '${local.year}-${local.month}';
+    final flow = _accountTxFlow(tx, accountId);
+    inflowByKey[key] = (inflowByKey[key] ?? 0) + flow.inflow;
+    outflowByKey[key] = (outflowByKey[key] ?? 0) + flow.outflow;
+    running = InvestTx.applyToBalance(
+      balance: running,
+      type: tx.type,
+      amount: tx.amount,
+      accountId: accountId,
+      txAccountId: tx.accountId,
+      txToAccountId: tx.toAccountId,
+    );
+    endBalanceByKey[key] = running;
+  }
+
+  return [
+    for (final key in monthOrder)
+      _AccountMonthGroup(
+        year: int.parse(key.split('-').first),
+        month: int.parse(key.split('-').last),
+        transactions: byMonth[key]!,
+        inflow: inflowByKey[key] ?? 0,
+        outflow: outflowByKey[key] ?? 0,
+        endBalance: endBalanceByKey[key] ?? initialBalance,
+      ),
+  ];
+}
+
+double _accountCurrentBalance({
+  required List<db.Transaction> transactions,
+  required int accountId,
+  required double initialBalance,
+}) {
+  var running = initialBalance;
+  final chronological = [...transactions]..sort((a, b) {
+      final byTime = a.happenedAt.compareTo(b.happenedAt);
+      if (byTime != 0) return byTime;
+      return a.id.compareTo(b.id);
+    });
+  for (final tx in chronological) {
+    running = InvestTx.applyToBalance(
+      balance: running,
+      type: tx.type,
+      amount: tx.amount,
+      accountId: accountId,
+      txAccountId: tx.accountId,
+      txToAccountId: tx.toAccountId,
+    );
+  }
+  return running;
+}
+
+({double inflow, double outflow}) _accountTxFlow(
+  db.Transaction tx,
+  int accountId,
+) {
+  if (tx.accountId == accountId) {
+    switch (tx.type) {
+      case 'income':
+      case InvestTx.gain:
+        return (inflow: tx.amount, outflow: 0);
+      case 'expense':
+      case InvestTx.loss:
+      case 'transfer':
+        return (inflow: 0, outflow: tx.amount);
+      default:
+        return (inflow: 0, outflow: 0);
+    }
+  } else if (tx.toAccountId == accountId && tx.type == 'transfer') {
+    return (inflow: tx.amount, outflow: 0);
+  }
+  return (inflow: 0, outflow: 0);
+}
+
 /// 普通账户内容
-class _NormalAccountContent extends ConsumerWidget {
+class _NormalAccountContent extends ConsumerStatefulWidget {
   final db.Account account;
 
   const _NormalAccountContent({required this.account});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_NormalAccountContent> createState() =>
+      _NormalAccountContentState();
+}
+
+class _NormalAccountContentState extends ConsumerState<_NormalAccountContent> {
+  final Set<String> _expandedMonths = {};
+
+  db.Account get account => widget.account;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final primaryColor = ref.watch(primaryColorProvider);
-    final statsAsync = ref.watch(accountStatsProvider(account.id));
     final transactionsAsync = ref.watch(accountTransactionsProvider(account.id));
     final currentLedgerAsync = ref.watch(currentLedgerProvider);
     final currencyCode = currentLedgerAsync.asData?.value?.currency ?? 'CNY';
     final categoriesAsync = ref.watch(categoriesProvider);
+    final statsMap = ref.watch(allAccountStatsProvider).asData?.value;
+    final fallbackBalance =
+        statsMap?[account.id]?.balance ?? account.initialBalance;
+
+    Widget balanceCard(double balance) {
+      return SectionCard(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.0.scaled(context, ref)),
+          child: _StatCell(
+            label: l10n.accountBalance,
+            value: balance,
+            currencyCode: currencyCode,
+            color: balance >= 0
+                ? BeeTokens.textPrimary(context)
+                : BeeTokens.error(context),
+            valueSize: 28,
+          ),
+        ),
+      );
+    }
 
     return ListView(
       padding: EdgeInsets.symmetric(
@@ -330,157 +485,100 @@ class _NormalAccountContent extends ConsumerWidget {
         vertical: 16.0.scaled(context, ref),
       ),
       children: [
-        SectionCard(
-          child: statsAsync.when(
-            data: (stats) => Padding(
-              padding: EdgeInsets.all(12.0.scaled(context, ref)),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _StatCell(
-                      label: l10n.accountBalance,
-                      value: stats.balance,
-                      currencyCode: currencyCode,
-                      color: stats.balance >= 0
-                          ? BeeTokens.textPrimary(context)
-                          : BeeTokens.error(context),
-                    ),
-                  ),
-                  Container(
-                    width: 1,
-                    height: 40.0.scaled(context, ref),
-                    color: BeeTokens.border(context),
-                  ),
-                  Expanded(
-                    child: _StatCell(
-                      label: l10n.homeIncome,
-                      value: stats.income,
-                      currencyCode: currencyCode,
-                      color: BeeTokens.incomeColor(context, ref),
-                    ),
-                  ),
-                  Container(
-                    width: 1,
-                    height: 40.0.scaled(context, ref),
-                    color: BeeTokens.border(context),
-                  ),
-                  Expanded(
-                    child: _StatCell(
-                      label: l10n.homeExpense,
-                      value: stats.expense,
-                      currencyCode: currencyCode,
-                      color: BeeTokens.expenseColor(context, ref),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            loading: () => Center(
-              child: Padding(
-                padding: EdgeInsets.all(24.0.scaled(context, ref)),
-                child: const CircularProgressIndicator(),
-              ),
-            ),
-            error: (err, stack) => Padding(
-              padding: EdgeInsets.all(16.0.scaled(context, ref)),
-              child: Text(
-                '${l10n.commonError}: $err',
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
-          ),
-        ),
-        SizedBox(height: 8.0.scaled(context, ref)),
-        SectionCard(
-          child: transactionsAsync.when(
-            data: (transactions) {
-              if (transactions.isEmpty) {
-                return Padding(
-                  padding: EdgeInsets.all(32.0.scaled(context, ref)),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.receipt_long_outlined,
-                          size: 48.0.scaled(context, ref),
-                          color: BeeTokens.textTertiary(context),
-                        ),
-                        SizedBox(height: 8.0.scaled(context, ref)),
-                        Text(
-                          l10n.accountNoTransactions,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: BeeTokens.textSecondary(context),
+        ...transactionsAsync.when(
+          data: (transactions) {
+            final currentBalance = transactions.isEmpty
+                ? fallbackBalance
+                : _accountCurrentBalance(
+                    transactions: transactions,
+                    accountId: account.id,
+                    initialBalance: account.initialBalance,
+                  );
+            if (transactions.isEmpty) {
+              return [
+                balanceCard(currentBalance),
+                SizedBox(height: 8.0.scaled(context, ref)),
+                SectionCard(
+                  child: Padding(
+                    padding: EdgeInsets.all(32.0.scaled(context, ref)),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.receipt_long_outlined,
+                            size: 48.0.scaled(context, ref),
+                            color: BeeTokens.textTertiary(context),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.all(12.0.scaled(context, ref)),
-                    child: Text(
-                      l10n.accountTransactionHistory,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: BeeTokens.textPrimary(context),
+                          SizedBox(height: 8.0.scaled(context, ref)),
+                          Text(
+                            l10n.accountNoTransactions,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: BeeTokens.textSecondary(context),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  ...transactions.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final tx = entry.value;
+                ),
+              ];
+            }
 
-                    return Column(
-                      children: [
-                        if (index > 0) BeeTokens.cardDivider(context),
-                        _swipeToDelete(
-                          dismissKey: ValueKey('account-tx-${tx.id}'),
-                          onConfirmDelete: () => _confirmDeleteRecord(
-                            context,
-                            delete: () async {
-                              await ref
-                                  .read(repositoryProvider)
-                                  .deleteTransaction(tx.id);
-                              _afterTransactionDeleted(ref, accountId: account.id);
-                            },
-                          ),
-                          child: _TransactionTile(
-                            transaction: tx,
-                            currencyCode: currencyCode,
-                            primaryColor: primaryColor,
-                            ledgers: ref.watch(ledgersStreamProvider).asData?.value ?? [],
-                            categories: categoriesAsync.asData?.value ?? [],
-                            currentAccountId: account.id,
-                            onTap: () => _editTransaction(context, ref, tx),
-                          ),
-                        ),
-                      ],
-                    );
-                  }),
-                ],
-              );
-            },
-            loading: () => Center(
+            final months = _groupAccountTransactionsByMonth(
+              transactions: transactions,
+              accountId: account.id,
+              initialBalance: account.initialBalance,
+            );
+            final ledgers =
+                ref.watch(ledgersStreamProvider).asData?.value ?? [];
+            final categories = categoriesAsync.asData?.value ?? [];
+
+            return [
+              balanceCard(currentBalance),
+              SizedBox(height: 8.0.scaled(context, ref)),
+              for (var i = 0; i < months.length; i++) ...[
+                if (i > 0) SizedBox(height: 8.0.scaled(context, ref)),
+                _AccountMonthCard(
+                  group: months[i],
+                  expanded: _expandedMonths.contains(months[i].key),
+                  currencyCode: currencyCode,
+                  primaryColor: primaryColor,
+                  ledgers: ledgers,
+                  categories: categories,
+                  accountId: account.id,
+                  onToggle: () {
+                    setState(() {
+                      if (!_expandedMonths.remove(months[i].key)) {
+                        _expandedMonths.add(months[i].key);
+                      }
+                    });
+                  },
+                  onEditTransaction: (tx) => _editTransaction(context, ref, tx),
+                ),
+              ],
+            ];
+          },
+          loading: () => [
+            balanceCard(fallbackBalance),
+            SizedBox(height: 8.0.scaled(context, ref)),
+            Center(
               child: Padding(
                 padding: EdgeInsets.all(24.0.scaled(context, ref)),
                 child: const CircularProgressIndicator(),
               ),
             ),
-            error: (err, stack) => Padding(
+          ],
+          error: (err, stack) => [
+            balanceCard(fallbackBalance),
+            Padding(
               padding: EdgeInsets.all(16.0.scaled(context, ref)),
               child: Text(
                 '${l10n.commonError}: $err',
                 style: const TextStyle(color: Colors.red),
               ),
             ),
-          ),
+          ],
         ),
       ],
     );
@@ -1929,18 +2027,165 @@ class _PayableTile extends ConsumerWidget {
   }
 }
 
+/// 按月折叠的账户流水卡片
+class _AccountMonthCard extends ConsumerWidget {
+  final _AccountMonthGroup group;
+  final bool expanded;
+  final String currencyCode;
+  final Color primaryColor;
+  final List<db.Ledger> ledgers;
+  final List<db.Category> categories;
+  final int accountId;
+  final VoidCallback onToggle;
+  final ValueChanged<db.Transaction> onEditTransaction;
+
+  const _AccountMonthCard({
+    required this.group,
+    required this.expanded,
+    required this.currencyCode,
+    required this.primaryColor,
+    required this.ledgers,
+    required this.categories,
+    required this.accountId,
+    required this.onToggle,
+    required this.onEditTransaction,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+
+    return SectionCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          InkWell(
+            onTap: onToggle,
+            child: Padding(
+              padding: EdgeInsets.all(12.0.scaled(context, ref)),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.accountMonthTitle(group.year, group.month),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: BeeTokens.textPrimary(context),
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        expanded
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                        color: BeeTokens.iconSecondary(context),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12.0.scaled(context, ref)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatCell(
+                          label: l10n.accountInflow,
+                          value: group.inflow,
+                          currencyCode: currencyCode,
+                          color: BeeTokens.incomeColor(context, ref),
+                          valueSize: 15,
+                        ),
+                      ),
+                      Container(
+                        width: 1,
+                        height: 36.0.scaled(context, ref),
+                        color: BeeTokens.border(context),
+                      ),
+                      Expanded(
+                        child: _StatCell(
+                          label: l10n.accountOutflow,
+                          value: group.outflow,
+                          currencyCode: currencyCode,
+                          color: BeeTokens.expenseColor(context, ref),
+                          valueSize: 15,
+                        ),
+                      ),
+                      Container(
+                        width: 1,
+                        height: 36.0.scaled(context, ref),
+                        color: BeeTokens.border(context),
+                      ),
+                      Expanded(
+                        child: _StatCell(
+                          label: l10n.accountBalance,
+                          value: group.endBalance,
+                          currencyCode: currencyCode,
+                          color: group.endBalance >= 0
+                              ? BeeTokens.textPrimary(context)
+                              : BeeTokens.error(context),
+                          valueSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (expanded) ...[
+            BeeTokens.cardDivider(context),
+            ...group.transactions.asMap().entries.map((entry) {
+              final index = entry.key;
+              final tx = entry.value;
+              return Column(
+                children: [
+                  if (index > 0) BeeTokens.cardDivider(context),
+                  _swipeToDelete(
+                    dismissKey: ValueKey('account-tx-${tx.id}'),
+                    onConfirmDelete: () => _confirmDeleteRecord(
+                      context,
+                      delete: () async {
+                        await ref
+                            .read(repositoryProvider)
+                            .deleteTransaction(tx.id);
+                        _afterTransactionDeleted(ref, accountId: accountId);
+                      },
+                    ),
+                    child: _TransactionTile(
+                      transaction: tx,
+                      currencyCode: currencyCode,
+                      primaryColor: primaryColor,
+                      ledgers: ledgers,
+                      categories: categories,
+                      currentAccountId: accountId,
+                      onTap: () => onEditTransaction(tx),
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 /// 统计单元格
 class _StatCell extends ConsumerWidget {
   final String label;
   final double value;
   final String currencyCode;
   final Color color;
+  final double valueSize;
 
   const _StatCell({
     required this.label,
     required this.value,
     required this.currencyCode,
     required this.color,
+    this.valueSize = 18,
   });
 
   @override
@@ -1954,7 +2199,7 @@ class _StatCell extends ConsumerWidget {
           useCompactFormat: ref.watch(compactAmountProvider),
           currencyCode: currencyCode,
           style: TextStyle(
-            fontSize: 18,
+            fontSize: valueSize,
             fontWeight: FontWeight.bold,
             color: color,
           ),

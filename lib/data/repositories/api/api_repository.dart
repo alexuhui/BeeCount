@@ -1265,6 +1265,14 @@ class ApiRepository extends LocalRepository {
       getAccountBalance(accountId);
 
   @override
+  Future<({double balance, double expense, double income})> getAccountStats(
+      int accountId) async {
+    final all = await getAllAccountStats();
+    return all[accountId] ??
+        (balance: 0.0, expense: 0.0, income: 0.0);
+  }
+
+  @override
   Future<Map<int, ({double balance, double expense, double income})>>
       getAllAccountStats() async {
     final data = await api.get('/accounts/stats');

@@ -1609,6 +1609,15 @@
   "accountAddTooltip": "Add Account",
   "accountAddButton": "Add Account",
   "accountBalance": "Balance",
+  "accountInflow": "Inflow",
+  "accountOutflow": "Outflow",
+  "accountMonthTitle": "{year}-{month}",
+  "@accountMonthTitle": {
+    "placeholders": {
+      "year": {"type": "int"},
+      "month": {"type": "int"}
+    }
+  },
   "accountEditTitle": "Edit Account",
   "accountNewTitle": "New Account",
   "accountNameLabel": "Account Name",

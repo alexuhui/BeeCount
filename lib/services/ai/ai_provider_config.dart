@@ -60,8 +60,9 @@ class AIServiceProviderConfig {
 
   /// 运行时实际使用的 Key：用户配置优先，否则用编译进包内的智谱 Key。
   String get resolvedApiKey {
-    if (apiKey.isNotEmpty) return apiKey;
-    if (id == 'zhipu_glm') return AIConstants.builtinGlmApiKey;
+    final typed = apiKey.trim();
+    if (typed.isNotEmpty) return typed;
+    if (id == 'zhipu_glm' || isBuiltIn) return AIConstants.builtinGlmApiKey;
     return '';
   }
 

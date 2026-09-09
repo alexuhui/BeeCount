@@ -21,9 +21,14 @@ class AIConstants {
   static const String keyCustomVisionModel = 'ai_custom_vision_model';
   static const String keyCustomAudioModel = 'ai_custom_audio_model';
 
-  /// Compile-time Zhipu GLM key, baked into the binary via
-  /// `--dart-define=ZHIPU_API_KEY=...` (see `.cursor/zhipu.env.example`).
-  static const String builtinGlmApiKey = String.fromEnvironment('ZHIPU_API_KEY');
+  /// Compile-time Zhipu GLM key.
+  ///
+  /// Prefer `--dart-define=ZHIPU_API_KEY=...` (see `.cursor/zhipu.env`).
+  /// [defaultValue] keeps debug `flutter run` working when dart-define is omitted.
+  static const String builtinGlmApiKey = String.fromEnvironment(
+    'ZHIPU_API_KEY',
+    defaultValue: '23fbf7dc7fd04e879e264f3728200cb4.yEVrObKExSg2D2r0',
+  );
 
   static bool get hasBuiltinGlmKey => builtinGlmApiKey.isNotEmpty;
 

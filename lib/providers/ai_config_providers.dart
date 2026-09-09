@@ -212,8 +212,8 @@ class AIConfigNotifier extends StateNotifier<AIConfigData> {
       final strategy = _parseStrategy(strategyStr);
 
       final enabledPref = prefs.getBool(AIConstants.keyAiBillExtractionEnabled);
-      final enabled =
-          enabledPref ?? AIConstants.hasBuiltinGlmKey;
+      // 有内置 Key 时默认开启；用户曾关掉过则尊重 prefs。
+      final enabled = enabledPref ?? AIConstants.hasBuiltinGlmKey;
       if (enabledPref == null && enabled) {
         await prefs.setBool(AIConstants.keyAiBillExtractionEnabled, true);
       }

@@ -140,20 +140,40 @@ class _HomePageState extends ConsumerState<HomePage> {
     super.dispose();
   }
 
-  // 精准月份跳转 - 使用TransactionList组件的跳转功能
+  // 精准月份跳转：必要时继续翻页，并挡住可见性回调，避免把月份打回当前屏
   Future<void> _jumpToTargetMonth(DateTime targetMonth) async {
-    if (_isJumping) return; // 防止重复跳转
+    if (_isJumping) return;
 
+    _debounceTimer?.cancel();
+    _visibleHeaders.clear();
     setState(() {
       _isJumping = true;
     });
 
     try {
-      // 使用TransactionList组件的跳转方法
-      final transactionListState = _transactionListKey.currentState;
-      if (transactionListState != null && mounted) {
-        transactionListState.jumpToMonth(targetMonth);
+      final ledgerId = ref.read(currentLedgerIdProvider);
+      await ref
+          .read(homeTransactionControllerProvider(ledgerId).notifier)
+          .ensureLoadedThroughMonth(targetMonth);
+      if (!mounted) return;
+
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+
+      var jumped =
+          _transactionListKey.currentState?.jumpToMonth(targetMonth) ?? false;
+      if (!jumped) {
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted) return;
+        jumped =
+            _transactionListKey.currentState?.jumpToMonth(targetMonth) ?? false;
       }
+      if (!jumped) {
+        logger.warning('HomePage', '未能定位到 ${targetMonth.year}-${targetMonth.month}');
+      }
+
+      // jumpToIndex 在下一帧才真正滚过去，这期间不要让可见性检测改月份
+      await Future<void>.delayed(const Duration(milliseconds: 320));
     } finally {
       if (mounted) {
         setState(() {

@@ -18,6 +18,7 @@ import '../../pages/tag/tag_detail_page.dart';
 import '../../pages/attachment/attachment_preview_page.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/attachment_service.dart';
+import '../../utils/transaction_month_jump.dart';
 
 /// 可复用的交易列表组件
 /// 支持显示分组的交易列表，包含日期头部和交易项
@@ -258,25 +259,18 @@ class TransactionListState extends ConsumerState<TransactionList> {
     }
   }
 
-  /// 跳转到指定月份
+  /// 跳转到指定月份（先重建索引，避免刚翻页后 map 仍是旧数据）
   bool jumpToMonth(DateTime targetMonth) {
-    final monthKey =
-        '${targetMonth.year}-${targetMonth.month.toString().padLeft(2, '0')}';
-
-    // 查找该月份的任意一天
-    for (final entry in _dateIndexMap.entries) {
-      if (entry.key.startsWith(monthKey)) {
-        try {
-          _controller.sliverController.jumpToIndex(entry.value);
-          return true;
-        } catch (e) {
-          // 跳转失败，返回false
-          return false;
-        }
-      }
+    _buildFlatItems();
+    final index = monthJumpIndex(_dateIndexMap, targetMonth);
+    if (index == null) return false;
+    try {
+      _controller.sliverController.jumpToIndex(index);
+      return true;
+    } catch (e) {
+      logger.warning('TransactionList', 'jumpToMonth failed: $e');
+      return false;
     }
-
-    return false; // 没有找到目标月份
   }
 
   /// 构建扁平化的项目列表

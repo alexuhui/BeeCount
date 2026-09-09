@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/page_sizes.dart';
 import '../data/db.dart';
 import '../data/repositories/base_repository.dart';
+import '../utils/transaction_month_jump.dart';
 import 'database_providers.dart';
 import 'statistics_providers.dart';
 
@@ -90,6 +91,28 @@ class HomeTransactionController extends StateNotifier<HomeTransactionPageState> 
       );
     } catch (e) {
       state = state.copyWith(loadingMore: false, error: e);
+    }
+  }
+
+  Iterable<DateTime> get _dates =>
+      state.items.map((e) => e.t.happenedAt.toLocal());
+
+  /// 继续翻页，直到当前列表覆盖 [month]（或已经翻过该月 / 没有更多）。
+  Future<void> ensureLoadedThroughMonth(DateTime month) async {
+    var guard = 0;
+    while (guard++ < 40) {
+      if (datesContainMonth(_dates, month) ||
+          datesPassedMonth(_dates, month) ||
+          !state.hasMore) {
+        return;
+      }
+      if (state.loadingMore || state.loading) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        continue;
+      }
+      final len = state.items.length;
+      await loadMore();
+      if (state.items.length == len) return;
     }
   }
 }

@@ -38,9 +38,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     'scheme': 'http://',
   };
 
-  /// 开发包显示完整列表；release 只保留线上，测试服地址会被 tree-shake 掉
+  /// 开发包：测试服在前、线上在后；release 只保留线上
   final serverUrls = [
-    _prodServer,
     if (kDebugMode) ...[
       {
         'name': '测试服务器',
@@ -55,6 +54,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         'scheme': 'http://',
       },
     ],
+    _prodServer,
   ];
 
   int _selectedServerIndex = 0;
@@ -142,6 +142,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           if (kDebugMode) ...[
                             DropdownButtonFormField<int>(
                               value: _selectedServerIndex,
+                              isExpanded: true,
                               style: const TextStyle(color: Colors.white),
                               decoration: InputDecoration(
                                 labelText: l10n.cloudBeeCountServerUrlLabel,
@@ -166,7 +167,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 return DropdownMenuItem<int>(
                                   value: index,
                                   child: Text(
-                                    '${server['name']}',
+                                    '${server['name']} (${server['ip']}:${server['port']})',
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(color: Colors.white),
                                   ),
                                 );

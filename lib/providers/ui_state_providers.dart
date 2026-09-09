@@ -8,6 +8,8 @@ import 'update_providers.dart';
 import 'smart_billing_providers.dart';
 import 'ai_config_providers.dart';
 import '../data/db.dart';
+import '../data/repositories/api/api_repository.dart';
+import '../services/api/api_json.dart';
 import '../services/system/logger_service.dart';
 import '../services/ai/ai_constants.dart';
 import '../services/platform/app_link_service.dart';
@@ -228,6 +230,13 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
       logger.warning(tag, '账户预加载失败: $e');
       return <Account>[];
     });
+    final accountSettingsPreload = timed(
+      '账户设置',
+      ref.read(accountSettingsProvider.future),
+    ).then((value) => value, onError: (Object e, StackTrace _) {
+      logger.warning(tag, '账户设置预加载失败: $e');
+      return const AccountUiSettings();
+    });
 
     try {
       final results = await Future.wait([
@@ -238,6 +247,7 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
                 ledgerId: ledgerId, limit: preloadLimit)),
         categoryPreload,
         accountPreload,
+        accountSettingsPreload,
       ]);
       monthlyResult = results[0] as (double, double);
       transactionsWithCategory =
@@ -349,67 +359,145 @@ final loginCheckProvider = FutureProvider<bool>((ref) async {
   return false;
 });
 
-// 默认收入账户ID持久化
-final defaultIncomeAccountIdProvider =
-    FutureProvider.autoDispose<int?>((ref) async {
+// 默认收入/支出账户、账户列表折叠：服务器为准，本机 prefs 仅作缓存
+const _kDefaultIncomeAccountId = 'default_income_account_id';
+const _kDefaultExpenseAccountId = 'default_expense_account_id';
+const _kAccountsGroupByType = 'accounts_group_by_type';
+
+AccountUiSettings _accountSettingsFromPrefs(SharedPreferences prefs) {
+  return AccountUiSettings(
+    defaultIncomeAccountId: prefs.getInt(_kDefaultIncomeAccountId),
+    defaultExpenseAccountId: prefs.getInt(_kDefaultExpenseAccountId),
+    groupByType: prefs.getBool(_kAccountsGroupByType) ?? false,
+  );
+}
+
+Future<void> _writeAccountSettingsPrefs(
+  SharedPreferences prefs,
+  AccountUiSettings settings,
+) async {
+  if (settings.defaultIncomeAccountId == null) {
+    await prefs.remove(_kDefaultIncomeAccountId);
+  } else {
+    await prefs.setInt(_kDefaultIncomeAccountId, settings.defaultIncomeAccountId!);
+  }
+  if (settings.defaultExpenseAccountId == null) {
+    await prefs.remove(_kDefaultExpenseAccountId);
+  } else {
+    await prefs.setInt(
+        _kDefaultExpenseAccountId, settings.defaultExpenseAccountId!);
+  }
+  await prefs.setBool(_kAccountsGroupByType, settings.groupByType);
+}
+
+final accountSettingsProvider =
+    FutureProvider.autoDispose<AccountUiSettings>((ref) async {
   final prefs = await SharedPreferences.getInstance();
   final link = ref.keepAlive();
   ref.onDispose(() => link.close());
-  return prefs.getInt('default_income_account_id');
+  final cached = _accountSettingsFromPrefs(prefs);
+  try {
+    final repo = ref.read(repositoryProvider);
+    if (repo is! ApiRepository) return cached;
+    final remote = await repo.getAccountUiSettings();
+    final remoteEmpty = remote.defaultIncomeAccountId == null &&
+        remote.defaultExpenseAccountId == null &&
+        !remote.groupByType;
+    final hasLocal = prefs.containsKey(_kDefaultIncomeAccountId) ||
+        prefs.containsKey(_kDefaultExpenseAccountId) ||
+        prefs.containsKey(_kAccountsGroupByType);
+    if (remoteEmpty && hasLocal) {
+      final migrated = await repo.patchAccountUiSettings(
+        setIncome: prefs.containsKey(_kDefaultIncomeAccountId),
+        defaultIncomeAccountId: prefs.getInt(_kDefaultIncomeAccountId),
+        setExpense: prefs.containsKey(_kDefaultExpenseAccountId),
+        defaultExpenseAccountId: prefs.getInt(_kDefaultExpenseAccountId),
+        groupByType: prefs.containsKey(_kAccountsGroupByType)
+            ? prefs.getBool(_kAccountsGroupByType)
+            : null,
+      );
+      await _writeAccountSettingsPrefs(prefs, migrated);
+      return migrated;
+    }
+    await _writeAccountSettingsPrefs(prefs, remote);
+    return remote;
+  } catch (e) {
+    logger.warning('AccountSettings', '从服务器读取账户设置失败，使用本地缓存: $e');
+    return cached;
+  }
 });
 
-// 默认支出账户ID持久化
+final defaultIncomeAccountIdProvider =
+    FutureProvider.autoDispose<int?>((ref) async {
+  return (await ref.watch(accountSettingsProvider.future)).defaultIncomeAccountId;
+});
+
 final defaultExpenseAccountIdProvider =
     FutureProvider.autoDispose<int?>((ref) async {
-  final prefs = await SharedPreferences.getInstance();
-  final link = ref.keepAlive();
-  ref.onDispose(() => link.close());
-  return prefs.getInt('default_expense_account_id');
+  return (await ref.watch(accountSettingsProvider.future)).defaultExpenseAccountId;
 });
 
 class DefaultAccountSetter {
+  DefaultAccountSetter(this._ref);
+  final Ref _ref;
+
   Future<void> setDefaultIncomeAccountId(int? accountId) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (accountId == null) {
-      await prefs.remove('default_income_account_id');
-    } else {
-      await prefs.setInt('default_income_account_id', accountId);
-    }
+    await _patch(setIncome: true, defaultIncomeAccountId: accountId);
   }
 
   Future<void> setDefaultExpenseAccountId(int? accountId) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (accountId == null) {
-      await prefs.remove('default_expense_account_id');
-    } else {
-      await prefs.setInt('default_expense_account_id', accountId);
+    await _patch(setExpense: true, defaultExpenseAccountId: accountId);
+  }
+
+  Future<void> setGroupByType(bool enabled) async {
+    await _patch(groupByType: enabled);
+  }
+
+  Future<void> _patch({
+    bool setIncome = false,
+    int? defaultIncomeAccountId,
+    bool setExpense = false,
+    int? defaultExpenseAccountId,
+    bool? groupByType,
+  }) async {
+    final repo = _ref.read(repositoryProvider);
+    if (repo is! ApiRepository) {
+      throw StateError('未登录，无法保存账户设置');
     }
+    final updated = await repo.patchAccountUiSettings(
+      setIncome: setIncome,
+      defaultIncomeAccountId: defaultIncomeAccountId,
+      setExpense: setExpense,
+      defaultExpenseAccountId: defaultExpenseAccountId,
+      groupByType: groupByType,
+    );
+    await _writeAccountSettingsPrefs(
+        await SharedPreferences.getInstance(), updated);
+    _ref.invalidate(accountSettingsProvider);
   }
 }
 
 final defaultAccountSetterProvider = Provider<DefaultAccountSetter>((ref) {
-  return DefaultAccountSetter();
+  return DefaultAccountSetter(ref);
 });
 
-/// 账户列表是否按类型折叠。仅保存在本机，默认关闭。
 final accountsGroupByTypeProvider =
     FutureProvider.autoDispose<bool>((ref) async {
-  final prefs = await SharedPreferences.getInstance();
-  final link = ref.keepAlive();
-  ref.onDispose(() => link.close());
-  return prefs.getBool('accounts_group_by_type') ?? false;
+  return (await ref.watch(accountSettingsProvider.future)).groupByType;
 });
 
 class AccountsGroupByTypeSetter {
+  AccountsGroupByTypeSetter(this._ref);
+  final Ref _ref;
+
   Future<void> setEnabled(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('accounts_group_by_type', enabled);
+    await _ref.read(defaultAccountSetterProvider).setGroupByType(enabled);
   }
 }
 
 final accountsGroupByTypeSetterProvider =
     Provider<AccountsGroupByTypeSetter>((ref) {
-  return AccountsGroupByTypeSetter();
+  return AccountsGroupByTypeSetter(ref);
 });
 
 // AI小助手开关状态持久化

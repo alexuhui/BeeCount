@@ -4,6 +4,7 @@ import 'package:yaml/yaml.dart';
 import 'package:drift/drift.dart' as d;
 import '../../data/db.dart';
 import '../../data/repositories/base_repository.dart';
+import '../../data/repositories/api/api_repository.dart';
 import '../system/logger_service.dart';
 import '../ai/ai_constants.dart';
 import '../ai/ai_provider_config.dart';
@@ -2560,6 +2561,19 @@ class ConfigExportService {
           } else {
             logger.warning('ConfigImport', '找不到默认支出账户: $pendingDefaultExpenseAccountName');
           }
+        }
+
+        if (repository is ApiRepository) {
+          await repository.patchAccountUiSettings(
+            setIncome: pendingDefaultIncomeAccountName != null &&
+                accountNameToId[pendingDefaultIncomeAccountName] != null,
+            defaultIncomeAccountId:
+                accountNameToId[pendingDefaultIncomeAccountName],
+            setExpense: pendingDefaultExpenseAccountName != null &&
+                accountNameToId[pendingDefaultExpenseAccountName] != null,
+            defaultExpenseAccountId:
+                accountNameToId[pendingDefaultExpenseAccountName],
+          );
         }
       } catch (e) {
         logger.error('ConfigImport', '处理默认账户设置失败: $e');

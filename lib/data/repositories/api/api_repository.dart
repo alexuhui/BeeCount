@@ -146,6 +146,30 @@ class ApiRepository extends LocalRepository {
     _accountCache = null;
     _accountInFlight = null;
     _accountCacheGen++;
+    _accountSettingsCache = null;
+  }
+
+  AccountUiSettings? _accountSettingsCache;
+
+  Future<AccountUiSettings> getAccountUiSettings({bool force = false}) async {
+    if (!force && _accountSettingsCache != null) return _accountSettingsCache!;
+    final data = await api.get('/account_settings');
+    return _accountSettingsCache = AccountUiSettings.fromJson(data);
+  }
+
+  Future<AccountUiSettings> patchAccountUiSettings({
+    bool setIncome = false,
+    int? defaultIncomeAccountId,
+    bool setExpense = false,
+    int? defaultExpenseAccountId,
+    bool? groupByType,
+  }) async {
+    final body = <String, dynamic>{};
+    if (setIncome) body['default_income_account_id'] = defaultIncomeAccountId;
+    if (setExpense) body['default_expense_account_id'] = defaultExpenseAccountId;
+    if (groupByType != null) body['accounts_group_by_type'] = groupByType;
+    final data = await api.put('/account_settings', body);
+    return _accountSettingsCache = AccountUiSettings.fromJson(data);
   }
 
   Future<Map<int, Category>> _catMap() async {

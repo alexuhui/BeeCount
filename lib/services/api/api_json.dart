@@ -250,3 +250,23 @@ TransactionAttachment attachmentFromJson(Map<String, dynamic> m) =>
       sortOrder: asInt(pick(m, ['sort_order', 'sortOrder'])),
       createdAt: asDate(pick(m, ['created_at', 'createdAt'])),
     );
+
+class AccountUiSettings {
+  const AccountUiSettings({
+    this.defaultIncomeAccountId,
+    this.defaultExpenseAccountId,
+    this.groupByType = false,
+  });
+
+  final int? defaultIncomeAccountId;
+  final int? defaultExpenseAccountId;
+  final bool groupByType;
+
+  factory AccountUiSettings.fromJson(Map<String, dynamic> json) {
+    return AccountUiSettings(
+      defaultIncomeAccountId: asIntN(json['default_income_account_id']),
+      defaultExpenseAccountId: asIntN(json['default_expense_account_id']),
+      groupByType: asBool(json['accounts_group_by_type']),
+    );
+  }
+}

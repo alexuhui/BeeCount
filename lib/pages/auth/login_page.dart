@@ -1,4 +1,5 @@
 ﻿import 'package:beecount/app.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -30,26 +31,31 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   bool _loggedIn = false;
   bool _isRegister = false;
 
-  /// 服务器列表
+  /// 线上服务器（release 固定使用）
+  static const _prodServer = {
+    'name': '线上服务器',
+    'ip': '43.139.239.34',
+    'port': 6060,
+    'scheme': 'http://',
+  };
+
+  /// 开发包显示完整列表；release 只保留线上，测试服地址会被 tree-shake 掉
   final serverUrls = [
-    {
-      'name': '线上服务器',
-      'ip': '43.139.239.34',
-      'port': 6060,
-      'scheme': 'http://'
-    },
-    {
-      'name': '测试服务器',
-      'ip': '172.25.26.17',
-      'port': 6060,
-      'scheme': 'http://'
-    },
-    {
-      'name': '测试服务器',
-      'ip': '192.168.31.152',
-      'port': 6060,
-      'scheme': 'http://'
-    },
+    _prodServer,
+    if (kDebugMode) ...[
+      {
+        'name': '测试服务器',
+        'ip': '172.25.26.17',
+        'port': 6060,
+        'scheme': 'http://',
+      },
+      {
+        'name': '测试服务器',
+        'ip': '192.168.31.152',
+        'port': 6060,
+        'scheme': 'http://',
+      },
+    ],
   ];
 
   int _selectedServerIndex = 0;
@@ -146,39 +152,41 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       ),
                       child: Column(
                         children: [
-                          DropdownButtonFormField<int>(
-                            value: _selectedServerIndex,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              labelText: l10n.cloudBeeCountServerUrlLabel,
-                              labelStyle: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.9)),
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                            ),
-                            dropdownColor: Colors.black.withValues(alpha: 0.8),
-                            onChanged: (!_isSubmitting)
-                                ? (value) {
-                                    if (value != null) {
-                                      setState(() {
-                                        _selectedServerIndex = value;
-                                      });
+                          if (kDebugMode) ...[
+                            DropdownButtonFormField<int>(
+                              value: _selectedServerIndex,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                labelText: l10n.cloudBeeCountServerUrlLabel,
+                                labelStyle: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.9)),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                              ),
+                              dropdownColor: Colors.black.withValues(alpha: 0.8),
+                              onChanged: (!_isSubmitting)
+                                  ? (value) {
+                                      if (value != null) {
+                                        setState(() {
+                                          _selectedServerIndex = value;
+                                        });
+                                      }
                                     }
-                                  }
-                                : null,
-                            items: serverUrls.asMap().entries.map((entry) {
-                              int index = entry.key;
-                              Map<String, dynamic> server = entry.value;
-                              return DropdownMenuItem<int>(
-                                value: index,
-                                child: Text(
-                                  '${server['name']}',
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 12),
+                                  : null,
+                              items: serverUrls.asMap().entries.map((entry) {
+                                int index = entry.key;
+                                Map<String, dynamic> server = entry.value;
+                                return DropdownMenuItem<int>(
+                                  value: index,
+                                  child: Text(
+                                    '${server['name']}',
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
                           TextField(
                             controller: _usernameController,
                             enabled: !_isSubmitting,
@@ -345,8 +353,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Future<void> _submitAuth(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
-    final serverUrl =
-        '${serverUrls[_selectedServerIndex]['scheme']}${serverUrls[_selectedServerIndex]['ip']}:${serverUrls[_selectedServerIndex]['port']}';
+    final server = kDebugMode
+        ? serverUrls[_selectedServerIndex]
+        : _prodServer;
+    final serverUrl = '${server['scheme']}${server['ip']}:${server['port']}';
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
 

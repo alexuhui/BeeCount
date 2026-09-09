@@ -5219,6 +5219,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discoverBudget => 'Budget';
 
   @override
+  String get discoverBudgetTab => 'Budget';
+
+  @override
   String get discoverBudgetSubtitle => 'Set and track spending budgets';
 
   @override

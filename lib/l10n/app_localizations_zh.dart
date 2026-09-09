@@ -5009,6 +5009,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get discoverBudget => '预算管理';
 
   @override
+  String get discoverBudgetTab => '预算';
+
+  @override
   String get discoverBudgetSubtitle => '设置和追踪支出预算';
 
   @override
@@ -10735,6 +10738,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get discoverBudget => '預算管理';
+
+  @override
+  String get discoverBudgetTab => '預算';
 
   @override
   String get discoverBudgetSubtitle => '設定和追蹤支出預算';

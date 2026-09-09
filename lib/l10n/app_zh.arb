@@ -2125,6 +2125,7 @@
   "tabDiscover": "管理",
   "discoverTitle": "管理",
   "discoverBudget": "预算管理",
+  "discoverBudgetTab": "预算",
   "discoverBudgetSubtitle": "设置和追踪支出预算",
   "discoverBudgetEmpty": "设置预算，控制支出",
   "discoverAccounts": "账户",

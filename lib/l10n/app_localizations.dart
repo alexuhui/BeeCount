@@ -9470,6 +9470,12 @@ abstract class AppLocalizations {
   /// **'Budget'**
   String get discoverBudget;
 
+  /// No description provided for @discoverBudgetTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Budget'**
+  String get discoverBudgetTab;
+
   /// No description provided for @discoverBudgetSubtitle.
   ///
   /// In en, this message translates to:

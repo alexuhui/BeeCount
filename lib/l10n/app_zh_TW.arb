@@ -1006,6 +1006,7 @@
   "discoverAccountsTotal": "淨資產",
   "discoverAutoBilling": "自動記賬",
   "discoverBudget": "預算管理",
+  "discoverBudgetTab": "預算",
   "discoverBudgetEmpty": "設定預算，控制支出",
   "discoverBudgetSubtitle": "設定和追蹤支出預算",
   "discoverCategory": "分類管理",

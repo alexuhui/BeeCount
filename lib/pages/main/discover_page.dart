@@ -205,7 +205,7 @@ class _DiscoverSectionSwitcher extends ConsumerWidget {
             child: _budgetTab(
               context: context,
               ref: ref,
-              label: l10n.discoverBudget,
+              label: l10n.discoverBudgetTab,
               selected: selected == _DiscoverSection.budget,
               selectedBg: selectedBg,
               onTap: () => onChanged(_DiscoverSection.budget),

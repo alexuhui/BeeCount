@@ -13,7 +13,7 @@ import '../../db.dart';
 import '../budget_repository.dart';
 import '../local/local_repository.dart';
 
-/// Server-first repository: ledger data over HTTP, AI still uses local Drift.
+/// 线上数据仓储：账本数据走 HTTP API。本地 Drift 仅作缓存/AI 等辅助存储。
 class ApiRepository extends LocalRepository {
   ApiRepository(super.db, {required this.api});
 

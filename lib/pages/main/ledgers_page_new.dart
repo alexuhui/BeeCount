@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../providers.dart';
-import '../../providers/cloud_mode_providers.dart';
 import '../../models/ledger_display_item.dart';
 import '../../cloud/sync_service.dart';
 import '../../widgets/ui/ui.dart';

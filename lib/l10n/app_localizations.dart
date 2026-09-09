@@ -882,7 +882,7 @@ abstract class AppLocalizations {
   /// No description provided for @splashSecurityFeature1.
   ///
   /// In en, this message translates to:
-  /// **'• Local data storage, complete privacy control'**
+  /// **'• Ledger data is stored on the online server'**
   String get splashSecurityFeature1;
 
   /// No description provided for @splashSecurityFeature2.
@@ -894,7 +894,7 @@ abstract class AppLocalizations {
   /// No description provided for @splashSecurityFeature3.
   ///
   /// In en, this message translates to:
-  /// **'• Optional cloud sync, consistent data across devices'**
+  /// **'• Same account, consistent data across devices'**
   String get splashSecurityFeature3;
 
   /// No description provided for @splashInitializing.
@@ -2329,7 +2329,7 @@ abstract class AppLocalizations {
   /// No description provided for @mineCloudServiceOffline.
   ///
   /// In en, this message translates to:
-  /// **'Default Mode (Offline)'**
+  /// **'Online service'**
   String get mineCloudServiceOffline;
 
   /// No description provided for @mineCloudServiceCustom.
@@ -2473,7 +2473,7 @@ abstract class AppLocalizations {
   /// No description provided for @mineUploadNeedCloudService.
   ///
   /// In en, this message translates to:
-  /// **'Available in cloud service mode only'**
+  /// **'Please sign in first'**
   String get mineUploadNeedCloudService;
 
   /// No description provided for @mineUploadInProgress.
@@ -2515,7 +2515,7 @@ abstract class AppLocalizations {
   /// No description provided for @mineDownloadNeedCloudService.
   ///
   /// In en, this message translates to:
-  /// **'Available in cloud service mode only'**
+  /// **'Please sign in first'**
   String get mineDownloadNeedCloudService;
 
   /// No description provided for @mineDownloadComplete.
@@ -2539,7 +2539,7 @@ abstract class AppLocalizations {
   /// No description provided for @mineLoginSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Only needed for sync'**
+  /// **'Sign in to start recording'**
   String get mineLoginSubtitle;
 
   /// No description provided for @mineLoggedInEmail.
@@ -2563,7 +2563,7 @@ abstract class AppLocalizations {
   /// No description provided for @mineLogoutConfirmMessage.
   ///
   /// In en, this message translates to:
-  /// **'Are you sure you want to logout?\nYou won\'t be able to use cloud sync after logout.'**
+  /// **'Are you sure you want to log out?\nYou will need to sign in again to record transactions.'**
   String get mineLogoutConfirmMessage;
 
   /// No description provided for @mineLogoutButton.
@@ -6713,7 +6713,7 @@ abstract class AppLocalizations {
   /// No description provided for @welcomePrivacyFeature2.
   ///
   /// In en, this message translates to:
-  /// **'No privacy concerns, data stored locally'**
+  /// **'Ledger data is stored on the online server after sign-in'**
   String get welcomePrivacyFeature2;
 
   /// No description provided for @welcomeOpenSourceFeature1.
@@ -6731,31 +6731,31 @@ abstract class AppLocalizations {
   /// No description provided for @welcomeCloudSyncTitle.
   ///
   /// In en, this message translates to:
-  /// **'Optional Cloud Sync'**
+  /// **'Online accounting'**
   String get welcomeCloudSyncTitle;
 
   /// No description provided for @welcomeCloudSyncDescription.
   ///
   /// In en, this message translates to:
-  /// **'BeeCount supports multiple sync methods - your data, your control'**
+  /// **'After sign-in, ledgers are stored on the online server. Sign in on another device to continue.'**
   String get welcomeCloudSyncDescription;
 
   /// No description provided for @welcomeCloudSyncFeature1.
   ///
   /// In en, this message translates to:
-  /// **'Completely offline usage, no cloud needed'**
+  /// **'Sign in to record; data is stored on the server'**
   String get welcomeCloudSyncFeature1;
 
   /// No description provided for @welcomeCloudSyncFeature2.
   ///
   /// In en, this message translates to:
-  /// **'iCloud sync (zero config for iOS users)'**
+  /// **'Same account, consistent data across devices'**
   String get welcomeCloudSyncFeature2;
 
   /// No description provided for @welcomeCloudSyncFeature3.
   ///
   /// In en, this message translates to:
-  /// **'Self-hosted WebDAV/Supabase/S3 service'**
+  /// **'After logout you need to sign in again to access ledgers'**
   String get welcomeCloudSyncFeature3;
 
   /// No description provided for @widgetManagement.

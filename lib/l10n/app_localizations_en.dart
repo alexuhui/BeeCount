@@ -448,7 +448,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get splashSecurityFeature1 =>
-      '• Local data storage, complete privacy control';
+      '• Ledger data is stored on the online server';
 
   @override
   String get splashSecurityFeature2 =>
@@ -456,7 +456,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get splashSecurityFeature3 =>
-      '• Optional cloud sync, consistent data across devices';
+      '• Same account, consistent data across devices';
 
   @override
   String get splashInitializing => 'Initializing data...';
@@ -1238,7 +1238,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mineCloudServiceLoading => 'Loading...';
 
   @override
-  String get mineCloudServiceOffline => 'Default Mode (Offline)';
+  String get mineCloudServiceOffline => 'Online service';
 
   @override
   String get mineCloudServiceCustom => 'Custom Supabase';
@@ -1326,8 +1326,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mineUploadNeedLogin => 'Login required';
 
   @override
-  String get mineUploadNeedCloudService =>
-      'Available in cloud service mode only';
+  String get mineUploadNeedCloudService => 'Please sign in first';
 
   @override
   String get mineUploadInProgress => 'Uploading...';
@@ -1348,8 +1347,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mineDownloadTitle => 'Download';
 
   @override
-  String get mineDownloadNeedCloudService =>
-      'Available in cloud service mode only';
+  String get mineDownloadNeedCloudService => 'Please sign in first';
 
   @override
   String get mineDownloadComplete => 'Complete';
@@ -1363,7 +1361,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mineLoginTitle => 'Login / Register';
 
   @override
-  String get mineLoginSubtitle => 'Only needed for sync';
+  String get mineLoginSubtitle => 'Sign in to start recording';
 
   @override
   String get mineLoggedInEmail => 'Logged in';
@@ -1376,7 +1374,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mineLogoutConfirmMessage =>
-      'Are you sure you want to logout?\nYou won\'t be able to use cloud sync after logout.';
+      'Are you sure you want to log out?\nYou will need to sign in again to record transactions.';
 
   @override
   String get mineLogoutButton => 'Logout';
@@ -3697,7 +3695,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get welcomePrivacyFeature2 =>
-      'No privacy concerns, data stored locally';
+      'Ledger data is stored on the online server after sign-in';
 
   @override
   String get welcomeOpenSourceFeature1 =>
@@ -3707,23 +3705,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcomeViewGitHub => 'Visit GitHub Repository';
 
   @override
-  String get welcomeCloudSyncTitle => 'Optional Cloud Sync';
+  String get welcomeCloudSyncTitle => 'Online accounting';
 
   @override
   String get welcomeCloudSyncDescription =>
-      'BeeCount supports multiple sync methods - your data, your control';
+      'After sign-in, ledgers are stored on the online server. Sign in on another device to continue.';
 
   @override
   String get welcomeCloudSyncFeature1 =>
-      'Completely offline usage, no cloud needed';
+      'Sign in to record; data is stored on the server';
 
   @override
   String get welcomeCloudSyncFeature2 =>
-      'iCloud sync (zero config for iOS users)';
+      'Same account, consistent data across devices';
 
   @override
   String get welcomeCloudSyncFeature3 =>
-      'Self-hosted WebDAV/Supabase/S3 service';
+      'After logout you need to sign in again to access ledgers';
 
   @override
   String get widgetManagement => 'Home Screen Widget';

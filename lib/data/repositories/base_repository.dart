@@ -12,12 +12,7 @@ import 'receivable_payable_repository.dart';
 
 /// 基础 Repository 抽象类
 /// 组合所有 Repository 接口，用于类型约束
-/// LocalRepository、CloudRepository、ApiRepository 等都应该实现这个抽象类
-///
-/// 设计原则：
-/// - 不包含任何具体实现细节（如数据库访问）
-/// - 仅定义数据访问的抽象接口
-/// - 支持无缝切换不同的数据源实现
+/// 线上实现为 [ApiRepository]（登录后账本数据走服务器）。
 abstract class BaseRepository
     implements
         LedgerRepository,

@@ -277,7 +277,7 @@ class LedgerCard extends ConsumerWidget {
         size: 20,
       );
     } else {
-      // 纯本地账本（离线模式/未配置）：灰色云关闭图标
+      // 未配置文件备份：灰色云关闭图标
       return const Icon(
         Icons.cloud_off,
         color: Colors.grey,

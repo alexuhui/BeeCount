@@ -8,7 +8,6 @@ import 'app.dart';
 import 'theme.dart';
 import 'providers.dart';
 import 'providers/font_scale_provider.dart';
-import 'providers/cloud_mode_providers.dart';
 import 'providers/ui_state_providers.dart';
 import 'utils/local_storage_utils.dart';
 import 'utils/notification_factory.dart';
@@ -77,10 +76,6 @@ Future<void> main() async {
 
   // 创建全局ProviderContainer（需要在周期交易生成之前创建，因为需要使用 repositoryProvider）
   final container = ProviderContainer();
-
-  // 初始化应用模式（需要在生成重复交易之前，确保模式正确）
-  // 直接从 SharedPreferences 读取并设置到 appModeProvider
-  // await _initializeAppMode(container);
 
   // 注意：不再在启动时生成重复交易
   // 周期交易生成已移至 appSplashInitProvider 中（等待数据库完全初始化后执行）
@@ -180,31 +175,6 @@ class _WidgetUpdateObserver extends ProviderObserver {
 //   } catch (e) {
 //     print('❌ 恢复截图监听失败: $e');
 //     // 不抛出异常，避免影响应用启动
-//   }
-// }
-
-/// 初始化应用模式
-///
-/// 在应用启动时从 SharedPreferences 读取模式并设置到 appModeProvider
-/// 这样可以确保后续使用 repositoryProvider 时能获取到正确的模式
-/// [container] Provider容器
-// Future<void> _initializeAppMode(ProviderContainer container) async {
-//   try {
-//     print('⏳ 初始化应用模式...');
-
-//     // 从 SharedPreferences 直接读取模式
-//     final prefs = await SharedPreferences.getInstance();
-//     final modeStr = prefs.getString('app_mode');
-//     final mode = modeStr != null ? AppMode.fromString(modeStr) : AppMode.local;
-
-//     // 使用 switchMode 方法设置模式，确保 repositoryProvider 能立即获取到正确的模式
-//     // switchMode 不会重复写入 SharedPreferences，因为值已经存在
-//     await container.read(appModeProvider.notifier).switchMode(mode);
-
-//     print('✅ 应用模式已初始化: ${mode.label}');
-//   } catch (e, stackTrace) {
-//     print('⚠️  应用模式初始化失败: $e');
-//     logger.error('Main', '应用模式初始化失败', e, stackTrace);
 //   }
 // }
 

@@ -10,7 +10,7 @@
 
 **Your Data, Your Control - Open Source Accounting App**
 
-**Core Advantage: iCloud/Supabase/WebDAV/S3 protocol servers - Your data, Your control**
+**This client uses BeeCount Server as the only online data source: sign in to record; the same account stays in sync across devices.**
 
 <br/>
 
@@ -68,9 +68,9 @@
 
 ### ✅ BeeCount Advantages
 
-- ✅ **Self-hosted**, complete data control
+- ✅ **Online accounting** via BeeCount Server
 - ✅ **Open source**, auditable code
-- ✅ **Offline-first**, works without network
+- ✅ **Account-based access**, same data on every device
 - ✅ **Free for personal use**, no ads or paywalls (including core features like auto-billing)
 - ✅ **Privacy-first**, developers cannot access your data
 - ✅ **Open source code**, auditable codebase
@@ -137,9 +137,11 @@ A lightweight, open-source, privacy-focused **personal finance management** and 
 <details>
 <summary><b>View Key Features</b></summary>
 
-### ☁️ Self-Hosted Cloud Service - Core Differentiator
+### ☁️ Online Service
 
-> **This is BeeCount's biggest feature: Complete control over your data!**
+> **After sign-in, ledgers are stored on BeeCount Server. There is no local-mode / cloud-mode switch.**
+
+The same account can be used on multiple devices. iCloud / WebDAV / Supabase / S3 below are historical file-backup notes, not app modes.
 
 | Solution | Best For | Features |
 |----------|----------|----------|
@@ -159,9 +161,9 @@ A lightweight, open-source, privacy-focused **personal finance management** and 
 
 ### 🔒 Data Security & Privacy
 
-- **Offline First**: Based on local SQLite, works without network
+- **Online accounting**: After sign-in, ledger data is stored on the BeeCount server
 - **Open & Transparent**: Open source code, auditable
-- **Optional Sync**: Works completely without cloud configuration
+- **Account access**: Same account, consistent data across devices; sign in again after logout
 - **Zero Tracking**: No analytics, no ads, no data collection
 
 ### 📊 Complete Accounting Features
@@ -224,7 +226,9 @@ A lightweight, open-source, privacy-focused **personal finance management** and 
 
 </details>
 
-## ☁️ Cloud Backup Configuration (Optional)
+## ☁️ Cloud Backup Configuration (Historical)
+
+> This app uses **BeeCount Server** as the only online data source. Sign in to record. iCloud / WebDAV / Supabase / S3 below are historical file-backup notes, not a local-mode / cloud-mode switch.
 
 <details>
 <summary><b>📖 Click to view detailed configuration guide</b></summary>

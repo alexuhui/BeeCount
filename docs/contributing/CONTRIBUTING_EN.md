@@ -124,7 +124,7 @@ When creating an Issue, please include:
 - OS: [e.g., Android 13, iOS 16.5]
 - Device Model: [e.g., Pixel 7, iPhone 14]
 - App Version: [e.g., v0.1.5]
-- Cloud Service: [Supabase / WebDAV / Local mode]
+- Cloud Service: [BeeCount Server]
 
 **Screenshots or Logs**
 If possible, please provide screenshots or error logs.
@@ -149,7 +149,7 @@ Should be able to save large amount transactions, or display amount limit warnin
 - OS: Android 13
 - Device: Xiaomi 13
 - App Version: v0.1.5
-- Cloud Service: Local mode
+- Cloud Service: BeeCount Server (online)
 
 **Screenshots**
 [Attach screenshot]

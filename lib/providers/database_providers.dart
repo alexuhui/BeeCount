@@ -30,16 +30,14 @@ final userSettingsStoreProvider = Provider<UserSettingsStore>((ref) {
   );
 });
 
-// 仓储Provider - 根据 AppMode 自动切换实现
-// 返回 BaseRepository 类型，确保类型安全
-// LocalRepository (本地模式) 和 CloudRepository (云端模式) 都继承 BaseRepository
+// 仓储：登录后走线上服务器（ApiRepository），没有本地/云端模式切换。
 final repositoryProvider = Provider<BaseRepository>((ref) {
   final db = ref.watch(databaseProvider);
   final api = ref.watch(beecountApiClientProvider);
   if (api == null) {
     throw StateError('未登录，无法访问账本数据');
   }
-  logger.info('RepositoryProvider', '使用 ApiRepository（服务器为准）');
+  logger.info('RepositoryProvider', '使用 ApiRepository（线上服务器）');
   return ApiRepository(db, api: api);
 });
 

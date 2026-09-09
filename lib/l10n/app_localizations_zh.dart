@@ -440,13 +440,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get splashSecurityTitle => '开源数据安全';
 
   @override
-  String get splashSecurityFeature1 => '• 数据本地存储，隐私完全自控';
+  String get splashSecurityFeature1 => '• 账本数据保存在线上服务器';
 
   @override
   String get splashSecurityFeature2 => '• 开源代码透明，安全值得信赖';
 
   @override
-  String get splashSecurityFeature3 => '• 可选云端同步，多设备数据一致';
+  String get splashSecurityFeature3 => '• 同一账号多设备数据一致';
 
   @override
   String get splashInitializing => '正在初始化数据...';
@@ -1220,7 +1220,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mineCloudServiceLoading => '加载中…';
 
   @override
-  String get mineCloudServiceOffline => '默认模式 (离线)';
+  String get mineCloudServiceOffline => '线上服务';
 
   @override
   String get mineCloudServiceCustom => '自定义 Supabase';
@@ -1308,7 +1308,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mineUploadNeedLogin => '需登录';
 
   @override
-  String get mineUploadNeedCloudService => '仅限云服务模式可用';
+  String get mineUploadNeedCloudService => '需要先登录';
 
   @override
   String get mineUploadInProgress => '正在上传中…';
@@ -1329,7 +1329,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mineDownloadTitle => '下载';
 
   @override
-  String get mineDownloadNeedCloudService => '仅限云服务模式可用';
+  String get mineDownloadNeedCloudService => '需要先登录';
 
   @override
   String get mineDownloadComplete => '完成';
@@ -1343,7 +1343,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mineLoginTitle => '登录 / 注册';
 
   @override
-  String get mineLoginSubtitle => '仅在同步时需要';
+  String get mineLoginSubtitle => '登录后才能记账';
 
   @override
   String get mineLoggedInEmail => '已登录';
@@ -1355,7 +1355,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mineLogoutConfirmTitle => '退出登录';
 
   @override
-  String get mineLogoutConfirmMessage => '确定要退出当前账号登录吗？\n退出后将无法使用云同步功能。';
+  String get mineLogoutConfirmMessage => '确定要退出当前账号吗？\n退出后需重新登录才能记账。';
 
   @override
   String get mineLogoutButton => '退出';
@@ -3560,7 +3560,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get welcomePrivacyFeature1 => '100% 开源代码，接受社区监督';
 
   @override
-  String get welcomePrivacyFeature2 => '无隐私顾虑，数据完全本地存储';
+  String get welcomePrivacyFeature2 => '登录后账本数据保存在线上服务器';
 
   @override
   String get welcomeOpenSourceFeature1 => '活跃的开发者社群，持续改进';
@@ -3569,19 +3569,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get welcomeViewGitHub => '访问 GitHub 仓库';
 
   @override
-  String get welcomeCloudSyncTitle => '可选的云同步';
+  String get welcomeCloudSyncTitle => '线上记账';
 
   @override
-  String get welcomeCloudSyncDescription => 'BeeCount 支持多种同步方式，数据完全由你掌控';
+  String get welcomeCloudSyncDescription => '登录后账本保存在线上服务器，换设备登录即可继续使用';
 
   @override
-  String get welcomeCloudSyncFeature1 => '完全离线使用，无需云服务';
+  String get welcomeCloudSyncFeature1 => '登录后即可记账，数据保存在服务器';
 
   @override
-  String get welcomeCloudSyncFeature2 => 'iCloud 同步（iOS 用户零配置）';
+  String get welcomeCloudSyncFeature2 => '同一账号多设备数据一致';
 
   @override
-  String get welcomeCloudSyncFeature3 => '自建 WebDAV/Supabase/S3 服务';
+  String get welcomeCloudSyncFeature3 => '退出登录后需重新登录才能访问账本';
 
   @override
   String get widgetManagement => '桌面小组件';
@@ -6168,13 +6168,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get splashSecurityTitle => '開源資料安全';
 
   @override
-  String get splashSecurityFeature1 => '• 資料本地儲存，隱私完全自控';
+  String get splashSecurityFeature1 => '• 帳本資料保存在線上伺服器';
 
   @override
   String get splashSecurityFeature2 => '• 開源程式碼透明，安全值得信賴';
 
   @override
-  String get splashSecurityFeature3 => '• 可選雲端同步，多裝置資料一致';
+  String get splashSecurityFeature3 => '• 同一帳號多裝置資料一致';
 
   @override
   String get splashInitializing => '正在初始化資料...';
@@ -6948,7 +6948,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get mineCloudServiceLoading => '載入中…';
 
   @override
-  String get mineCloudServiceOffline => '預設模式 (離線)';
+  String get mineCloudServiceOffline => '線上服務';
 
   @override
   String get mineCloudServiceCustom => '自訂 Supabase';
@@ -7036,7 +7036,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get mineUploadNeedLogin => '需登入';
 
   @override
-  String get mineUploadNeedCloudService => '僅限雲端服務模式可用';
+  String get mineUploadNeedCloudService => '需要先登入';
 
   @override
   String get mineUploadInProgress => '正在上傳中…';
@@ -7057,7 +7057,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get mineDownloadTitle => '下載';
 
   @override
-  String get mineDownloadNeedCloudService => '僅限雲端服務模式可用';
+  String get mineDownloadNeedCloudService => '需要先登入';
 
   @override
   String get mineDownloadComplete => '完成';
@@ -7071,7 +7071,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get mineLoginTitle => '登入 / 註冊';
 
   @override
-  String get mineLoginSubtitle => '僅在同步時需要';
+  String get mineLoginSubtitle => '登入後才能記帳';
 
   @override
   String get mineLoggedInEmail => '已登入';
@@ -7083,7 +7083,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get mineLogoutConfirmTitle => '退出登入';
 
   @override
-  String get mineLogoutConfirmMessage => '確定要退出當前帳號登入嗎？\n退出後將無法使用雲同步功能。';
+  String get mineLogoutConfirmMessage => '確定要退出當前帳號嗎？\n退出後需重新登入才能記帳。';
 
   @override
   String get mineLogoutButton => '退出';
@@ -9288,7 +9288,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get welcomePrivacyFeature1 => '100% 開源代碼，接受社區監督';
 
   @override
-  String get welcomePrivacyFeature2 => '無隱私顧慮，資料完全本地儲存';
+  String get welcomePrivacyFeature2 => '登入後帳本資料保存在線上伺服器';
 
   @override
   String get welcomeOpenSourceFeature1 => '活躍的開發者社群，持續改進';
@@ -9297,19 +9297,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get welcomeViewGitHub => '訪問 GitHub 倉庫';
 
   @override
-  String get welcomeCloudSyncTitle => '可選的雲端同步';
+  String get welcomeCloudSyncTitle => '線上記帳';
 
   @override
-  String get welcomeCloudSyncDescription => 'BeeCount 支援多種同步方式，資料完全由你掌控';
+  String get welcomeCloudSyncDescription => '登入後帳本保存在線上伺服器，換裝置登入即可繼續使用';
 
   @override
-  String get welcomeCloudSyncFeature1 => '完全離線使用，無需雲端服務';
+  String get welcomeCloudSyncFeature1 => '登入後即可記帳，資料保存在伺服器';
 
   @override
-  String get welcomeCloudSyncFeature2 => 'iCloud 同步（iOS 用戶零配置）';
+  String get welcomeCloudSyncFeature2 => '同一帳號多裝置資料一致';
 
   @override
-  String get welcomeCloudSyncFeature3 => '自建 WebDAV/Supabase/S3 服務';
+  String get welcomeCloudSyncFeature3 => '退出登入後需重新登入才能訪問帳本';
 
   @override
   String get widgetManagement => '桌面小組件';

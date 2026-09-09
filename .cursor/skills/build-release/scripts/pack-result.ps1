@@ -10,7 +10,10 @@ $version = ($line.Matches[0].Groups[1].Value -split '\+')[0]
 $now = Get-Date
 $stamp = "$version.$($now.Year).$($now.Month).$($now.Day)"
 $winZip = Join-Path $repoRoot "build\windows\x64\runner\Release.$stamp.zip"
-$apk = Join-Path $repoRoot "build\app\outputs\flutter-apk\app-prod-release.apk"
+$apk = Join-Path $repoRoot "build\app\outputs\flutter-apk\app-prod-release.$stamp.apk"
+if (-not (Test-Path $apk)) {
+  & (Join-Path $PSScriptRoot "pack-apk.ps1")
+}
 if (-not (Test-Path $winZip)) { throw "Missing $winZip" }
 if (-not (Test-Path $apk)) { throw "Missing $apk" }
 
@@ -22,7 +25,7 @@ $stage = Join-Path $env:TEMP $bundleName
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory -Path $stage | Out-Null
 Copy-Item $winZip -Destination (Join-Path $stage (Split-Path $winZip -Leaf))
-Copy-Item $apk -Destination (Join-Path $stage "app-prod-release.apk")
+Copy-Item $apk -Destination (Join-Path $stage (Split-Path $apk -Leaf))
 
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 Push-Location (Split-Path $stage -Parent)

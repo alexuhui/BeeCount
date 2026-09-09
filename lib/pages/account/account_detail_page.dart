@@ -488,6 +488,48 @@ class _NormalAccountContent extends ConsumerWidget {
 
   Future<void> _editTransaction(
       BuildContext context, WidgetRef ref, db.Transaction tx) async {
+    final currencyCode =
+        ref.read(currentLedgerProvider).asData?.value?.currency ?? 'CNY';
+
+    if (tx.receivableId != null) {
+      final rec =
+          await ref.read(repositoryProvider).getReceivableById(tx.receivableId!);
+      if (!context.mounted) return;
+      if (rec != null) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ReceivableRecordDetailPage(
+              receivable: rec,
+              currencyCode: currencyCode,
+            ),
+          ),
+        );
+        ref.invalidate(accountStatsProvider(account.id));
+        ref.invalidate(accountTransactionsProvider(account.id));
+        return;
+      }
+    }
+    if (tx.payableId != null) {
+      final pay =
+          await ref.read(repositoryProvider).getPayableById(tx.payableId!);
+      if (!context.mounted) return;
+      if (pay != null) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PayableRecordDetailPage(
+              payable: pay,
+              currencyCode: currencyCode,
+            ),
+          ),
+        );
+        ref.invalidate(accountStatsProvider(account.id));
+        ref.invalidate(accountTransactionsProvider(account.id));
+        return;
+      }
+    }
+
     final categoryAsync = tx.categoryId != null
         ? await ref.read(categoriesProvider.future)
         : null;
@@ -1992,23 +2034,31 @@ class _TransactionTile extends ConsumerWidget {
     String? displaySubtitle;
 
     if (transaction.type == 'transfer') {
+      final isLoanLedger = transaction.receivableId != null ||
+          transaction.payableId != null;
       if (transaction.note?.isNotEmpty == true) {
         displayTitle = transaction.note!;
+      } else if (isLoanLedger) {
+        displayTitle = transaction.receivableId != null
+            ? (isTransferOut ? '借出' : '收回')
+            : (isTransferIn ? '借入' : '偿还');
       } else {
         displayTitle = l10n.transferTitle;
       }
 
-      if (isTransferOut && transaction.toAccountId != null) {
-        final toAccountAsync = ref.watch(accountByIdProvider(transaction.toAccountId!));
-        final toAccountName = toAccountAsync.value?.name;
-        if (toAccountName != null) {
-          displaySubtitle = '${l10n.transferToPrefix} $toAccountName';
-        }
-      } else if (isTransferIn && transaction.accountId != null) {
-        final fromAccountAsync = ref.watch(accountByIdProvider(transaction.accountId!));
-        final fromAccountName = fromAccountAsync.value?.name;
-        if (fromAccountName != null) {
-          displaySubtitle = '${l10n.transferFromPrefix} $fromAccountName';
+      if (!isLoanLedger) {
+        if (isTransferOut && transaction.toAccountId != null) {
+          final toAccountAsync = ref.watch(accountByIdProvider(transaction.toAccountId!));
+          final toAccountName = toAccountAsync.value?.name;
+          if (toAccountName != null) {
+            displaySubtitle = '${l10n.transferToPrefix} $toAccountName';
+          }
+        } else if (isTransferIn && transaction.accountId != null) {
+          final fromAccountAsync = ref.watch(accountByIdProvider(transaction.accountId!));
+          final fromAccountName = fromAccountAsync.value?.name;
+          if (fromAccountName != null) {
+            displaySubtitle = '${l10n.transferFromPrefix} $fromAccountName';
+          }
         }
       }
     } else if (InvestTx.isPnlType(transaction.type)) {

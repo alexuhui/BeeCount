@@ -58,6 +58,7 @@ class ApiRepository extends LocalRepository {
     int? tagId,
     String? q,
     bool includeInvestPnl = false,
+    bool includeHidden = false,
   }) =>
       {
         if (ledgerId != null) 'ledger_id': '$ledgerId',
@@ -69,6 +70,7 @@ class ApiRepository extends LocalRepository {
         if (tagId != null) 'tag_id': '$tagId',
         if (q != null && q.isNotEmpty) 'q': q,
         if (includeInvestPnl) 'include_invest_pnl': 'true',
+        if (includeHidden) 'exclude_from_stats': 'false',
       };
 
   List<Category>? _categoryCache;
@@ -1116,7 +1118,11 @@ class ApiRepository extends LocalRepository {
       _watch(() async {
         final rows = await _allPages(
           '/transactions',
-          _txQuery(accountId: accountId, includeInvestPnl: true),
+          _txQuery(
+            accountId: accountId,
+            includeInvestPnl: true,
+            includeHidden: true,
+          ),
         );
         final txs = rows.map(txFromJson).toList();
         txs.sort((a, b) {

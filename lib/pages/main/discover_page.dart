@@ -21,40 +21,57 @@ import '../budget/budget_page.dart';
 import '../settings/config_import_export_page.dart';
 import '../automation/auto_billing_settings_page.dart';
 
+enum _DiscoverSection { accounts, budget }
+
 /// 发现页
 ///
 /// 包含预算管理和账户功能
-class DiscoverPage extends StatelessWidget {
+class DiscoverPage extends StatefulWidget {
   const DiscoverPage({super.key});
 
   @override
+  State<DiscoverPage> createState() => _DiscoverPageState();
+}
+
+class _DiscoverPageState extends State<DiscoverPage> {
+  _DiscoverSection _section = _DiscoverSection.accounts;
+
+  @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
       body: Column(
         children: [
-          _DiscoverHeader(l10n: l10n),
+          _DiscoverHeader(
+            section: _section,
+            onSectionChanged: (value) => setState(() => _section = value),
+          ),
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(
-                horizontal: 12.0.scaledSimple(context),
-                vertical: 8.0.scaledSimple(context),
-              ),
+            child: IndexedStack(
+              index: _section == _DiscoverSection.accounts ? 0 : 1,
               children: [
-                // 预算管理卡片
-                const RepaintBoundary(child: _BudgetCard()),
-                const SizedBox(height: 10),
-
-                // 账户总览卡片
-                const RepaintBoundary(child: _AccountsCard()),
-                const SizedBox(height: 10),
-
-                // 快捷记账入口
-                // const _QuickActionsCard(),
-                SizedBox(height: bottomPadding),
+                ListView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12.0.scaledSimple(context),
+                    vertical: 8.0.scaledSimple(context),
+                  ),
+                  children: [
+                    const RepaintBoundary(child: _AccountsCard()),
+                    SizedBox(height: bottomPadding),
+                  ],
+                ),
+                ListView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12.0.scaledSimple(context),
+                    vertical: 8.0.scaledSimple(context),
+                  ),
+                  children: [
+                    const RepaintBoundary(child: _BudgetCard()),
+                    SizedBox(height: bottomPadding),
+                  ],
+                ),
               ],
             ),
           ),
@@ -66,70 +83,235 @@ class DiscoverPage extends StatelessWidget {
 
 /// 发现页头部
 class _DiscoverHeader extends StatelessWidget {
-  final AppLocalizations l10n;
+  final _DiscoverSection section;
+  final ValueChanged<_DiscoverSection> onSectionChanged;
 
-  const _DiscoverHeader({required this.l10n});
+  const _DiscoverHeader({
+    required this.section,
+    required this.onSectionChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
     return PrimaryHeader(
-      title: l10n.discoverTitle,
+      title: '',
       showBack: false,
-      actions: [
-        Consumer(
-          builder: (context, ref, child) {
-            final currentLedger = ref.watch(currentLedgerProvider);
-            return currentLedger.when(
-              data: (ledger) => GestureDetector(
-                onTap: () => showLedgerPicker(context),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 10.0.scaled(context, ref),
-                    vertical: 6.0.scaled(context, ref),
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.book_outlined,
-                        size: 14,
-                        color: BeeTokens.textPrimary(context),
-                      ),
-                      SizedBox(width: 4.0.scaled(context, ref)),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 80),
-                        child: Text(
-                          ledger?.name ?? '',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: BeeTokens.textPrimary(context),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+      showTitleSection: false,
+      content: Row(
+        children: [
+          Expanded(
+            child: _DiscoverSectionSwitcher(
+              selected: section,
+              onChanged: onSectionChanged,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Consumer(
+            builder: (context, ref, child) {
+              final currentLedger = ref.watch(currentLedgerProvider);
+              return currentLedger.when(
+                data: (ledger) => GestureDetector(
+                  onTap: () => showLedgerPicker(context),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.0.scaled(context, ref),
+                      vertical: 6.0.scaled(context, ref),
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.book_outlined,
+                          size: 14,
+                          color: BeeTokens.textPrimary(context),
                         ),
+                        SizedBox(width: 4.0.scaled(context, ref)),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 80),
+                          child: Text(
+                            ledger?.name ?? '',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: BeeTokens.textPrimary(context),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        SizedBox(width: 2.0.scaled(context, ref)),
+                        Icon(
+                          Icons.keyboard_arrow_down,
+                          size: 14,
+                          color: BeeTokens.textPrimary(context)
+                              .withValues(alpha: 0.6),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 账户 / 预算切换。预算按钮底部叠一条无数字的进度缩略。
+class _DiscoverSectionSwitcher extends ConsumerWidget {
+  final _DiscoverSection selected;
+  final ValueChanged<_DiscoverSection> onChanged;
+
+  const _DiscoverSectionSwitcher({
+    required this.selected,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final isDark = BeeTokens.isDark(context);
+    final selectedBg =
+        isDark ? BeeTokens.primary(context) : Colors.black;
+    const height = 40.0;
+
+    return Container(
+      height: height,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: BeeTokens.surfaceCapsule(context),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _sectionTab(
+              context: context,
+              label: l10n.discoverAccounts,
+              selected: selected == _DiscoverSection.accounts,
+              selectedBg: selectedBg,
+              onTap: () => onChanged(_DiscoverSection.accounts),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _budgetTab(
+              context: context,
+              ref: ref,
+              label: l10n.discoverBudget,
+              selected: selected == _DiscoverSection.budget,
+              selectedBg: selectedBg,
+              onTap: () => onChanged(_DiscoverSection.budget),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionTab({
+    required BuildContext context,
+    required String label,
+    required bool selected,
+    required Color selectedBg,
+    required VoidCallback onTap,
+  }) {
+    final fg = selected ? Colors.white : BeeTokens.textPrimary(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        decoration: BoxDecoration(
+          color: selected ? selectedBg : Colors.transparent,
+          borderRadius: BorderRadius.circular(17),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: fg,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _budgetTab({
+    required BuildContext context,
+    required WidgetRef ref,
+    required String label,
+    required bool selected,
+    required Color selectedBg,
+    required VoidCallback onTap,
+  }) {
+    final overview = ref.watch(budgetOverviewProvider).valueOrNull;
+    final budget = overview?.totalBudget;
+    double? rate;
+    Color? color;
+    if (budget != null) {
+      rate = budget.budget > 0
+          ? (budget.used / budget.budget).clamp(0.0, 1.0)
+          : budget.used > 0
+              ? 1.0
+              : 0.0;
+      color = _budgetProgressColor(context, rate);
+    }
+
+    final fg = selected ? Colors.white : BeeTokens.textPrimary(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        decoration: BoxDecoration(
+          color: selected ? selectedBg : Colors.transparent,
+          borderRadius: BorderRadius.circular(17),
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: fg,
+                        fontWeight: FontWeight.w600,
                       ),
-                      SizedBox(width: 2.0.scaled(context, ref)),
-                      Icon(
-                        Icons.keyboard_arrow_down,
-                        size: 14,
-                        color: BeeTokens.textPrimary(context)
-                            .withValues(alpha: 0.6),
-                      ),
-                    ],
+                ),
+              ),
+            ),
+            if (rate != null && color != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 5),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: LinearProgressIndicator(
+                    value: rate,
+                    backgroundColor:
+                        color.withValues(alpha: selected ? 0.28 : 0.18),
+                    valueColor: AlwaysStoppedAnimation(color),
+                    minHeight: 3,
                   ),
                 ),
               ),
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            );
-          },
+          ],
         ),
-      ],
+      ),
     );
+  }
+
+  Color _budgetProgressColor(BuildContext context, double rate) {
+    if (rate >= 0.9) return BeeTokens.error(context);
+    if (rate >= 0.7) return BeeTokens.warning(context);
+    return BeeTokens.success(context);
   }
 }
 

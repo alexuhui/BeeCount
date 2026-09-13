@@ -749,11 +749,13 @@ class _ExpandedAccountCard extends ConsumerWidget {
         isReceivableAccount ? ref.watch(receivableStatsProvider(account.id)) : null;
     final payableStatsAsync =
         isPayableAccount ? ref.watch(payableStatsProvider(account.id)) : null;
+    final now = DateTime.now();
     final investStatsAsync = isInvestmentAccount
         ? ref.watch(investmentPeriodStatsProvider((
             accountId: account.id,
-            from: DateTime(1970, 1, 1),
-            to: DateTime.now().add(const Duration(days: 1)),
+            from: DateTime(now.year, now.month, 1),
+            to: DateTime(now.year, now.month, now.day)
+                .add(const Duration(days: 1)),
           )))
         : null;
 
@@ -939,35 +941,11 @@ class _ExpandedAccountCard extends ConsumerWidget {
                           account: account,
                           statsAsync: payableStatsAsync,
                         )
-                      else if (isInvestmentAccount && investStatsAsync != null)
-                        investStatsAsync.when(
-                          data: (s) => Row(
-                            children: [
-                              Expanded(
-                                child: _CardStatItem(
-                                  label: AppLocalizations.of(context)
-                                      .investMarketValue,
-                                  value: s.closingValue,
-                                  currencyCode: account.currency,
-                                ),
-                              ),
-                              Container(
-                                width: 1,
-                                height: 30.0.scaled(context, ref),
-                                color: Colors.white.withValues(alpha: 0.2),
-                              ),
-                              Expanded(
-                                child: _CardStatItem(
-                                  label: AppLocalizations.of(context)
-                                      .investTotalPnl,
-                                  value: s.totalPnl,
-                                  currencyCode: account.currency,
-                                ),
-                              ),
-                            ],
-                          ),
-                          loading: () => const SizedBox.shrink(),
-                          error: (_, __) => const SizedBox.shrink(),
+                      else if (isInvestmentAccount)
+                        _investmentStatsRow(
+                          context,
+                          ref,
+                          investStatsAsync: investStatsAsync,
                         )
                       else if (stats != null)
                         Row(
@@ -1024,6 +1002,70 @@ class _ExpandedAccountCard extends ConsumerWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _investmentStatsRow(
+    BuildContext context,
+    WidgetRef ref, {
+    required AsyncValue<InvestmentPeriodStats>? investStatsAsync,
+  }) {
+    final l10n = AppLocalizations.of(context);
+
+    Widget divider() => Container(
+          width: 1,
+          height: 30.0.scaled(context, ref),
+          color: Colors.white.withValues(alpha: 0.2),
+        );
+
+    Widget row(InvestmentPeriodStats s) => Row(
+          children: [
+            Expanded(
+              child: _CardStatItem(
+                label: l10n.investOpeningValue,
+                value: s.openingValue,
+                currencyCode: account.currency,
+              ),
+            ),
+            divider(),
+            Expanded(
+              child: _CardStatItem(
+                label: l10n.investClosingValue,
+                value: s.closingValue,
+                currencyCode: account.currency,
+              ),
+            ),
+            divider(),
+            Expanded(
+              child: _CardStatItem(
+                label: l10n.investPeriodPnl,
+                value: s.periodPnl,
+                currencyCode: account.currency,
+              ),
+            ),
+          ],
+        );
+
+    const loading = Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 8.0),
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          strokeWidth: 2,
+        ),
+      ),
+    );
+
+    if (investStatsAsync == null) return loading;
+    return investStatsAsync.when(
+      data: row,
+      loading: () => loading,
+      error: (_, __) => const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.0),
+          child: Text('-', style: TextStyle(color: Colors.white)),
         ),
       ),
     );

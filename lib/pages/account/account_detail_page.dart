@@ -1036,6 +1036,22 @@ class _InvestmentAccountContentState
     return '${_month.year}-${_month.month.toString().padLeft(2, '0')}';
   }
 
+  DateTime get _currentMonthStart {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, 1);
+  }
+
+  bool get _canGoNextMonth {
+    final next = DateTime(_month.year, _month.month + 1, 1);
+    return !next.isAfter(_currentMonthStart);
+  }
+
+  void _shiftMonth(int delta) {
+    final next = DateTime(_month.year, _month.month + delta, 1);
+    if (delta > 0 && next.isAfter(_currentMonthStart)) return;
+    setState(() => _month = next);
+  }
+
   Future<void> _pickPeriod() async {
     if (_scope == 'year') {
       final picked = await showWheelDatePicker(
@@ -1070,6 +1086,7 @@ class _InvestmentAccountContentState
       context,
       initial: _month,
       mode: WheelDatePickerMode.ym,
+      maxDate: DateTime.now(),
     );
     if (picked != null && mounted) {
       setState(() => _month = DateTime(picked.year, picked.month, 1));
@@ -1168,13 +1185,43 @@ class _InvestmentAccountContentState
             12.0.scaled(context, ref),
             0,
           ),
-          child: Align(
-            alignment: Alignment.center,
-            child: TextButton(
-              onPressed: _pickPeriod,
-              child: Text(_periodLabel()),
-            ),
-          ),
+          child: _scope == 'month'
+              ? Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => _shiftMonth(-1),
+                      icon: const Icon(Icons.chevron_left),
+                      color: primaryColor,
+                    ),
+                    Expanded(
+                      child: TextButton(
+                        onPressed: _pickPeriod,
+                        child: Text(
+                          _periodLabel(),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: primaryColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed:
+                          _canGoNextMonth ? () => _shiftMonth(1) : null,
+                      icon: const Icon(Icons.chevron_right),
+                      color: primaryColor,
+                    ),
+                  ],
+                )
+              : Align(
+                  alignment: Alignment.center,
+                  child: TextButton(
+                    onPressed: _pickPeriod,
+                    child: Text(_periodLabel()),
+                  ),
+                ),
         ),
         SizedBox(height: 8.0.scaled(context, ref)),
         SectionCard(

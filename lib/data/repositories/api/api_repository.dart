@@ -934,6 +934,20 @@ class ApiRepository extends LocalRepository {
   }
 
   @override
+  Stream<Category?> watchCategory(int categoryId) =>
+      _watch(() => getCategoryById(categoryId));
+
+  @override
+  Stream<List<Category>> watchCategoryWithSubs(int categoryId) {
+    return _watch(() async {
+      final all = await _cats();
+      return all
+          .where((c) => c.id == categoryId || c.parentId == categoryId)
+          .toList();
+    });
+  }
+
+  @override
   Future<int> createCategory(
       {required String name,
       required String kind,
@@ -1002,12 +1016,33 @@ class ApiRepository extends LocalRepository {
 
   @override
   Future<List<Transaction>> getTransactionsByCategory(int categoryId) async {
-    final page = await fetchTransactionsPage(
-      page: 1,
-      pageSize: PageSizes.exportMax,
-      categoryId: categoryId,
+    final rows = await _allPages(
+      '/transactions',
+      _txQuery(categoryId: categoryId, includeHidden: true),
     );
-    return page.items.map((e) => e.t).toList();
+    final list = rows.map(txFromJson).toList();
+    list.sort((a, b) => b.happenedAt.compareTo(a.happenedAt));
+    return list;
+  }
+
+  @override
+  Stream<List<Transaction>> watchTransactionsByCategory(
+    int categoryId, {
+    int? ledgerId,
+  }) {
+    return _watch(() async {
+      final rows = await _allPages(
+        '/transactions',
+        _txQuery(
+          ledgerId: ledgerId,
+          categoryId: categoryId,
+          includeHidden: true,
+        ),
+      );
+      final list = rows.map(txFromJson).toList();
+      list.sort((a, b) => b.happenedAt.compareTo(a.happenedAt));
+      return list;
+    });
   }
 
   @override

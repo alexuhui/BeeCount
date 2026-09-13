@@ -218,6 +218,44 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeSearch => '搜索';
 
   @override
+  String get recycleBinTitle => '回收站';
+
+  @override
+  String get recycleBinEmpty => '回收站是空的';
+
+  @override
+  String get recycleBinEmptyHint => '删除的记录会在这里保留 30 天，也可手动清空';
+
+  @override
+  String get recycleBinRestore => '恢复';
+
+  @override
+  String get recycleBinDeleteForever => '彻底删除';
+
+  @override
+  String get recycleBinDeleteForeverConfirm => '彻底删除后无法恢复，确定删除这条记录吗？';
+
+  @override
+  String get recycleBinEmptyAll => '清空';
+
+  @override
+  String get recycleBinEmptyAllConfirm => '将永久删除回收站中的全部记录，确定清空吗？';
+
+  @override
+  String recycleBinDaysLeft(int days) {
+    return '剩余 $days 天自动清除';
+  }
+
+  @override
+  String get recycleBinRestored => '已恢复';
+
+  @override
+  String get recycleBinPermanentlyDeleted => '已彻底删除';
+
+  @override
+  String get recycleBinEmptied => '回收站已清空';
+
+  @override
   String homeYear(int year) {
     return '$year年';
   }
@@ -5977,6 +6015,44 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get homeSearch => '搜尋';
+
+  @override
+  String get recycleBinTitle => '回收站';
+
+  @override
+  String get recycleBinEmpty => '回收站是空的';
+
+  @override
+  String get recycleBinEmptyHint => '刪除的記錄會在這裡保留 30 天，也可手動清空';
+
+  @override
+  String get recycleBinRestore => '恢復';
+
+  @override
+  String get recycleBinDeleteForever => '徹底刪除';
+
+  @override
+  String get recycleBinDeleteForeverConfirm => '徹底刪除後無法恢復，確定刪除這條記錄嗎？';
+
+  @override
+  String get recycleBinEmptyAll => '清空';
+
+  @override
+  String get recycleBinEmptyAllConfirm => '將永久刪除回收站中的全部記錄，確定清空嗎？';
+
+  @override
+  String recycleBinDaysLeft(int days) {
+    return '剩餘 $days 天自動清除';
+  }
+
+  @override
+  String get recycleBinRestored => '已恢復';
+
+  @override
+  String get recycleBinPermanentlyDeleted => '已徹底刪除';
+
+  @override
+  String get recycleBinEmptied => '回收站已清空';
 
   @override
   String homeYear(int year) {

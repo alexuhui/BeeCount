@@ -3,6 +3,7 @@ import '../../../utils/invest_tx.dart';
 import '../../db.dart';
 import '../base_repository.dart';
 import '../budget_repository.dart';
+import '../transaction_repository.dart';
 import 'local_ledger_repository.dart';
 import 'local_transaction_repository.dart';
 import 'local_category_repository.dart';
@@ -363,6 +364,37 @@ class LocalRepository extends BaseRepository {
         tagId: tagId,
         q: q,
       );
+
+  @override
+  Future<({List<DeletedTransactionRecord> items, int total})>
+      getDeletedTransactions({
+    required int ledgerId,
+    required int page,
+    required int pageSize,
+  }) =>
+          _transactionRepo.getDeletedTransactions(
+            ledgerId: ledgerId,
+            page: page,
+            pageSize: pageSize,
+          );
+
+  @override
+  Future<RecycleBinSummary> getDeletedTransactionsSummary({
+    required int ledgerId,
+  }) =>
+      _transactionRepo.getDeletedTransactionsSummary(ledgerId: ledgerId);
+
+  @override
+  Future<void> restoreDeletedTransaction(int id) =>
+      _transactionRepo.restoreDeletedTransaction(id);
+
+  @override
+  Future<void> permanentlyDeleteTransaction(int id) =>
+      _transactionRepo.permanentlyDeleteTransaction(id);
+
+  @override
+  Future<void> emptyRecycleBin({required int ledgerId}) =>
+      _transactionRepo.emptyRecycleBin(ledgerId: ledgerId);
 
   // ============================================
   // CategoryRepository 接口实现 - 委托给 LocalCategoryRepository

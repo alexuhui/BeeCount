@@ -209,8 +209,8 @@ class BeeCountApiClient {
     return Map<String, dynamic>.from(data as Map);
   }
 
-  Future<void> delete(String path) async {
-    await _json('DELETE', path, okAny: [200, 204]);
+  Future<void> delete(String path, {Map<String, String>? query}) async {
+    await _json('DELETE', path, query: query, okAny: [200, 204]);
   }
 
   Future<List<int>> getAttachmentBytes(int id) async {

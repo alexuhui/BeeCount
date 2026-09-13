@@ -6,4 +6,5 @@ class PageSizes {
   static const calendarDay = 50;
   static const receivablePayable = 30;
   static const exportMax = 200;
+  static const recycleBin = 50;
 }

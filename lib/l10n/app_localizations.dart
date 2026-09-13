@@ -495,6 +495,78 @@ abstract class AppLocalizations {
   /// **'Search'**
   String get homeSearch;
 
+  /// No description provided for @recycleBinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recycle Bin'**
+  String get recycleBinTitle;
+
+  /// No description provided for @recycleBinEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Recycle bin is empty'**
+  String get recycleBinEmpty;
+
+  /// No description provided for @recycleBinEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted records stay here for 30 days, or you can empty them manually'**
+  String get recycleBinEmptyHint;
+
+  /// No description provided for @recycleBinRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get recycleBinRestore;
+
+  /// No description provided for @recycleBinDeleteForever.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete forever'**
+  String get recycleBinDeleteForever;
+
+  /// No description provided for @recycleBinDeleteForeverConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This cannot be undone. Delete this record permanently?'**
+  String get recycleBinDeleteForeverConfirm;
+
+  /// No description provided for @recycleBinEmptyAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty'**
+  String get recycleBinEmptyAll;
+
+  /// No description provided for @recycleBinEmptyAllConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete all records in the recycle bin?'**
+  String get recycleBinEmptyAllConfirm;
+
+  /// No description provided for @recycleBinDaysLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-delete in {days} days'**
+  String recycleBinDaysLeft(int days);
+
+  /// No description provided for @recycleBinRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored'**
+  String get recycleBinRestored;
+
+  /// No description provided for @recycleBinPermanentlyDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently deleted'**
+  String get recycleBinPermanentlyDeleted;
+
+  /// No description provided for @recycleBinEmptied.
+  ///
+  /// In en, this message translates to:
+  /// **'Recycle bin emptied'**
+  String get recycleBinEmptied;
+
   /// No description provided for @homeYear.
   ///
   /// In en, this message translates to:

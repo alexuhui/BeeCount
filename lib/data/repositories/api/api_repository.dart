@@ -13,6 +13,7 @@ import '../../db.dart';
 import '../budget_repository.dart';
 import '../category_repository.dart';
 import '../local/local_repository.dart';
+import '../transaction_repository.dart';
 
 /// 线上数据仓储：账本数据走 HTTP API。本地 Drift 仅作缓存/AI 等辅助存储。
 class ApiRepository extends LocalRepository {
@@ -586,6 +587,65 @@ class ApiRepository extends LocalRepository {
   @override
   Future<void> deleteTransaction(int id) async {
     await api.delete('/transactions/$id');
+    notifyChanged();
+  }
+
+  @override
+  Future<({List<DeletedTransactionRecord> items, int total})>
+      getDeletedTransactions({
+    required int ledgerId,
+    required int page,
+    required int pageSize,
+  }) async {
+    final r = await api.listPaged(
+      '/deleted_transactions',
+      page: page,
+      pageSize: pageSize,
+      extra: {'ledger_id': '$ledgerId'},
+    );
+    return (
+      items: r.items
+          .map((m) => DeletedTransactionRecord(
+                transaction: txFromJson(m),
+                deletedAt: asDate(pick(m, ['deleted_at', 'deletedAt'])),
+              ))
+          .toList(),
+      total: r.total,
+    );
+  }
+
+  @override
+  Future<RecycleBinSummary> getDeletedTransactionsSummary({
+    required int ledgerId,
+  }) async {
+    final row = await api.get(
+      '/deleted_transactions/summary',
+      query: {'ledger_id': '$ledgerId'},
+    );
+    return RecycleBinSummary(
+      count: asInt(pick(row, ['count'])),
+      latestDeletedAt: asDateN(pick(row, ['latest_deleted_at', 'latestDeletedAt'])),
+    );
+  }
+
+  @override
+  Future<void> restoreDeletedTransaction(int id) async {
+    await api.post('/deleted_transactions/$id/restore', {});
+    notifyChanged();
+  }
+
+  @override
+  Future<void> permanentlyDeleteTransaction(int id) async {
+    await api.delete('/deleted_transactions/$id');
+    notifyChanged();
+  }
+
+  @override
+  Future<void> emptyRecycleBin({required int ledgerId}) async {
+    await api.delete(
+      '/deleted_transactions',
+      query: {'ledger_id': '$ledgerId'},
+    );
     notifyChanged();
   }
 

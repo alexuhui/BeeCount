@@ -101,6 +101,25 @@
   "homeSelectDate": "选择日期",
   "homeAppTitle": "蜜蜂记账",
   "homeSearch": "搜索",
+  "recycleBinTitle": "回收站",
+  "recycleBinEmpty": "回收站是空的",
+  "recycleBinEmptyHint": "删除的记录会在这里保留 30 天，也可手动清空",
+  "recycleBinRestore": "恢复",
+  "recycleBinDeleteForever": "彻底删除",
+  "recycleBinDeleteForeverConfirm": "彻底删除后无法恢复，确定删除这条记录吗？",
+  "recycleBinEmptyAll": "清空",
+  "recycleBinEmptyAllConfirm": "将永久删除回收站中的全部记录，确定清空吗？",
+  "recycleBinDaysLeft": "剩余 {days} 天自动清除",
+  "@recycleBinDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "recycleBinRestored": "已恢复",
+  "recycleBinPermanentlyDeleted": "已彻底删除",
+  "recycleBinEmptied": "回收站已清空",
   "homeYear": "{year}年",
   "homeMonth": "{month}月",
   "homeNoRecordsSubtext": "点击底部加号，马上记一笔",

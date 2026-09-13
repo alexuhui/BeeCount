@@ -796,4 +796,32 @@ class LocalTransactionRepository implements TransactionRepository {
     final end = (start + pageSize).clamp(0, total);
     return (items: filtered.sublist(start, end), total: total);
   }
+
+  @override
+  Future<({List<DeletedTransactionRecord> items, int total})>
+      getDeletedTransactions({
+    required int ledgerId,
+    required int page,
+    required int pageSize,
+  }) async {
+    return (items: <DeletedTransactionRecord>[], total: 0);
+  }
+
+  @override
+  Future<RecycleBinSummary> getDeletedTransactionsSummary({
+    required int ledgerId,
+  }) async {
+    return const RecycleBinSummary(count: 0);
+  }
+
+  @override
+  Future<void> restoreDeletedTransaction(int id) async {}
+
+  @override
+  Future<void> permanentlyDeleteTransaction(int id) async {
+    await deleteTransaction(id);
+  }
+
+  @override
+  Future<void> emptyRecycleBin({required int ledgerId}) async {}
 }

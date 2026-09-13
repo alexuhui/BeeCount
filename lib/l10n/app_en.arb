@@ -104,6 +104,25 @@
   "homeSelectDate": "Select date",
   "homeAppTitle": "Bee Accounting",
   "homeSearch": "Search",
+  "recycleBinTitle": "Recycle Bin",
+  "recycleBinEmpty": "Recycle bin is empty",
+  "recycleBinEmptyHint": "Deleted records stay here for 30 days, or you can empty them manually",
+  "recycleBinRestore": "Restore",
+  "recycleBinDeleteForever": "Delete forever",
+  "recycleBinDeleteForeverConfirm": "This cannot be undone. Delete this record permanently?",
+  "recycleBinEmptyAll": "Empty",
+  "recycleBinEmptyAllConfirm": "Permanently delete all records in the recycle bin?",
+  "recycleBinDaysLeft": "Auto-delete in {days} days",
+  "@recycleBinDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "recycleBinRestored": "Restored",
+  "recycleBinPermanentlyDeleted": "Permanently deleted",
+  "recycleBinEmptied": "Recycle bin emptied",
   "homeYear": "{year}",
   "@homeYear": {
     "placeholders": {

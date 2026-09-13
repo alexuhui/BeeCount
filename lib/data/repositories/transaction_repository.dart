@@ -1,5 +1,25 @@
 import '../db.dart';
 
+class DeletedTransactionRecord {
+  final Transaction transaction;
+  final DateTime deletedAt;
+
+  const DeletedTransactionRecord({
+    required this.transaction,
+    required this.deletedAt,
+  });
+}
+
+class RecycleBinSummary {
+  final int count;
+  final DateTime? latestDeletedAt;
+
+  const RecycleBinSummary({
+    required this.count,
+    this.latestDeletedAt,
+  });
+}
+
 /// 交易Repository接口
 /// 定义交易相关的所有数据操作
 abstract class TransactionRepository {
@@ -90,6 +110,24 @@ abstract class TransactionRepository {
 
   /// 删除交易
   Future<void> deleteTransaction(int id);
+
+  /// 回收站（软删除后保留 30 天）
+  Future<({List<DeletedTransactionRecord> items, int total})>
+      getDeletedTransactions({
+    required int ledgerId,
+    required int page,
+    required int pageSize,
+  });
+
+  Future<RecycleBinSummary> getDeletedTransactionsSummary({
+    required int ledgerId,
+  });
+
+  Future<void> restoreDeletedTransaction(int id);
+
+  Future<void> permanentlyDeleteTransaction(int id);
+
+  Future<void> emptyRecycleBin({required int ledgerId});
 
   /// 获取指定类型和时间范围内的交易数量
   Future<int> countByTypeInRange({

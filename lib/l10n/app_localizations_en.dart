@@ -219,6 +219,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeSearch => 'Search';
 
   @override
+  String get recycleBinTitle => 'Recycle Bin';
+
+  @override
+  String get recycleBinEmpty => 'Recycle bin is empty';
+
+  @override
+  String get recycleBinEmptyHint =>
+      'Deleted records stay here for 30 days, or you can empty them manually';
+
+  @override
+  String get recycleBinRestore => 'Restore';
+
+  @override
+  String get recycleBinDeleteForever => 'Delete forever';
+
+  @override
+  String get recycleBinDeleteForeverConfirm =>
+      'This cannot be undone. Delete this record permanently?';
+
+  @override
+  String get recycleBinEmptyAll => 'Empty';
+
+  @override
+  String get recycleBinEmptyAllConfirm =>
+      'Permanently delete all records in the recycle bin?';
+
+  @override
+  String recycleBinDaysLeft(int days) {
+    return 'Auto-delete in $days days';
+  }
+
+  @override
+  String get recycleBinRestored => 'Restored';
+
+  @override
+  String get recycleBinPermanentlyDeleted => 'Permanently deleted';
+
+  @override
+  String get recycleBinEmptied => 'Recycle bin emptied';
+
+  @override
   String homeYear(int year) {
     return '$year';
   }

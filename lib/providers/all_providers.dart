@@ -39,3 +39,4 @@ export 'smart_billing_providers.dart';
 
 // BeeCount服务器相关
 export 'beecount_server_providers.dart';
+export 'recycle_bin_providers.dart';

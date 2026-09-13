@@ -14,6 +14,7 @@ import '../../widgets/biz/biz.dart';
 import '../../widgets/biz/bee_icon.dart';
 import '../../styles/tokens.dart';
 import '../transaction/search_page.dart';
+import '../transaction/recycle_bin_page.dart';
 import '../ai/ai_chat_page.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/system/logger_service.dart';
@@ -642,6 +643,51 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   Icons.search,
                                   size: 20,
                                   color: Theme.of(context).iconTheme.color,
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: AppLocalizations.of(context)
+                                    .recycleBinTitle,
+                                onPressed: () async {
+                                  _transactionListKey.currentState
+                                      ?.switchToStreamMode();
+                                  await Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const RecycleBinPage(),
+                                    ),
+                                  );
+                                  if (context.mounted) {
+                                    ref.invalidate(recycleBinSummaryProvider);
+                                    ref.invalidate(recycleBinHasNewProvider);
+                                  }
+                                },
+                                icon: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Icon(
+                                      Icons.delete_outline,
+                                      size: 20,
+                                      color: Theme.of(context).iconTheme.color,
+                                    ),
+                                    if (ref
+                                            .watch(recycleBinHasNewProvider)
+                                            .asData
+                                            ?.value ==
+                                        true)
+                                      Positioned(
+                                        right: -2,
+                                        top: -2,
+                                        child: Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                             ],

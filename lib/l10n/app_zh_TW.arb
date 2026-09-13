@@ -1148,6 +1148,25 @@
   "homeNoRecords": "還沒有記帳",
   "homeNoRecordsSubtext": "點擊底部加號，馬上記一筆",
   "homeSearch": "搜尋",
+  "recycleBinTitle": "回收站",
+  "recycleBinEmpty": "回收站是空的",
+  "recycleBinEmptyHint": "刪除的記錄會在這裡保留 30 天，也可手動清空",
+  "recycleBinRestore": "恢復",
+  "recycleBinDeleteForever": "徹底刪除",
+  "recycleBinDeleteForeverConfirm": "徹底刪除後無法恢復，確定刪除這條記錄嗎？",
+  "recycleBinEmptyAll": "清空",
+  "recycleBinEmptyAllConfirm": "將永久刪除回收站中的全部記錄，確定清空嗎？",
+  "recycleBinDaysLeft": "剩餘 {days} 天自動清除",
+  "@recycleBinDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "recycleBinRestored": "已恢復",
+  "recycleBinPermanentlyDeleted": "已徹底刪除",
+  "recycleBinEmptied": "回收站已清空",
   "homeSelectDate": "選擇日期",
   "homeSwitchLedger": "選擇帳本",
   "homeYear": "{year}年",

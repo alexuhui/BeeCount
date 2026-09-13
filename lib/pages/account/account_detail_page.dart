@@ -461,6 +461,23 @@ class AccountDetailPage extends ConsumerWidget {
     );
   }
 
+  void _refreshAccountRecords(WidgetRef ref) {
+    ref.invalidate(accountTransactionsProvider(account.id));
+    ref.invalidate(accountStatsProvider(account.id));
+    ref.invalidate(investmentPeriodStatsProvider);
+    ref.invalidate(allAccountStatsProvider);
+    ref.invalidate(allAccountsTotalStatsProvider);
+    ref.invalidate(receivablesByAccountProvider(account.id));
+    ref.invalidate(receivableBalanceProvider(account.id));
+    ref.invalidate(receivableStatsProvider(account.id));
+    ref.invalidate(receivableOutstandingMapProvider(account.id));
+    ref.invalidate(payablesByAccountProvider(account.id));
+    ref.invalidate(payableBalanceProvider(account.id));
+    ref.invalidate(payableStatsProvider(account.id));
+    ref.invalidate(payableOutstandingMapProvider(account.id));
+    ref.read(statsRefreshProvider.notifier).state++;
+  }
+
   Future<void> _onAddRecord(BuildContext context, WidgetRef ref) async {
     if (isReceivableAccount) {
       await Navigator.push(
@@ -490,11 +507,13 @@ class AccountDetailPage extends ConsumerWidget {
         ),
       );
     }
+    if (!context.mounted) return;
+    _refreshAccountRecords(ref);
   }
 
   Future<void> _showInvestmentActions(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
-    await showModalBottomSheet<void>(
+    final action = await showModalBottomSheet<String>(
       context: context,
       builder: (ctx) {
         return SafeArea(
@@ -504,88 +523,86 @@ class AccountDetailPage extends ConsumerWidget {
               ListTile(
                 leading: const Icon(Icons.call_received),
                 title: Text(l10n.investTransferIn),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => InvestmentTransferPage(
-                        investmentAccountId: account.id,
-                        transferIn: true,
-                      ),
-                    ),
-                  );
-                },
+                onTap: () => Navigator.pop(ctx, 'in'),
               ),
               ListTile(
                 leading: const Icon(Icons.call_made),
                 title: Text(l10n.investTransferOut),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => InvestmentTransferPage(
-                        investmentAccountId: account.id,
-                        transferIn: false,
-                      ),
-                    ),
-                  );
-                },
+                onTap: () => Navigator.pop(ctx, 'out'),
               ),
               ListTile(
                 leading: const Icon(Icons.insights),
                 title: Text(l10n.investMarkToMarket),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => InvestmentRecordPage(
-                        account: account,
-                        kind: InvestmentRecordKind.markToMarket,
-                      ),
-                    ),
-                  );
-                },
+                onTap: () => Navigator.pop(ctx, 'mark'),
               ),
               ListTile(
                 leading: const Icon(Icons.trending_up),
                 title: Text(l10n.investRecordPnl),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => InvestmentRecordPage(
-                        account: account,
-                        kind: InvestmentRecordKind.manual,
-                      ),
-                    ),
-                  );
-                },
+                onTap: () => Navigator.pop(ctx, 'pnl'),
               ),
               ListTile(
                 leading: const Icon(Icons.card_giftcard),
                 title: Text(l10n.investDividend),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => InvestmentRecordPage(
-                        account: account,
-                        kind: InvestmentRecordKind.dividend,
-                      ),
-                    ),
-                  );
-                },
+                onTap: () => Navigator.pop(ctx, 'dividend'),
               ),
             ],
           ),
         );
       },
     );
+    if (action == null || !context.mounted) return;
+    switch (action) {
+      case 'in':
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => InvestmentTransferPage(
+              investmentAccountId: account.id,
+              transferIn: true,
+            ),
+          ),
+        );
+      case 'out':
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => InvestmentTransferPage(
+              investmentAccountId: account.id,
+              transferIn: false,
+            ),
+          ),
+        );
+      case 'mark':
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => InvestmentRecordPage(
+              account: account,
+              kind: InvestmentRecordKind.markToMarket,
+            ),
+          ),
+        );
+      case 'pnl':
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => InvestmentRecordPage(
+              account: account,
+              kind: InvestmentRecordKind.manual,
+            ),
+          ),
+        );
+      case 'dividend':
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => InvestmentRecordPage(
+              account: account,
+              kind: InvestmentRecordKind.dividend,
+            ),
+          ),
+        );
+    }
   }
 
   String _getTypeLabel(BuildContext context, String type) {
@@ -2930,6 +2947,7 @@ class _TransactionTile extends ConsumerWidget {
 final accountTransactionsProvider = StreamProvider.family
     .autoDispose<List<db.Transaction>, int>((ref, accountId) {
   final repo = ref.watch(repositoryProvider);
+  ref.watch(statsRefreshProvider);
   return repo.watchAccountTransactions(accountId);
 });
 

@@ -25,11 +25,49 @@ class ApiRepository extends LocalRepository {
     if (!_refresh.isClosed) _refresh.add(null);
   }
 
-  Stream<T> _watch<T>(Future<T> Function() load) async* {
-    yield await load();
-    await for (final _ in _refresh.stream) {
-      yield await load();
+  Stream<T> _watch<T>(Future<T> Function() load) {
+    late final StreamController<T> controller;
+    StreamSubscription<void>? refreshSub;
+    var loading = false;
+    var queued = false;
+
+    Future<void> pull() async {
+      if (controller.isClosed) return;
+      if (loading) {
+        queued = true;
+        return;
+      }
+      loading = true;
+      try {
+        while (!controller.isClosed) {
+          queued = false;
+          try {
+            final value = await load();
+            if (!controller.isClosed) controller.add(value);
+          } catch (e, st) {
+            if (!controller.isClosed) controller.addError(e, st);
+          }
+          if (!queued) break;
+        }
+      } finally {
+        loading = false;
+      }
+      if (queued && !controller.isClosed) {
+        await pull();
+      }
     }
+
+    controller = StreamController<T>(
+      onListen: () {
+        refreshSub = _refresh.stream.listen((_) => pull());
+        pull();
+      },
+      onCancel: () async {
+        await refreshSub?.cancel();
+        refreshSub = null;
+      },
+    );
+    return controller.stream;
   }
 
   Future<List<Map<String, dynamic>>> _allPages(

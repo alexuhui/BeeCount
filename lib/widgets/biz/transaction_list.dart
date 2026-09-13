@@ -517,48 +517,10 @@ class TransactionListState extends ConsumerState<TransactionList> {
               }
             }
 
-            return Dismissible(
-              key: Key('tx-${it.t.id}-$index'), // 添加索引避免key冲突
-              direction: DismissDirection.endToStart,
-              background: Container(
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 16),
-                color: Colors.red,
-                child: const Icon(Icons.delete, color: Colors.white),
-              ),
-              confirmDismiss: (direction) async {
-                final confirmed = await AppDialog.confirm<bool>(
-                      context,
-                      title: AppLocalizations.of(context).deleteConfirmTitle,
-                      message: AppLocalizations.of(context).deleteConfirmMessage,
-                    ) ??
-                    false;
-                if (!confirmed) return false;
-
-                try {
-                  final repo = ref.read(repositoryProvider);
-                  await repo.deleteTransaction(it.t.id);
-
-                  if (!context.mounted) return true;
-                  final curLedger = ref.read(currentLedgerIdProvider);
-                  ref.invalidate(countsForLedgerProvider(curLedger));
-                  ref.read(statsRefreshProvider.notifier).state++;
-                  PostProcessor.sync(ref, ledgerId: curLedger);
-
-                  showToast(context, AppLocalizations.of(context).ledgersDeleted);
-                  return true;
-                } catch (e) {
-                  if (context.mounted) {
-                    showToast(context, '${AppLocalizations.of(context).commonError}: $e');
-                  }
-                  return false;
-                }
-              },
-              onDismissed: (_) {},
-              child: Column(
-                children: [
-                  Builder(
-                    builder: (context) {
+            return Column(
+              children: [
+                Builder(
+                  builder: (context) {
                       // 获取该交易的标签（优先使用预加载数据）
                       final transactionTags = _getTagsForTransaction(it.t.id);
                       final tagsList = transactionTags
@@ -628,6 +590,20 @@ class TransactionListState extends ConsumerState<TransactionList> {
                             it.category,
                           );
                         },
+                        onDelete: () async {
+                          switchToStreamMode();
+                          final repo = ref.read(repositoryProvider);
+                          await repo.deleteTransaction(it.t.id);
+                          if (!context.mounted) return;
+                          final curLedger = ref.read(currentLedgerIdProvider);
+                          ref.invalidate(countsForLedgerProvider(curLedger));
+                          ref.read(statsRefreshProvider.notifier).state++;
+                          PostProcessor.sync(ref, ledgerId: curLedger);
+                          showToast(
+                            context,
+                            AppLocalizations.of(context).ledgersDeleted,
+                          );
+                        },
                         onCategoryTap: !isTransfer && it.category?.id != null
                             ? () async {
                                 switchToStreamMode(); // 用户交互，切换到 Stream 模式
@@ -647,8 +623,7 @@ class TransactionListState extends ConsumerState<TransactionList> {
                   if (!isLastInGroup)
                     BeeDivider.short(indent: 56 + 16, endIndent: 16),
                 ],
-              ),
-            );
+              );
           }
         },
         childCount: _flatItems.length,

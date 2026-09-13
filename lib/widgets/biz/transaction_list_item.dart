@@ -269,7 +269,7 @@ class TransactionListItem extends ConsumerWidget {
         ),
         if (!isSelectionMode && onEdit != null)
           Padding(
-            padding: const EdgeInsets.only(right: 4),
+            padding: const EdgeInsets.only(right: 0),
             child: IconButton(
               icon: Icon(
                 Icons.edit_outlined,
@@ -279,8 +279,43 @@ class TransactionListItem extends ConsumerWidget {
               tooltip: AppLocalizations.of(context).commonEdit,
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
               onPressed: onEdit,
+            ),
+          ),
+        if (!isSelectionMode && onDelete != null)
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: IconButton(
+              icon: Icon(
+                Icons.delete_outline,
+                size: 20,
+                color: BeeTokens.error(context),
+              ),
+              tooltip: AppLocalizations.of(context).commonDelete,
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+              style: IconButton.styleFrom(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                padding: EdgeInsets.zero,
+              ),
+              onPressed: () async {
+                final confirmed = await AppDialog.confirm<bool>(
+                      context,
+                      title: AppLocalizations.of(context).deleteConfirmTitle,
+                      message: AppLocalizations.of(context).deleteConfirmMessage,
+                    ) ??
+                    false;
+                if (!confirmed) return;
+                try {
+                  await onDelete!();
+                } catch (e) {
+                  if (context.mounted) {
+                    showToast(context, '${AppLocalizations.of(context).commonError}: $e');
+                  }
+                }
+              },
             ),
           ),
       ],

@@ -963,6 +963,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                     _toggleSelection(item.t.id),
                                 onTap: _isBatchMode
                                     ? null
+                                    : () => TransactionEditUtils.openDetail(
+                                          context,
+                                          item.t.id,
+                                        ),
+                                onEdit: _isBatchMode
+                                    ? null
                                     : () async {
                                         await TransactionEditUtils
                                             .editTransaction(

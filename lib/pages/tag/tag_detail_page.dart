@@ -312,6 +312,9 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
                 isExpense: transaction.type == 'expense',
                 happenedAt: transaction.happenedAt,
                 onTap: () async {
+                  await TransactionEditUtils.openDetail(context, transaction.id);
+                },
+                onEdit: () async {
                   await TransactionEditUtils.editTransaction(
                     context,
                     ref,

@@ -5969,4 +5969,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportInvestPnlRecords => 'Investment P/L records';
+
+  @override
+  String get transactionDetailTitle => 'Record details';
+
+  @override
+  String get transactionDetailType => 'Type';
+
+  @override
+  String get transactionDetailTime => 'Time';
+
+  @override
+  String get transactionDetailNote => 'Note';
+
+  @override
+  String get transactionDetailTags => 'Tags';
+
+  @override
+  String get transactionDetailAttachments => 'Attachments';
+
+  @override
+  String get transactionDetailLedger => 'Ledger';
+
+  @override
+  String get transactionNotFound => 'This record does not exist or was deleted';
 }

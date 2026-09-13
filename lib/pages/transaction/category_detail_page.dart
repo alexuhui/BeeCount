@@ -377,6 +377,9 @@ class _CategoryDetailPageState extends ConsumerState<CategoryDetailPage> {
               isExpense: transaction.type == 'expense',
               happenedAt: transaction.happenedAt,
               onTap: () async {
+                await TransactionEditUtils.openDetail(context, transaction.id);
+              },
+              onEdit: () async {
                 final categoryData = ref.read(_categoryStreamProvider(widget.categoryId));
                 await TransactionEditUtils.editTransaction(
                   context,
@@ -450,6 +453,9 @@ class _CategoryDetailPageState extends ConsumerState<CategoryDetailPage> {
               isExpense: transaction.type == 'expense',
               happenedAt: transaction.happenedAt,
               onTap: () async {
+                await TransactionEditUtils.openDetail(context, transaction.id);
+              },
+              onEdit: () async {
                 final categoryData = ref.read(_categoryStreamProvider(widget.categoryId));
                 await TransactionEditUtils.editTransaction(
                   context,
@@ -457,8 +463,6 @@ class _CategoryDetailPageState extends ConsumerState<CategoryDetailPage> {
                   transaction,
                   categoryData.value,
                 );
-                // 注意：现在无需手动刷新！
-                // 数据库变化会自动通过Stream推送到UI
               },
               onDelete: () async {
                 final repo = ref.read(repositoryProvider);

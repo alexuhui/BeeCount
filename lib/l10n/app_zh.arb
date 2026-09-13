@@ -2486,5 +2486,13 @@
   "investSummaryTitle": "理财合计",
   "investSave": "保存",
   "exportTypeInvestPnl": "理财盈亏",
-  "exportInvestPnlRecords": "理财盈亏记录"
+  "exportInvestPnlRecords": "理财盈亏记录",
+  "transactionDetailTitle": "记录详情",
+  "transactionDetailType": "类型",
+  "transactionDetailTime": "时间",
+  "transactionDetailNote": "备注",
+  "transactionDetailTags": "标签",
+  "transactionDetailAttachments": "附件",
+  "transactionDetailLedger": "账本",
+  "transactionNotFound": "记录不存在或已被删除"
 }

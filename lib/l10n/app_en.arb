@@ -2641,5 +2641,13 @@
   "investSummaryTitle": "Investments total",
   "investSave": "Save",
   "exportTypeInvestPnl": "Investment P/L",
-  "exportInvestPnlRecords": "Investment P/L records"
+  "exportInvestPnlRecords": "Investment P/L records",
+  "transactionDetailTitle": "Record details",
+  "transactionDetailType": "Type",
+  "transactionDetailTime": "Time",
+  "transactionDetailNote": "Note",
+  "transactionDetailTags": "Tags",
+  "transactionDetailAttachments": "Attachments",
+  "transactionDetailLedger": "Ledger",
+  "transactionNotFound": "This record does not exist or was deleted"
 }

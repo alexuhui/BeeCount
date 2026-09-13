@@ -5733,6 +5733,30 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exportInvestPnlRecords => '理财盈亏记录';
+
+  @override
+  String get transactionDetailTitle => '记录详情';
+
+  @override
+  String get transactionDetailType => '类型';
+
+  @override
+  String get transactionDetailTime => '时间';
+
+  @override
+  String get transactionDetailNote => '备注';
+
+  @override
+  String get transactionDetailTags => '标签';
+
+  @override
+  String get transactionDetailAttachments => '附件';
+
+  @override
+  String get transactionDetailLedger => '账本';
+
+  @override
+  String get transactionNotFound => '记录不存在或已被删除';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -11322,4 +11346,28 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get exportInvestPnlRecords => '理財盈虧記錄';
+
+  @override
+  String get transactionDetailTitle => '記錄詳情';
+
+  @override
+  String get transactionDetailType => '類型';
+
+  @override
+  String get transactionDetailTime => '時間';
+
+  @override
+  String get transactionDetailNote => '備註';
+
+  @override
+  String get transactionDetailTags => '標籤';
+
+  @override
+  String get transactionDetailAttachments => '附件';
+
+  @override
+  String get transactionDetailLedger => '帳簿';
+
+  @override
+  String get transactionNotFound => '記錄不存在或已被刪除';
 }

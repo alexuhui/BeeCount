@@ -538,7 +538,11 @@ class TransactionListState extends ConsumerState<TransactionList> {
                           );
                         },
                         onTap: () async {
-                          switchToStreamMode(); // 用户交互，切换到 Stream 模式
+                          switchToStreamMode();
+                          await TransactionEditUtils.openDetail(context, it.t.id);
+                        },
+                        onEdit: () async {
+                          switchToStreamMode();
                           await TransactionEditUtils.editTransaction(
                             context,
                             ref,

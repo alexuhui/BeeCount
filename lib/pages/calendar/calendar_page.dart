@@ -522,6 +522,9 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 tags: tagsList.isNotEmpty ? tagsList : null,
                 attachmentCount: item.attachments.length,
                 onTap: () async {
+                  await TransactionEditUtils.openDetail(context, item.t.id);
+                },
+                onEdit: () async {
                   await TransactionEditUtils.editTransaction(
                     context,
                     ref,
@@ -617,6 +620,9 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 tags: tagsList.isNotEmpty ? tagsList : null,
                 attachmentCount: item.attachments.length,
                 onTap: () async {
+                  await TransactionEditUtils.openDetail(context, item.t.id);
+                },
+                onEdit: () async {
                   await TransactionEditUtils.editTransaction(
                     context,
                     ref,

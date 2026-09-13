@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/db.dart' as db;
 import '../../styles/tokens.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widgets/ui/ui.dart';
 import '../../widgets/category_icon.dart';
 import '../../providers/theme_providers.dart';
@@ -19,6 +20,7 @@ class TransactionListItem extends ConsumerWidget {
   final bool isTransfer; // 是否为转账（转账不显示正负号）
   final bool? hide; // 改为可选,null时使用全局状态
   final VoidCallback? onTap;
+  final VoidCallback? onEdit; // 右侧编辑按钮
   final VoidCallback? onCategoryTap; // 点击分类图标/名称的回调
   final String? categoryName; // 分类名称，用于显示
   final FutureOr<void> Function()? onDelete; // 删除回调
@@ -49,6 +51,7 @@ class TransactionListItem extends ConsumerWidget {
       this.isTransfer = false,
       this.hide,
       this.onTap,
+      this.onEdit,
       this.onCategoryTap,
       this.categoryName,
       this.onDelete,
@@ -156,116 +159,131 @@ class TransactionListItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    Widget child = InkWell(
-      onTap: isSelectionMode ? onSelectionChanged : onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 12, vertical: BeeDimens.listRowVertical),
-        child: Row(
-          children: [
-            // 选择模式下显示复选框，否则显示分类图标
-            if (isSelectionMode)
-              Checkbox(
-                value: isSelected,
-                onChanged: (_) => onSelectionChanged?.call(),
-                activeColor: Theme.of(context).colorScheme.primary,
-              )
-            else
-              // 分类图标，支持点击跳转
-              GestureDetector(
-                onTap: onCategoryTap,
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: CategoryIconWidget(
-                    category: category,
-                    size: 18,
-                  ),
+    Widget tappable = Padding(
+      padding: const EdgeInsets.symmetric(
+          horizontal: 12, vertical: BeeDimens.listRowVertical),
+      child: Row(
+        children: [
+          if (isSelectionMode)
+            Checkbox(
+              value: isSelected,
+              onChanged: (_) => onSelectionChanged?.call(),
+              activeColor: Theme.of(context).colorScheme.primary,
+            )
+          else
+            GestureDetector(
+              onTap: onCategoryTap,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: CategoryIconWidget(
+                  category: category,
+                  size: 18,
                 ),
               ),
-            const SizedBox(width: 12),
-            // 左侧：分类名称 + 备注 + 时间·账户
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 第一行：分类名称（始终显示）
-                    Text(
-                      categoryName ?? title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: BeeTextTokens.title(context),
-                    ),
-                    // 第二行：备注（当title与categoryName不同时显示）
-                    if (categoryName != null && categoryName != title)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: BeeTokens.textSecondary(context),
-                          ),
+            ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    categoryName ?? title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: BeeTextTokens.title(context),
+                  ),
+                  if (categoryName != null && categoryName != title)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: BeeTokens.textSecondary(context),
                         ),
                       ),
-                    // 第三行：时间 · 账户 · 附件
-                    if (_hasSecondaryInfo(ref))
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: _buildSecondaryInfo(context, ref),
-                      ),
-                  ],
-                ),
+                    ),
+                  if (_hasSecondaryInfo(ref))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: _buildSecondaryInfo(context, ref),
+                    ),
+                ],
               ),
             ),
-            // 右侧：金额 + 标签
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 金额（转账不显示正负号）
-                AmountText(
-                    value: isExpense ? -amount : amount,
-                    hide: hide,
-                    signed: !isTransfer, // 转账不显示正负号
-                    decimals: 2,
-                    style: BeeTextTokens.title(context).copyWith(
-                      color: isTransfer
-                          ? BeeTokens.textPrimary(context)
-                          : isExpense
-                              ? BeeTokens.expenseColor(context, ref)
-                              : BeeTokens.incomeColor(context, ref),
-                    )),
-                // 标签（显示在金额下方）
-                if (tags != null && tags!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: TagChipList(
-                      tags: tags!,
-                      maxDisplay: 2,
-                      size: TagChipSize.small,
-                      spacing: 4,
-                      onTagTap: onTagTap,
-                    ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AmountText(
+                  value: isExpense ? -amount : amount,
+                  hide: hide,
+                  signed: !isTransfer,
+                  decimals: 2,
+                  style: BeeTextTokens.title(context).copyWith(
+                    color: isTransfer
+                        ? BeeTokens.textPrimary(context)
+                        : isExpense
+                            ? BeeTokens.expenseColor(context, ref)
+                            : BeeTokens.incomeColor(context, ref),
+                  )),
+              if (tags != null && tags!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: TagChipList(
+                    tags: tags!,
+                    maxDisplay: 2,
+                    size: TagChipSize.small,
+                    spacing: 4,
+                    onTagTap: onTagTap,
                   ),
-              ],
-            ),
-          ],
-        ),
+                ),
+            ],
+          ),
+        ],
       ),
+    );
+
+    Widget child = Row(
+      children: [
+        Expanded(
+          child: InkWell(
+            onTap: isSelectionMode ? onSelectionChanged : onTap,
+            child: tappable,
+          ),
+        ),
+        if (!isSelectionMode && onEdit != null)
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: IconButton(
+              icon: Icon(
+                Icons.edit_outlined,
+                size: 20,
+                color: BeeTokens.textTertiary(context),
+              ),
+              tooltip: AppLocalizations.of(context).commonEdit,
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              onPressed: onEdit,
+            ),
+          ),
+      ],
     );
 
     // 如果提供了删除回调，则包装在Dismissible中支持侧滑删除

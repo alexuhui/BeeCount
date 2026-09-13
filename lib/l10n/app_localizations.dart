@@ -10857,6 +10857,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Investment P/L records'**
   String get exportInvestPnlRecords;
+
+  /// No description provided for @transactionDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Record details'**
+  String get transactionDetailTitle;
+
+  /// No description provided for @transactionDetailType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get transactionDetailType;
+
+  /// No description provided for @transactionDetailTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get transactionDetailTime;
+
+  /// No description provided for @transactionDetailNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get transactionDetailNote;
+
+  /// No description provided for @transactionDetailTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get transactionDetailTags;
+
+  /// No description provided for @transactionDetailAttachments.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachments'**
+  String get transactionDetailAttachments;
+
+  /// No description provided for @transactionDetailLedger.
+  ///
+  /// In en, this message translates to:
+  /// **'Ledger'**
+  String get transactionDetailLedger;
+
+  /// No description provided for @transactionNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This record does not exist or was deleted'**
+  String get transactionNotFound;
 }
 
 class _AppLocalizationsDelegate

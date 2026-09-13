@@ -2,11 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/db.dart';
 import '../pages/account/investment_record_page.dart';
+import '../pages/transaction/transaction_detail_page.dart';
 import '../pages/transaction/transaction_editor_page.dart';
 import '../providers/database_providers.dart';
 import 'invest_tx.dart';
 
 class TransactionEditUtils {
+  static Future<void> openDetail(
+    BuildContext context,
+    int transactionId,
+  ) {
+    return Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TransactionDetailPage(transactionId: transactionId),
+      ),
+    );
+  }
+
   static Future<void> editTransaction(
     BuildContext context,
     WidgetRef ref,

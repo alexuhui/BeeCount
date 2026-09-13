@@ -25,6 +25,122 @@ import 'investment_transfer_page.dart';
 /// 与 [ReceivablePayableRepository.getReceivableOutstandingMapForAccount] 中剩余未收/未付比较
 const double _kReceivablePayableOutstandingEps = 1e-6;
 
+/// 应收/应付按人分组的排序：默认未结清优先，另支持最后一单时间、待收/待付金额。
+enum _RpGroupSort { pendingFirst, timeDesc, timeAsc, amountDesc, amountAsc }
+
+DateTime _latestDate(Iterable<DateTime?> times) {
+  DateTime? latest;
+  for (final t in times) {
+    if (t == null) continue;
+    if (latest == null || t.isAfter(latest)) latest = t;
+  }
+  return latest ?? DateTime.fromMillisecondsSinceEpoch(0);
+}
+
+/// 最后一单时间：借款/发生日、结清日、更新时间（含分批收付款）取最晚。
+DateTime _receivableLastOrder(db.Receivable r) =>
+    _latestDate([r.borrowDate, r.receiveDate, r.updatedAt, r.createdAt]);
+
+DateTime _payableLastOrder(db.Payable p) =>
+    _latestDate([p.payDate, p.paidDate, p.updatedAt, p.createdAt]);
+
+int _compareRpGroups({
+  required String a,
+  required String b,
+  required double pendingA,
+  required double pendingB,
+  required DateTime lastA,
+  required DateTime lastB,
+  required _RpGroupSort sort,
+}) {
+  int byName() => a.compareTo(b);
+  switch (sort) {
+    case _RpGroupSort.pendingFirst:
+      final aOpen = pendingA > _kReceivablePayableOutstandingEps;
+      final bOpen = pendingB > _kReceivablePayableOutstandingEps;
+      if (aOpen != bOpen) return aOpen ? -1 : 1;
+      final t = lastB.compareTo(lastA);
+      if (t != 0) return t;
+      return byName();
+    case _RpGroupSort.timeDesc:
+      final t = lastB.compareTo(lastA);
+      if (t != 0) return t;
+      return byName();
+    case _RpGroupSort.timeAsc:
+      final t = lastA.compareTo(lastB);
+      if (t != 0) return t;
+      return byName();
+    case _RpGroupSort.amountDesc:
+      final t = pendingB.compareTo(pendingA);
+      if (t != 0) return t;
+      return byName();
+    case _RpGroupSort.amountAsc:
+      final t = pendingA.compareTo(pendingB);
+      if (t != 0) return t;
+      return byName();
+  }
+}
+
+void _sortReceivableItems(
+  List<db.Receivable> list,
+  Map<int, double> outstandingMap,
+  _RpGroupSort sort,
+) {
+  list.sort((a, b) {
+    final oa = outstandingMap[a.id] ?? 0;
+    final ob = outstandingMap[b.id] ?? 0;
+    switch (sort) {
+      case _RpGroupSort.amountDesc:
+        final t = ob.compareTo(oa);
+        if (t != 0) return t;
+        return _receivableLastOrder(b).compareTo(_receivableLastOrder(a));
+      case _RpGroupSort.amountAsc:
+        final t = oa.compareTo(ob);
+        if (t != 0) return t;
+        return _receivableLastOrder(b).compareTo(_receivableLastOrder(a));
+      case _RpGroupSort.timeAsc:
+        return _receivableLastOrder(a).compareTo(_receivableLastOrder(b));
+      case _RpGroupSort.pendingFirst:
+        final aOpen = oa > _kReceivablePayableOutstandingEps;
+        final bOpen = ob > _kReceivablePayableOutstandingEps;
+        if (aOpen != bOpen) return aOpen ? -1 : 1;
+        return _receivableLastOrder(b).compareTo(_receivableLastOrder(a));
+      case _RpGroupSort.timeDesc:
+        return _receivableLastOrder(b).compareTo(_receivableLastOrder(a));
+    }
+  });
+}
+
+void _sortPayableItems(
+  List<db.Payable> list,
+  Map<int, double> outstandingMap,
+  _RpGroupSort sort,
+) {
+  list.sort((a, b) {
+    final oa = outstandingMap[a.id] ?? 0;
+    final ob = outstandingMap[b.id] ?? 0;
+    switch (sort) {
+      case _RpGroupSort.amountDesc:
+        final t = ob.compareTo(oa);
+        if (t != 0) return t;
+        return _payableLastOrder(b).compareTo(_payableLastOrder(a));
+      case _RpGroupSort.amountAsc:
+        final t = oa.compareTo(ob);
+        if (t != 0) return t;
+        return _payableLastOrder(b).compareTo(_payableLastOrder(a));
+      case _RpGroupSort.timeAsc:
+        return _payableLastOrder(a).compareTo(_payableLastOrder(b));
+      case _RpGroupSort.pendingFirst:
+        final aOpen = oa > _kReceivablePayableOutstandingEps;
+        final bOpen = ob > _kReceivablePayableOutstandingEps;
+        if (aOpen != bOpen) return aOpen ? -1 : 1;
+        return _payableLastOrder(b).compareTo(_payableLastOrder(a));
+      case _RpGroupSort.timeDesc:
+        return _payableLastOrder(b).compareTo(_payableLastOrder(a));
+    }
+  });
+}
+
 Widget _swipeToDelete({
   required Key dismissKey,
   required Future<bool> Function() onConfirmDelete,
@@ -1155,7 +1271,7 @@ class _ReceivableAccountContentState extends ConsumerState<_ReceivableAccountCon
                     final index = entry.key;
                     final borrowerName = entry.value;
                     final borrowerReceivables = groupedByBorrower[borrowerName]!;
-                    final isExpanded = _expandedBorrowers[borrowerName] ?? true;
+                    final isExpanded = _expandedBorrowers[borrowerName] ?? false;
 
                     // 计算该借款人的总金额
                     double totalAmount = 0;
@@ -1168,71 +1284,73 @@ class _ReceivableAccountContentState extends ConsumerState<_ReceivableAccountCon
                     return Column(
                       children: [
                         if (index > 0) BeeTokens.cardDivider(context),
-                        // 借款人分组头部
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _expandedBorrowers[borrowerName] = !isExpanded;
-                            });
-                          },
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12.0.scaled(context, ref),
-                              vertical: 12.0.scaled(context, ref),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    color: BeeTokens.primary(context).withValues(alpha: 0.12),
-                                    shape: BoxShape.circle,
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _expandedBorrowers[borrowerName] = !isExpanded;
+                              });
+                            },
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12.0.scaled(context, ref),
+                                vertical: 12.0.scaled(context, ref),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: BeeTokens.primary(context).withValues(alpha: 0.12),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+                                      size: 20,
+                                      color: BeeTokens.primary(context),
+                                    ),
                                   ),
-                                  child: Icon(
-                                    isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
-                                    size: 20,
-                                    color: BeeTokens.primary(context),
-                                  ),
-                                ),
-                                SizedBox(width: 12.0.scaled(context, ref)),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        borrowerName,
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                          color: BeeTokens.textPrimary(context),
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
-                                        child: Text(
-                                          '共 ${borrowerReceivables.length} 笔，未收 ${pendingAmount.toStringAsFixed(2)}',
+                                  SizedBox(width: 12.0.scaled(context, ref)),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          borrowerName,
                                           style: TextStyle(
-                                            fontSize: 12,
-                                            color: BeeTokens.textSecondary(context),
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: BeeTokens.textPrimary(context),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                        Padding(
+                                          padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
+                                          child: Text(
+                                            '共 ${borrowerReceivables.length} 笔，未收 ${pendingAmount.toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: BeeTokens.textSecondary(context),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                AmountText(
-                                  value: totalAmount,
-                                  signed: false,
-                                  showCurrency: false,
-                                  currencyCode: currencyCode,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: BeeTokens.textPrimary(context),
+                                  AmountText(
+                                    value: totalAmount,
+                                    signed: false,
+                                    showCurrency: false,
+                                    currencyCode: currencyCode,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: BeeTokens.textPrimary(context),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -1525,7 +1643,7 @@ class _PayableAccountContentState extends ConsumerState<_PayableAccountContent> 
                     final index = entry.key;
                     final payeeName = entry.value;
                     final payeePayables = groupedByPayee[payeeName]!;
-                    final isExpanded = _expandedPayees[payeeName] ?? true;
+                    final isExpanded = _expandedPayees[payeeName] ?? false;
 
                     // 计算该收款人的总金额
                     double totalAmount = 0;
@@ -1538,71 +1656,73 @@ class _PayableAccountContentState extends ConsumerState<_PayableAccountContent> 
                     return Column(
                       children: [
                         if (index > 0) BeeTokens.cardDivider(context),
-                        // 收款人分组头部
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _expandedPayees[payeeName] = !isExpanded;
-                            });
-                          },
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12.0.scaled(context, ref),
-                              vertical: 12.0.scaled(context, ref),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    color: BeeTokens.primary(context).withValues(alpha: 0.12),
-                                    shape: BoxShape.circle,
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _expandedPayees[payeeName] = !isExpanded;
+                              });
+                            },
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12.0.scaled(context, ref),
+                                vertical: 12.0.scaled(context, ref),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: BeeTokens.primary(context).withValues(alpha: 0.12),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+                                      size: 20,
+                                      color: BeeTokens.primary(context),
+                                    ),
                                   ),
-                                  child: Icon(
-                                    isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
-                                    size: 20,
-                                    color: BeeTokens.primary(context),
-                                  ),
-                                ),
-                                SizedBox(width: 12.0.scaled(context, ref)),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        payeeName,
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                          color: BeeTokens.textPrimary(context),
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
-                                        child: Text(
-                                          '共 ${payeePayables.length} 笔，未付 ${pendingAmount.toStringAsFixed(2)}',
+                                  SizedBox(width: 12.0.scaled(context, ref)),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          payeeName,
                                           style: TextStyle(
-                                            fontSize: 12,
-                                            color: BeeTokens.textSecondary(context),
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: BeeTokens.textPrimary(context),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                        Padding(
+                                          padding: EdgeInsets.only(top: 2.0.scaled(context, ref)),
+                                          child: Text(
+                                            '共 ${payeePayables.length} 笔，未付 ${pendingAmount.toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: BeeTokens.textSecondary(context),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                AmountText(
-                                  value: totalAmount,
-                                  signed: false,
-                                  showCurrency: false,
-                                  currencyCode: currencyCode,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: BeeTokens.textPrimary(context),
+                                  AmountText(
+                                    value: totalAmount,
+                                    signed: false,
+                                    showCurrency: false,
+                                    currencyCode: currencyCode,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: BeeTokens.textPrimary(context),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),

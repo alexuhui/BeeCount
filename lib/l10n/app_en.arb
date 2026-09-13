@@ -989,6 +989,7 @@
   "categoryDetailSortTimeAsc": "Time ↑",
   "categoryDetailSortAmountDesc": "Amount ↓",
   "categoryDetailSortAmountAsc": "Amount ↑",
+  "receivablePayableSortDefault": "Default",
   "categoryDetailNoTransactions": "No transactions",
   "categoryDetailNoTransactionsSubtext": "No transactions in this category yet",
   "categoryDetailDeleteFailed": "Delete failed",
@@ -2649,5 +2650,6 @@
   "transactionDetailTags": "Tags",
   "transactionDetailAttachments": "Attachments",
   "transactionDetailLedger": "Ledger",
-  "transactionNotFound": "This record does not exist or was deleted"
+  "transactionNotFound": "This record does not exist or was deleted",
+  "homeLoadingMore": "Loading more"
 }

@@ -840,6 +840,7 @@
   "categoryDetailSortTimeAsc": "时间↑",
   "categoryDetailSortAmountDesc": "金额↓",
   "categoryDetailSortAmountAsc": "金额↑",
+  "receivablePayableSortDefault": "默认",
   "categoryDetailNoTransactions": "暂无交易记录",
   "categoryDetailNoTransactionsSubtext": "该分类下还没有任何交易记录",
   "categoryDetailDeleteFailed": "删除失败",
@@ -2494,5 +2495,6 @@
   "transactionDetailTags": "标签",
   "transactionDetailAttachments": "附件",
   "transactionDetailLedger": "账本",
-  "transactionNotFound": "记录不存在或已被删除"
+  "transactionNotFound": "记录不存在或已被删除",
+  "homeLoadingMore": "正在加载更多"
 }

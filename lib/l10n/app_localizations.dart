@@ -4133,6 +4133,12 @@ abstract class AppLocalizations {
   /// **'Amount ↑'**
   String get categoryDetailSortAmountAsc;
 
+  /// No description provided for @receivablePayableSortDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get receivablePayableSortDefault;
+
   /// No description provided for @categoryDetailNoTransactions.
   ///
   /// In en, this message translates to:
@@ -10905,6 +10911,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This record does not exist or was deleted'**
   String get transactionNotFound;
+
+  /// No description provided for @homeLoadingMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading more'**
+  String get homeLoadingMore;
 }
 
 class _AppLocalizationsDelegate

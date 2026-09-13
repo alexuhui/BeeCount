@@ -44,6 +44,13 @@ class TransactionList extends ConsumerStatefulWidget {
   /// 列表控制器（可选，用于精准跳转）
   final FlutterListViewController? controller;
 
+  /// 服务端是否还有未加载的记录（折叠后列表变短时仍需继续分页）
+  final bool hasMore;
+
+  final bool loadingMore;
+
+  final VoidCallback? onLoadMore;
+
   const TransactionList({
     super.key,
     this.transactionsWithDetails,
@@ -53,6 +60,9 @@ class TransactionList extends ConsumerStatefulWidget {
     this.onDateVisibilityChanged,
     this.emptyWidget,
     this.controller,
+    this.hasMore = false,
+    this.loadingMore = false,
+    this.onLoadMore,
   }) : assert(transactionsWithDetails != null || transactions != null,
             'Either transactionsWithDetails or transactions must be provided');
 
@@ -76,6 +86,10 @@ class TransactionListState extends ConsumerState<TransactionList> {
 
   // 标记是否应使用预加载数据（当 Stream 数据与预加载数据不同时切换）
   bool _usePreloadedData = true;
+
+  /// 已折叠的日期（默认展开，点击日期条后收入此集合）
+  final Set<String> _collapsedDateKeys = {};
+  int _autoLoadGuard = 0;
 
   /// 是否使用完整预加载数据模式
   /// 条件：1) 有预加载数据 2) 还没切换到 Stream 模式
@@ -126,6 +140,11 @@ class TransactionListState extends ConsumerState<TransactionList> {
         _loadAttachmentCounts();
       }
     }
+
+    if (widget.transactions != oldWidget.transactions ||
+        oldWidget.loadingMore && !widget.loadingMore) {
+      _maybeRequestMore();
+    }
   }
 
   bool _listEquals(List<int> a, List<int> b) {
@@ -134,6 +153,30 @@ class TransactionListState extends ConsumerState<TransactionList> {
       if (a[i] != b[i]) return false;
     }
     return true;
+  }
+
+  /// 折叠后可见行变少，列表可能撑不满一屏，滚动监听不会触发。
+  /// 若服务端还有数据，继续翻页直到可以滚动或没有更多。
+  void _maybeRequestMore() {
+    if (widget.onLoadMore == null || !widget.hasMore || widget.loadingMore) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (widget.onLoadMore == null || !widget.hasMore || widget.loadingMore) {
+        return;
+      }
+      var nearEnd = true;
+      if (_controller.hasClients) {
+        nearEnd = _controller.position.maxScrollExtent <= 240;
+      }
+      if (!nearEnd) {
+        _autoLoadGuard = 0;
+        return;
+      }
+      if (_autoLoadGuard++ > 40) return;
+      widget.onLoadMore!();
+    });
   }
 
   Future<void> _loadTags() async {
@@ -297,10 +340,14 @@ class TransactionListState extends ConsumerState<TransactionList> {
       _dateIndexMap[key] = _flatItems.length;
       // 添加日期头部
       _flatItems.add(('header', key, list));
-      // 添加所有交易项
-      for (final item in list) {
-        _flatItems.add(('transaction', item, list));
+      if (!_collapsedDateKeys.contains(key)) {
+        for (final item in list) {
+          _flatItems.add(('transaction', item, list));
+        }
       }
+    }
+    if (groups.isNotEmpty && (widget.hasMore || widget.loadingMore)) {
+      _flatItems.add(('footer',));
     }
   }
 
@@ -369,6 +416,15 @@ class TransactionListState extends ConsumerState<TransactionList> {
                   income: dayIncome,
                   expense: dayExpense,
                   hide: widget.hideAmounts,
+                  expanded: !_collapsedDateKeys.contains(dateKey),
+                  onTap: () {
+                    setState(() {
+                      if (!_collapsedDateKeys.remove(dateKey)) {
+                        _collapsedDateKeys.add(dateKey);
+                      }
+                    });
+                    _maybeRequestMore();
+                  },
                 ),
               ],
             );
@@ -386,6 +442,28 @@ class TransactionListState extends ConsumerState<TransactionList> {
             }
 
             return header;
+          } else if (type == 'footer') {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: widget.loadingMore
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : GestureDetector(
+                        onTap: widget.onLoadMore,
+                        child: Text(
+                          AppLocalizations.of(context).homeLoadingMore,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: BeeTokens.textTertiary(context),
+                          ),
+                        ),
+                      ),
+              ),
+            );
           } else {
             // 渲染交易项
             final it = item.$2 as ({Transaction t, Category? category});

@@ -2261,6 +2261,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryDetailSortAmountAsc => 'Amount ↑';
 
   @override
+  String get receivablePayableSortDefault => 'Default';
+
+  @override
   String get categoryDetailNoTransactions => 'No transactions';
 
   @override
@@ -5993,4 +5996,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transactionNotFound => 'This record does not exist or was deleted';
+
+  @override
+  String get homeLoadingMore => 'Loading more';
 }

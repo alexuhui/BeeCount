@@ -10,12 +10,16 @@ class DaySectionHeader extends ConsumerWidget {
   final double income;
   final double expense;
   final bool? hide; // 改为可选,null时使用全局状态
+  final bool expanded;
+  final VoidCallback? onTap;
   const DaySectionHeader(
       {super.key,
       required this.dateText,
       required this.income,
       required this.expense,
-      this.hide});
+      this.hide,
+      this.expanded = true,
+      this.onTap});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,7 +56,7 @@ class DaySectionHeader extends ConsumerWidget {
     final grey = BeeTokens.textSecondary(context);
     final week = getWeekday(dateText);
     final l10n = AppLocalizations.of(context);
-    return Container(
+    final header = Container(
       color: BeeTokens.surface(context),
       padding: const EdgeInsets.symmetric(
           horizontal: 12, vertical: BeeDimens.listHeaderVertical),
@@ -60,6 +64,16 @@ class DaySectionHeader extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(children: [
+            if (onTap != null) ...[
+              Icon(
+                expanded
+                    ? Icons.keyboard_arrow_down
+                    : Icons.keyboard_arrow_right,
+                size: 18,
+                color: grey,
+              ),
+              const SizedBox(width: 2),
+            ],
             Text(dateText,
                 style: Theme.of(context)
                     .textTheme
@@ -90,6 +104,14 @@ class DaySectionHeader extends ConsumerWidget {
                       ?.copyWith(color: grey, fontSize: 12)),
           ])
         ],
+      ),
+    );
+    if (onTap == null) return header;
+    return Material(
+      color: BeeTokens.surface(context),
+      child: InkWell(
+        onTap: onTap,
+        child: header,
       ),
     );
   }

@@ -783,6 +783,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                           enableVisibilityTracking: true,
                           onDateVisibilityChanged: _onHeaderVisibilityChanged,
                           controller: _listController,
+                          hasMore: homeTx.hasMore,
+                          loadingMore: homeTx.loadingMore,
+                          onLoadMore: () => ref
+                              .read(homeTransactionControllerProvider(ledgerId)
+                                  .notifier)
+                              .loadMore(),
                           emptyWidget: AppEmpty(
                             text: AppLocalizations.of(context).homeNoRecords,
                             subtext: AppLocalizations.of(context)

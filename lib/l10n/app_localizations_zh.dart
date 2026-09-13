@@ -2191,6 +2191,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryDetailSortAmountAsc => '金额↑';
 
   @override
+  String get receivablePayableSortDefault => '默认';
+
+  @override
   String get categoryDetailNoTransactions => '暂无交易记录';
 
   @override
@@ -5757,6 +5760,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get transactionNotFound => '记录不存在或已被删除';
+
+  @override
+  String get homeLoadingMore => '正在加载更多';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -7944,6 +7950,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get categoryDetailSortAmountAsc => '金額↑';
+
+  @override
+  String get receivablePayableSortDefault => '預設';
 
   @override
   String get categoryDetailNoTransactions => '暫無交易記錄';
@@ -11370,4 +11379,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get transactionNotFound => '記錄不存在或已被刪除';
+
+  @override
+  String get homeLoadingMore => '正在載入更多';
 }

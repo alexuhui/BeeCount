@@ -14,6 +14,7 @@ import '../../data/repositories/base_repository.dart';
 import '../../data/db.dart';
 import '../../widgets/ui/ui.dart';
 import '../../utils/category_utils.dart';
+import '../../utils/export_file_name.dart';
 
 class ExportPage extends ConsumerStatefulWidget {
   const ExportPage({super.key});
@@ -402,7 +403,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       final end = endDate ??
           DateTime(
               DateTime.now().year, DateTime.now().month, DateTime.now().day);
-      final ts = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final exportedAt = DateTime.now();
 
       final allTransactionsWithCategory =
           shouldExportTransactions || exportAccounts
@@ -521,7 +522,11 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         }
       }
 
-      final fileName = 'beecount_export_$ts.xlsx';
+      final session = await ref.read(beecountSessionProvider.future);
+      final fileName = buildBeeCountExportFileName(
+        at: exportedAt,
+        username: session?.username,
+      );
       final fileBytes = _buildXlsxBytes(exportSheets);
       const allowedExtensions = ['xlsx'];
 

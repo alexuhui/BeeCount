@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' as d;
 
 import '../../db.dart';
 import '../../../services/system/logger_service.dart';
+import '../../../utils/account_availability.dart';
 import '../../../utils/account_funds.dart';
 import '../../../utils/invest_tx.dart';
 import '../account_repository.dart';
@@ -42,15 +43,14 @@ class LocalAccountRepository implements AccountRepository {
 
   @override
   Future<List<Account>> getAvailableAccountsForLedger(int ledgerId) async {
-    // 获取账本信息
     final ledger = await (db.select(db.ledgers)
           ..where((l) => l.id.equals(ledgerId)))
-        .getSingle();
-
-    // 通过币种过滤账户
-    return await (db.select(db.accounts)
-          ..where((a) => a.currency.equals(ledger.currency)))
-        .get();
+        .getSingleOrNull();
+    final allAccounts = await db.select(db.accounts).get();
+    return accountsAvailableForLedger(
+      ledger: ledger,
+      allAccounts: allAccounts,
+    );
   }
 
   @override

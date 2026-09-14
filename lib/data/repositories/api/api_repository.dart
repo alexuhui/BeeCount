@@ -5,6 +5,7 @@ import 'dart:io';
 import '../../../config/page_sizes.dart';
 import '../../../services/api/api_json.dart';
 import '../../../services/api/beecount_api_client.dart';
+import '../../../utils/account_availability.dart';
 import '../../../utils/account_funds.dart';
 import '../../../utils/budget_overview.dart';
 import '../../../utils/invest_tx.dart';
@@ -418,12 +419,11 @@ class ApiRepository extends LocalRepository {
   Stream<List<({Transaction t, Category? category})>>
       watchTransactionsWithCategoryAll({int? ledgerId}) {
     return _watch(() async {
-      final page = await fetchTransactionsPage(
-        ledgerId: ledgerId,
-        page: 1,
-        pageSize: PageSizes.homeTransactions,
+      final rows = await _allPages(
+        '/transactions',
+        _txQuery(ledgerId: ledgerId, includeInvestPnl: true),
       );
-      return page.items;
+      return _withCats(rows.map(txFromJson).toList());
     });
   }
 
@@ -1311,6 +1311,13 @@ class ApiRepository extends LocalRepository {
       if (a.id == accountId) return a;
     }
     return null;
+  }
+
+  @override
+  Future<List<Account>> getAvailableAccountsForLedger(int ledgerId) async {
+    final ledger = await getLedgerById(ledgerId);
+    final all = await getAllAccounts();
+    return accountsAvailableForLedger(ledger: ledger, allAccounts: all);
   }
 
   @override

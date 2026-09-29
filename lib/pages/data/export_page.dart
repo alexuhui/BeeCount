@@ -1129,6 +1129,8 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         return l10n.exportTypeExpense;
       case 'transfer':
         return l10n.exportTypeTransfer;
+      case 'refund':
+        return l10n.exportTypeRefund;
       case 'invest_gain':
       case 'invest_loss':
         return l10n.exportTypeInvestPnl;

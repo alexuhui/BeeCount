@@ -32,6 +32,7 @@ class InvestTx {
     if (txAccountId == accountId) {
       switch (type) {
         case 'income':
+        case 'refund':
         case gain:
           return balance + amount;
         case 'expense':

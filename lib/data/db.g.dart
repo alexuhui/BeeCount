@@ -1323,6 +1323,12 @@ class $TransactionsTable extends Transactions
   late final GeneratedColumn<String> investEvent = GeneratedColumn<String>(
       'invest_event', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _refundOfIdMeta =
+      const VerificationMeta('refundOfId');
+  @override
+  late final GeneratedColumn<int> refundOfId = GeneratedColumn<int>(
+      'refund_of_id', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -1340,7 +1346,8 @@ class $TransactionsTable extends Transactions
         payableId,
         receivablePaymentId,
         payablePaymentId,
-        investEvent
+        investEvent,
+        refundOfId
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1439,6 +1446,12 @@ class $TransactionsTable extends Transactions
           investEvent.isAcceptableOrUnknown(
               data['invest_event']!, _investEventMeta));
     }
+    if (data.containsKey('refund_of_id')) {
+      context.handle(
+          _refundOfIdMeta,
+          refundOfId.isAcceptableOrUnknown(
+              data['refund_of_id']!, _refundOfIdMeta));
+    }
     return context;
   }
 
@@ -1480,6 +1493,8 @@ class $TransactionsTable extends Transactions
           .read(DriftSqlType.int, data['${effectivePrefix}payable_payment_id']),
       investEvent: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}invest_event']),
+      refundOfId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}refund_of_id']),
     );
   }
 
@@ -1506,6 +1521,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
   final int? receivablePaymentId;
   final int? payablePaymentId;
   final String? investEvent;
+  final int? refundOfId;
   const Transaction(
       {required this.id,
       required this.ledgerId,
@@ -1522,7 +1538,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       this.payableId,
       this.receivablePaymentId,
       this.payablePaymentId,
-      this.investEvent});
+      this.investEvent,
+      this.refundOfId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1561,6 +1578,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     }
     if (!nullToAbsent || investEvent != null) {
       map['invest_event'] = Variable<String>(investEvent);
+    }
+    if (!nullToAbsent || refundOfId != null) {
+      map['refund_of_id'] = Variable<int>(refundOfId);
     }
     return map;
   }
@@ -1601,6 +1621,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       investEvent: investEvent == null && nullToAbsent
           ? const Value.absent()
           : Value(investEvent),
+      refundOfId: refundOfId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(refundOfId),
     );
   }
 
@@ -1625,6 +1648,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           serializer.fromJson<int?>(json['receivablePaymentId']),
       payablePaymentId: serializer.fromJson<int?>(json['payablePaymentId']),
       investEvent: serializer.fromJson<String?>(json['investEvent']),
+      refundOfId: serializer.fromJson<int?>(json['refundOfId']),
     );
   }
   @override
@@ -1647,6 +1671,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       'receivablePaymentId': serializer.toJson<int?>(receivablePaymentId),
       'payablePaymentId': serializer.toJson<int?>(payablePaymentId),
       'investEvent': serializer.toJson<String?>(investEvent),
+      'refundOfId': serializer.toJson<int?>(refundOfId),
     };
   }
 
@@ -1666,7 +1691,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           Value<int?> payableId = const Value.absent(),
           Value<int?> receivablePaymentId = const Value.absent(),
           Value<int?> payablePaymentId = const Value.absent(),
-          Value<String?> investEvent = const Value.absent()}) =>
+          Value<String?> investEvent = const Value.absent(),
+          Value<int?> refundOfId = const Value.absent()}) =>
       Transaction(
         id: id ?? this.id,
         ledgerId: ledgerId ?? this.ledgerId,
@@ -1689,6 +1715,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
             ? payablePaymentId.value
             : this.payablePaymentId,
         investEvent: investEvent.present ? investEvent.value : this.investEvent,
+        refundOfId: refundOfId.present ? refundOfId.value : this.refundOfId,
       );
   Transaction copyWithCompanion(TransactionsCompanion data) {
     return Transaction(
@@ -1721,6 +1748,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           : this.payablePaymentId,
       investEvent:
           data.investEvent.present ? data.investEvent.value : this.investEvent,
+      refundOfId:
+          data.refundOfId.present ? data.refundOfId.value : this.refundOfId,
     );
   }
 
@@ -1742,7 +1771,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           ..write('payableId: $payableId, ')
           ..write('receivablePaymentId: $receivablePaymentId, ')
           ..write('payablePaymentId: $payablePaymentId, ')
-          ..write('investEvent: $investEvent')
+          ..write('investEvent: $investEvent, ')
+          ..write('refundOfId: $refundOfId')
           ..write(')'))
         .toString();
   }
@@ -1764,7 +1794,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       payableId,
       receivablePaymentId,
       payablePaymentId,
-      investEvent);
+      investEvent,
+      refundOfId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1784,7 +1815,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           other.payableId == this.payableId &&
           other.receivablePaymentId == this.receivablePaymentId &&
           other.payablePaymentId == this.payablePaymentId &&
-          other.investEvent == this.investEvent);
+          other.investEvent == this.investEvent &&
+          other.refundOfId == this.refundOfId);
 }
 
 class TransactionsCompanion extends UpdateCompanion<Transaction> {
@@ -1804,6 +1836,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
   final Value<int?> receivablePaymentId;
   final Value<int?> payablePaymentId;
   final Value<String?> investEvent;
+  final Value<int?> refundOfId;
   const TransactionsCompanion({
     this.id = const Value.absent(),
     this.ledgerId = const Value.absent(),
@@ -1821,6 +1854,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.receivablePaymentId = const Value.absent(),
     this.payablePaymentId = const Value.absent(),
     this.investEvent = const Value.absent(),
+    this.refundOfId = const Value.absent(),
   });
   TransactionsCompanion.insert({
     this.id = const Value.absent(),
@@ -1839,6 +1873,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.receivablePaymentId = const Value.absent(),
     this.payablePaymentId = const Value.absent(),
     this.investEvent = const Value.absent(),
+    this.refundOfId = const Value.absent(),
   })  : ledgerId = Value(ledgerId),
         type = Value(type),
         amount = Value(amount);
@@ -1859,6 +1894,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Expression<int>? receivablePaymentId,
     Expression<int>? payablePaymentId,
     Expression<String>? investEvent,
+    Expression<int>? refundOfId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1878,6 +1914,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
         'receivable_payment_id': receivablePaymentId,
       if (payablePaymentId != null) 'payable_payment_id': payablePaymentId,
       if (investEvent != null) 'invest_event': investEvent,
+      if (refundOfId != null) 'refund_of_id': refundOfId,
     });
   }
 
@@ -1897,7 +1934,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       Value<int?>? payableId,
       Value<int?>? receivablePaymentId,
       Value<int?>? payablePaymentId,
-      Value<String?>? investEvent}) {
+      Value<String?>? investEvent,
+      Value<int?>? refundOfId}) {
     return TransactionsCompanion(
       id: id ?? this.id,
       ledgerId: ledgerId ?? this.ledgerId,
@@ -1915,6 +1953,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       receivablePaymentId: receivablePaymentId ?? this.receivablePaymentId,
       payablePaymentId: payablePaymentId ?? this.payablePaymentId,
       investEvent: investEvent ?? this.investEvent,
+      refundOfId: refundOfId ?? this.refundOfId,
     );
   }
 
@@ -1969,6 +2008,9 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     if (investEvent.present) {
       map['invest_event'] = Variable<String>(investEvent.value);
     }
+    if (refundOfId.present) {
+      map['refund_of_id'] = Variable<int>(refundOfId.value);
+    }
     return map;
   }
 
@@ -1990,7 +2032,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
           ..write('payableId: $payableId, ')
           ..write('receivablePaymentId: $receivablePaymentId, ')
           ..write('payablePaymentId: $payablePaymentId, ')
-          ..write('investEvent: $investEvent')
+          ..write('investEvent: $investEvent, ')
+          ..write('refundOfId: $refundOfId')
           ..write(')'))
         .toString();
   }
@@ -7948,6 +7991,7 @@ typedef $$TransactionsTableCreateCompanionBuilder = TransactionsCompanion
   Value<int?> receivablePaymentId,
   Value<int?> payablePaymentId,
   Value<String?> investEvent,
+  Value<int?> refundOfId,
 });
 typedef $$TransactionsTableUpdateCompanionBuilder = TransactionsCompanion
     Function({
@@ -7967,6 +8011,7 @@ typedef $$TransactionsTableUpdateCompanionBuilder = TransactionsCompanion
   Value<int?> receivablePaymentId,
   Value<int?> payablePaymentId,
   Value<String?> investEvent,
+  Value<int?> refundOfId,
 });
 
 class $$TransactionsTableFilterComposer
@@ -8028,6 +8073,9 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<String> get investEvent => $composableBuilder(
       column: $table.investEvent, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get refundOfId => $composableBuilder(
+      column: $table.refundOfId, builder: (column) => ColumnFilters(column));
 }
 
 class $$TransactionsTableOrderingComposer
@@ -8090,6 +8138,9 @@ class $$TransactionsTableOrderingComposer
 
   ColumnOrderings<String> get investEvent => $composableBuilder(
       column: $table.investEvent, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get refundOfId => $composableBuilder(
+      column: $table.refundOfId, builder: (column) => ColumnOrderings(column));
 }
 
 class $$TransactionsTableAnnotationComposer
@@ -8148,6 +8199,9 @@ class $$TransactionsTableAnnotationComposer
 
   GeneratedColumn<String> get investEvent => $composableBuilder(
       column: $table.investEvent, builder: (column) => column);
+
+  GeneratedColumn<int> get refundOfId => $composableBuilder(
+      column: $table.refundOfId, builder: (column) => column);
 }
 
 class $$TransactionsTableTableManager extends RootTableManager<
@@ -8192,6 +8246,7 @@ class $$TransactionsTableTableManager extends RootTableManager<
             Value<int?> receivablePaymentId = const Value.absent(),
             Value<int?> payablePaymentId = const Value.absent(),
             Value<String?> investEvent = const Value.absent(),
+            Value<int?> refundOfId = const Value.absent(),
           }) =>
               TransactionsCompanion(
             id: id,
@@ -8210,6 +8265,7 @@ class $$TransactionsTableTableManager extends RootTableManager<
             receivablePaymentId: receivablePaymentId,
             payablePaymentId: payablePaymentId,
             investEvent: investEvent,
+            refundOfId: refundOfId,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -8228,6 +8284,7 @@ class $$TransactionsTableTableManager extends RootTableManager<
             Value<int?> receivablePaymentId = const Value.absent(),
             Value<int?> payablePaymentId = const Value.absent(),
             Value<String?> investEvent = const Value.absent(),
+            Value<int?> refundOfId = const Value.absent(),
           }) =>
               TransactionsCompanion.insert(
             id: id,
@@ -8246,6 +8303,7 @@ class $$TransactionsTableTableManager extends RootTableManager<
             receivablePaymentId: receivablePaymentId,
             payablePaymentId: payablePaymentId,
             investEvent: investEvent,
+            refundOfId: refundOfId,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

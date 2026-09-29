@@ -10989,6 +10989,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Loading more'**
   String get homeLoadingMore;
+
+  /// No description provided for @refundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund'**
+  String get refundTitle;
+
+  /// No description provided for @refundAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund'**
+  String get refundAction;
+
+  /// No description provided for @refundFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Full amount'**
+  String get refundFull;
+
+  /// No description provided for @refundAmountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund amount'**
+  String get refundAmountLabel;
+
+  /// No description provided for @refundReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason'**
+  String get refundReasonHint;
+
+  /// No description provided for @refundTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund time'**
+  String get refundTime;
+
+  /// No description provided for @refundSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund recorded'**
+  String get refundSaved;
+
+  /// No description provided for @refundUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund updated'**
+  String get refundUpdated;
+
+  /// No description provided for @refundDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund deleted'**
+  String get refundDeleted;
+
+  /// No description provided for @refundAlreadyFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Already fully refunded'**
+  String get refundAlreadyFull;
+
+  /// No description provided for @refundExceeds.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount exceeds the refundable balance'**
+  String get refundExceeds;
+
+  /// No description provided for @refundInvalidAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an amount greater than 0'**
+  String get refundInvalidAmount;
+
+  /// No description provided for @refundHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Refunds'**
+  String get refundHistory;
+
+  /// No description provided for @refundHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A refund is not income. It is credited to the original account so the balance stays even.'**
+  String get refundHint;
+
+  /// No description provided for @refundNoAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'This expense has no account, so the refund is recorded without changing a balance.'**
+  String get refundNoAccount;
+
+  /// No description provided for @refundDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete refund'**
+  String get refundDelete;
+
+  /// No description provided for @refundRemainingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Refundable'**
+  String get refundRemainingLabel;
+
+  /// No description provided for @exportTypeRefund.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund'**
+  String get exportTypeRefund;
 }
 
 class _AppLocalizationsDelegate

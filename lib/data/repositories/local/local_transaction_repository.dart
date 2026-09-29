@@ -244,6 +244,14 @@ class LocalTransactionRepository implements TransactionRepository {
 
   @override
   Future<void> deleteTransaction(int id) async {
+    final children = await (db.select(db.transactions)
+          ..where((t) => t.refundOfId.equals(id)))
+        .get();
+    for (final child in children) {
+      await _deleteAttachmentsForTransaction(child.id);
+      await (db.delete(db.transactions)..where((t) => t.id.equals(child.id))).go();
+    }
+
     // 先删除关联的附件
     await _deleteAttachmentsForTransaction(id);
 
@@ -824,4 +832,83 @@ class LocalTransactionRepository implements TransactionRepository {
 
   @override
   Future<void> emptyRecycleBin({required int ledgerId}) async {}
+
+  @override
+  Future<List<Transaction>> listRefunds(int originalId) {
+    return (db.select(db.transactions)
+          ..where((t) =>
+              t.refundOfId.equals(originalId) & t.type.equals('refund'))
+          ..orderBy([
+            (t) => d.OrderingTerm(
+                expression: t.happenedAt, mode: d.OrderingMode.desc),
+          ]))
+        .get();
+  }
+
+  @override
+  Future<int> addRefund({
+    required int originalId,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+  }) async {
+    final original = await getTransactionById(originalId);
+    if (original == null || original.type != 'expense') {
+      throw StateError('只能对支出记录退款');
+    }
+    if (amount <= 0) {
+      throw StateError('退款金额需大于 0');
+    }
+    final existing = await listRefunds(originalId);
+    final refunded = existing.fold<double>(0, (sum, t) => sum + t.amount);
+    if (refunded + amount > original.amount + 0.009) {
+      throw StateError('退款金额超过可退余额');
+    }
+    final note = reason?.trim();
+    return db.into(db.transactions).insert(TransactionsCompanion.insert(
+          ledgerId: original.ledgerId,
+          type: 'refund',
+          amount: amount,
+          categoryId: d.Value(original.categoryId),
+          accountId: d.Value(original.accountId),
+          happenedAt: d.Value(happenedAt),
+          note: d.Value(note == null || note.isEmpty ? null : note),
+          refundOfId: d.Value(originalId),
+        ));
+  }
+
+  @override
+  Future<void> updateRefund({
+    required int id,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+  }) async {
+    final current = await getTransactionById(id);
+    if (current == null || current.type != 'refund' || current.refundOfId == null) {
+      throw StateError('退款记录不存在');
+    }
+    if (amount <= 0) {
+      throw StateError('退款金额需大于 0');
+    }
+    final original = await getTransactionById(current.refundOfId!);
+    if (original == null) {
+      throw StateError('原记录不存在');
+    }
+    final existing = await listRefunds(original.id);
+    final others = existing
+        .where((t) => t.id != id)
+        .fold<double>(0, (sum, t) => sum + t.amount);
+    if (others + amount > original.amount + 0.009) {
+      throw StateError('退款金额超过可退余额');
+    }
+    final note = reason?.trim();
+    await (db.update(db.transactions)..where((t) => t.id.equals(id))).write(
+      TransactionsCompanion(
+        amount: d.Value(amount),
+        happenedAt: d.Value(happenedAt),
+        note: d.Value(note == null || note.isEmpty ? null : note),
+      ),
+    );
+  }
 }

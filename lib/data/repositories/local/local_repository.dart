@@ -222,6 +222,38 @@ class LocalRepository extends BaseRepository {
   Future<void> deleteTransaction(int id) => _transactionRepo.deleteTransaction(id);
 
   @override
+  Future<List<Transaction>> listRefunds(int originalId) =>
+      _transactionRepo.listRefunds(originalId);
+
+  @override
+  Future<int> addRefund({
+    required int originalId,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+  }) =>
+      _transactionRepo.addRefund(
+        originalId: originalId,
+        amount: amount,
+        happenedAt: happenedAt,
+        reason: reason,
+      );
+
+  @override
+  Future<void> updateRefund({
+    required int id,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+  }) =>
+      _transactionRepo.updateRefund(
+        id: id,
+        amount: amount,
+        happenedAt: happenedAt,
+        reason: reason,
+      );
+
+  @override
   Future<Transaction?> getTransactionById(int id) => _transactionRepo.getTransactionById(id);
 
   @override

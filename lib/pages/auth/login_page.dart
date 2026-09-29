@@ -43,7 +43,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (kDebugMode) ...[
       {
         'name': '测试服务器',
-        'ip': '172.25.26.17',
+        'ip': '172.18.132.131',
         'port': 6060,
         'scheme': 'http://',
       },

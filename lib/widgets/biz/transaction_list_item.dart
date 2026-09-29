@@ -18,6 +18,7 @@ class TransactionListItem extends ConsumerWidget {
   final double amount;
   final bool isExpense; // 决定正负号
   final bool isTransfer; // 是否为转账（转账不显示正负号）
+  final bool isRefund; // 退款入账，但不使用收入颜色
   final bool? hide; // 改为可选,null时使用全局状态
   final VoidCallback? onTap;
   final VoidCallback? onEdit; // 右侧编辑按钮
@@ -49,6 +50,7 @@ class TransactionListItem extends ConsumerWidget {
       required this.amount,
       required this.isExpense,
       this.isTransfer = false,
+      this.isRefund = false,
       this.hide,
       this.onTap,
       this.onEdit,
@@ -235,13 +237,15 @@ class TransactionListItem extends ConsumerWidget {
                   hide: hide,
                   signed: !isTransfer,
                   decimals: 2,
-                  style: BeeTextTokens.title(context).copyWith(
-                    color: isTransfer
-                        ? BeeTokens.textPrimary(context)
-                        : isExpense
-                            ? BeeTokens.expenseColor(context, ref)
-                            : BeeTokens.incomeColor(context, ref),
-                  )),
+                    style: BeeTextTokens.title(context).copyWith(
+                      color: isTransfer
+                          ? BeeTokens.textPrimary(context)
+                          : isRefund
+                              ? BeeTokens.chartTransfer(context)
+                              : isExpense
+                                  ? BeeTokens.expenseColor(context, ref)
+                                  : BeeTokens.incomeColor(context, ref),
+                    )),
               if (tags != null && tags!.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),

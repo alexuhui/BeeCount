@@ -10,7 +10,9 @@ import '../../providers.dart';
 import '../../styles/tokens.dart';
 import '../../utils/category_utils.dart';
 import '../../utils/invest_tx.dart';
+import '../../utils/refund_tx.dart';
 import '../../utils/transaction_edit_utils.dart';
+import '../../widgets/transaction/refund_sheet.dart';
 import '../../utils/ui_scale_extensions.dart';
 import '../../widgets/biz/biz.dart';
 import '../../widgets/category_icon.dart';
@@ -63,6 +65,19 @@ class TransactionDetailPage extends ConsumerWidget {
           ),
         ],
       ),
+      bottomNavigationBar: detailAsync.maybeWhen(
+        data: (detail) {
+          if (detail == null || detail.tx.type != 'expense') return null;
+          return _RefundBar(
+            original: detail.tx,
+            onChanged: () {
+              ref.invalidate(_transactionDetailProvider(transactionId));
+              ref.invalidate(_refundsProvider(detail.tx.id));
+            },
+          );
+        },
+        orElse: () => null,
+      ),
     );
   }
 
@@ -93,16 +108,19 @@ class _DetailBody extends ConsumerWidget {
     final tx = detail.tx;
     final isExpense = tx.type == 'expense' || tx.type == InvestTx.loss;
     final isTransfer = tx.type == 'transfer';
+    final isRefund = RefundTx.isRefund(tx.type);
     final categoryName = CategoryUtils.getDisplayName(
       detail.category?.name ?? l10n.commonUncategorized,
       context,
     );
     final timeText = DateFormat('yyyy-MM-dd HH:mm:ss').format(tx.happenedAt.toLocal());
-    final amountColor = isTransfer
-        ? BeeTokens.textPrimary(context)
-        : isExpense
-            ? BeeTokens.expenseColor(context, ref)
-            : BeeTokens.incomeColor(context, ref);
+    final amountColor = isRefund
+        ? BeeTokens.chartTransfer(context)
+        : isTransfer
+            ? BeeTokens.textPrimary(context)
+            : isExpense
+                ? BeeTokens.expenseColor(context, ref)
+                : BeeTokens.incomeColor(context, ref);
 
     return ListView(
       padding: EdgeInsets.all(16.0.scaled(context, ref)),
@@ -191,7 +209,9 @@ class _DetailBody extends ConsumerWidget {
               if (tx.note != null && tx.note!.isNotEmpty) ...[
                 BeeTokens.cardDivider(context),
                 _InfoRow(
-                  label: l10n.transactionDetailNote,
+                  label: isRefund
+                      ? l10n.refundReasonHint
+                      : l10n.transactionDetailNote,
                   value: tx.note!,
                 ),
               ],
@@ -207,6 +227,24 @@ class _DetailBody extends ConsumerWidget {
                 _InfoRow(
                   label: l10n.investActionsTitle,
                   value: _investEventLabel(l10n, tx.investEvent!),
+                ),
+              ],
+              if (isRefund && tx.refundOfId != null) ...[
+                BeeTokens.cardDivider(context),
+                InkWell(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => TransactionDetailPage(
+                          transactionId: tx.refundOfId!,
+                        ),
+                      ),
+                    );
+                  },
+                  child: _InfoRow(
+                    label: l10n.homeExpense,
+                    value: l10n.transactionDetailTitle,
+                  ),
                 ),
               ],
             ],
@@ -242,6 +280,10 @@ class _DetailBody extends ConsumerWidget {
               ],
             ),
           ),
+        ],
+        if (tx.type == 'expense') ...[
+          SizedBox(height: 12.0.scaled(context, ref)),
+          _RefundHistory(originalId: tx.id),
         ],
         if (detail.attachments.isNotEmpty) ...[
           SizedBox(height: 12.0.scaled(context, ref)),
@@ -295,6 +337,8 @@ class _DetailBody extends ConsumerWidget {
         return l10n.homeExpense;
       case 'transfer':
         return l10n.transferTitle;
+      case RefundTx.typeName:
+        return l10n.refundTitle;
       case InvestTx.gain:
         return l10n.investGain;
       case InvestTx.loss:
@@ -412,6 +456,181 @@ class _TransactionDetail {
     required this.tags,
     required this.attachments,
   });
+}
+
+final _refundsProvider =
+    FutureProvider.family.autoDispose<List<db.Transaction>, int>((ref, id) async {
+  ref.watch(statsRefreshProvider);
+  return ref.watch(repositoryProvider).listRefunds(id);
+});
+
+class _RefundBar extends ConsumerWidget {
+  final db.Transaction original;
+  final VoidCallback onChanged;
+
+  const _RefundBar({required this.original, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final refundsAsync = ref.watch(_refundsProvider(original.id));
+    final refunded = refundsAsync.maybeWhen(
+      data: (rows) => rows.fold<double>(0, (sum, row) => sum + row.amount),
+      orElse: () => 0.0,
+    );
+    final remaining = RefundTx.remaining(
+      original: original.amount,
+      refunded: refunded,
+    );
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          16.0.scaled(context, ref),
+          8,
+          16.0.scaled(context, ref),
+          12,
+        ),
+        child: SizedBox(
+          height: 48,
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: remaining <= 0
+                ? null
+                : () async {
+                    final ok = await showRefundSheet(
+                      context: context,
+                      originalId: original.id,
+                      originalAmount: original.amount,
+                      alreadyRefunded: refunded,
+                      creditsAccount: original.accountId != null,
+                    );
+                    if (ok == true) onChanged();
+                  },
+            icon: const Icon(Icons.undo),
+            label: Text(
+              remaining <= 0 ? l10n.refundAlreadyFull : l10n.refundAction,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: primary,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: BeeTokens.surfaceDisabled(context),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RefundHistory extends ConsumerWidget {
+  final int originalId;
+
+  const _RefundHistory({required this.originalId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final refundsAsync = ref.watch(_refundsProvider(originalId));
+    return refundsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (rows) {
+        if (rows.isEmpty) return const SizedBox.shrink();
+        return SectionCard(
+          margin: EdgeInsets.zero,
+          padding: EdgeInsets.zero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: Text(
+                  l10n.refundHistory,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: BeeTokens.textSecondary(context),
+                  ),
+                ),
+              ),
+              for (var i = 0; i < rows.length; i++) ...[
+                if (i > 0) BeeTokens.cardDivider(context),
+                _RefundTile(refund: rows[i], originalId: originalId),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RefundTile extends ConsumerWidget {
+  final db.Transaction refund;
+  final int originalId;
+
+  const _RefundTile({required this.refund, required this.originalId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final time =
+        DateFormat('yyyy-MM-dd HH:mm').format(refund.happenedAt.toLocal());
+    final reason = (refund.note == null || refund.note!.isEmpty)
+        ? time
+        : '$time · ${refund.note}';
+    return InkWell(
+      onTap: () async {
+        final repo = ref.read(repositoryProvider);
+        final original = await repo.getTransactionById(originalId);
+        final all = await repo.listRefunds(originalId);
+        if (!context.mounted || original == null) return;
+        final others = all
+            .where((row) => row.id != refund.id)
+            .fold<double>(0, (sum, row) => sum + row.amount);
+        final ok = await showRefundSheet(
+          context: context,
+          originalId: originalId,
+          originalAmount: original.amount,
+          alreadyRefunded: others,
+          creditsAccount: original.accountId != null,
+          editing: refund,
+        );
+        if (ok == true) {
+          ref.invalidate(_refundsProvider(originalId));
+          ref.invalidate(_transactionDetailProvider(originalId));
+          ref.invalidate(_transactionDetailProvider(refund.id));
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                reason,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: BeeTokens.textPrimary(context),
+                ),
+              ),
+            ),
+            AmountText(
+              value: refund.amount,
+              signed: true,
+              decimals: 2,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: BeeTokens.chartTransfer(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 final _transactionDetailProvider =

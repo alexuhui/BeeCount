@@ -428,6 +428,10 @@ class LocalTagRepository implements TagRepository {
           excludeFromStats: row.read<bool>('exclude_from_stats'),
           receivableId: row.read<int?>('receivable_id'),
           payableId: row.read<int?>('payable_id'),
+          receivablePaymentId: row.read<int?>('receivable_payment_id'),
+          payablePaymentId: row.read<int?>('payable_payment_id'),
+          investEvent: row.read<String?>('invest_event'),
+          refundOfId: row.read<int?>('refund_of_id'),
         );
       }).toList();
     });

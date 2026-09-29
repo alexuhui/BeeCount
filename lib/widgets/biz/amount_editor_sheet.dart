@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import '../../styles/tokens.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/data/note_history_service.dart';
 import '../../services/attachment_service.dart';
+import '../../services/api/beecount_api_exception.dart';
 import '../../providers.dart';
 import '../../pages/tag/widgets/tag_selector.dart';
 import 'note_picker_dialog.dart';
@@ -726,6 +728,14 @@ class _AmountEditorSheetState extends ConsumerState<AmountEditorSheet> {
   }
 
   String _formatSubmitError(Object error) {
+    if (error is BeeCountApiException && error.body != null) {
+      try {
+        final decoded = jsonDecode(error.body!);
+        if (decoded is Map && decoded['error'] is String) {
+          return decoded['error'] as String;
+        }
+      } catch (_) {}
+    }
     final message = error.toString().trim();
     if (message.startsWith('Exception: ')) {
       return message.substring('Exception: '.length);

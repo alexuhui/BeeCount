@@ -931,6 +931,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           final item = _searchResults[index];
                           final isTransfer = item.t.type == 'transfer';
                           final isExpense = item.t.type == 'expense';
+                          final isRefund = item.t.type == 'refund';
 
                           // 获取分类显示名称
                           final categoryName = CategoryUtils.getDisplayName(item.category?.name, context);
@@ -947,13 +948,19 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                               TransactionListItem(
                                 icon: iconData,
                                 category: item.category,
-                                title: subtitle.isNotEmpty
-                                    ? subtitle
-                                    : categoryName,
-                                categoryName:
-                                    subtitle.isNotEmpty ? null : categoryName,
+                                title: isRefund
+                                    ? (subtitle.isNotEmpty
+                                        ? subtitle
+                                        : '${AppLocalizations.of(context).refundTitle} · $categoryName')
+                                    : (subtitle.isNotEmpty
+                                        ? subtitle
+                                        : categoryName),
+                                categoryName: isRefund
+                                    ? '${AppLocalizations.of(context).refundTitle} · $categoryName'
+                                    : (subtitle.isNotEmpty ? null : categoryName),
                                 amount: item.t.amount,
                                 isExpense: isExpense,
+                                isRefund: isRefund,
                                 hide: hide,
                                 happenedAt: item.t.happenedAt,
                                 showFullDate: true,

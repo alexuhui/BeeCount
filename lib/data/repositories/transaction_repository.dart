@@ -222,4 +222,23 @@ abstract class TransactionRepository {
     int? tagId,
     String? q,
   });
+
+  /// 某笔支出已记录的退款（按时间倒序）。
+  Future<List<Transaction>> listRefunds(int originalId);
+
+  /// 对一笔支出记一笔退款。退款入账，但不计入收入。
+  Future<int> addRefund({
+    required int originalId,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+  });
+
+  /// 修改一笔退款的金额、时间和原因。
+  Future<void> updateRefund({
+    required int id,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+  });
 }

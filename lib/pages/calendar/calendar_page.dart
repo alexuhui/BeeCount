@@ -493,6 +493,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
               final category = item.category;
               final isExpense = item.t.type == 'expense';
               final isTransfer = item.t.type == 'transfer';
+              final isRefund = item.t.type == 'refund';
 
               // 分类名称
               final categoryName = category?.name ?? l10n.commonUncategorized;
@@ -510,13 +511,18 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 category: category,
                 title: isTransfer
                     ? (subtitle.isNotEmpty ? subtitle : l10n.transferTitle)
-                    : (subtitle.isNotEmpty ? subtitle : categoryName),
+                    : isRefund
+                        ? (subtitle.isNotEmpty ? subtitle : '${l10n.refundTitle} · $categoryName')
+                        : (subtitle.isNotEmpty ? subtitle : categoryName),
                 categoryName: isTransfer
                     ? null
-                    : (subtitle.isNotEmpty ? categoryName : null),
+                    : isRefund
+                        ? '${l10n.refundTitle} · $categoryName'
+                        : (subtitle.isNotEmpty ? categoryName : null),
                 amount: item.t.amount,
                 isExpense: isExpense,
                 isTransfer: isTransfer,
+                isRefund: isRefund,
                 happenedAt: item.t.happenedAt,
                 accountName: item.account?.name,
                 tags: tagsList.isNotEmpty ? tagsList : null,
@@ -591,6 +597,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
               final category = item.category;
               final isExpense = item.t.type == 'expense';
               final isTransfer = item.t.type == 'transfer';
+              final isRefund = item.t.type == 'refund';
 
               // 分类名称
               final categoryName = category?.name ?? l10n.commonUncategorized;
@@ -608,13 +615,18 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 category: category,
                 title: isTransfer
                     ? (subtitle.isNotEmpty ? subtitle : l10n.transferTitle)
-                    : (subtitle.isNotEmpty ? subtitle : categoryName),
+                    : isRefund
+                        ? (subtitle.isNotEmpty ? subtitle : '${l10n.refundTitle} · $categoryName')
+                        : (subtitle.isNotEmpty ? subtitle : categoryName),
                 categoryName: isTransfer
                     ? null
-                    : (subtitle.isNotEmpty ? categoryName : null),
+                    : isRefund
+                        ? '${l10n.refundTitle} · $categoryName'
+                        : (subtitle.isNotEmpty ? categoryName : null),
                 amount: item.t.amount,
                 isExpense: isExpense,
                 isTransfer: isTransfer,
+                isRefund: isRefund,
                 happenedAt: item.t.happenedAt,
                 accountName: item.account?.name,
                 tags: tagsList.isNotEmpty ? tagsList : null,

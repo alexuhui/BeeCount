@@ -154,6 +154,7 @@ Future<String> exportTransactionsJson(BeeDatabase db, int ledgerId) async {
       'note': _sanitizeString(t.note),
       'excludeFromStats': t.excludeFromStats,
       'investEvent': t.investEvent,
+      if (t.refundOfId != null) 'refundOfId': t.refundOfId,
     };
 
     // 添加账户信息

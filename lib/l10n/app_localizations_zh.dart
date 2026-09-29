@@ -5801,6 +5801,60 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeLoadingMore => '正在加载更多';
+
+  @override
+  String get refundTitle => '退款';
+
+  @override
+  String get refundAction => '退款';
+
+  @override
+  String get refundFull => '全额';
+
+  @override
+  String get refundAmountLabel => '退款金额';
+
+  @override
+  String get refundReasonHint => '退款原因';
+
+  @override
+  String get refundTime => '退款时间';
+
+  @override
+  String get refundSaved => '已记录退款';
+
+  @override
+  String get refundUpdated => '已更新退款';
+
+  @override
+  String get refundDeleted => '已删除退款';
+
+  @override
+  String get refundAlreadyFull => '已全额退款';
+
+  @override
+  String get refundExceeds => '退款金额超过可退余额';
+
+  @override
+  String get refundInvalidAmount => '请输入大于 0 的金额';
+
+  @override
+  String get refundHistory => '退款记录';
+
+  @override
+  String get refundHint => '退款不算收入。钱会回到原账户，用来把这笔支出平回去。';
+
+  @override
+  String get refundNoAccount => '这笔支出没有关联账户，退款只会留下记录，不会改变账户余额。';
+
+  @override
+  String get refundDelete => '删除退款';
+
+  @override
+  String get refundRemainingLabel => '可退';
+
+  @override
+  String get exportTypeRefund => '退款';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -11458,4 +11512,58 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get homeLoadingMore => '正在載入更多';
+
+  @override
+  String get refundTitle => '退款';
+
+  @override
+  String get refundAction => '退款';
+
+  @override
+  String get refundFull => '全額';
+
+  @override
+  String get refundAmountLabel => '退款金額';
+
+  @override
+  String get refundReasonHint => '退款原因';
+
+  @override
+  String get refundTime => '退款時間';
+
+  @override
+  String get refundSaved => '已記錄退款';
+
+  @override
+  String get refundUpdated => '已更新退款';
+
+  @override
+  String get refundDeleted => '已刪除退款';
+
+  @override
+  String get refundAlreadyFull => '已全額退款';
+
+  @override
+  String get refundExceeds => '退款金額超過可退餘額';
+
+  @override
+  String get refundInvalidAmount => '請輸入大於 0 的金額';
+
+  @override
+  String get refundHistory => '退款記錄';
+
+  @override
+  String get refundHint => '退款不算收入。款項會回到原帳戶，用來把這筆支出平回去。';
+
+  @override
+  String get refundNoAccount => '這筆支出沒有關聯帳戶，退款只會留下記錄，不會改變帳戶餘額。';
+
+  @override
+  String get refundDelete => '刪除退款';
+
+  @override
+  String get refundRemainingLabel => '可退';
+
+  @override
+  String get exportTypeRefund => '退款';
 }

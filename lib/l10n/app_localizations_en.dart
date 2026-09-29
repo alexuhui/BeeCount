@@ -6040,4 +6040,60 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeLoadingMore => 'Loading more';
+
+  @override
+  String get refundTitle => 'Refund';
+
+  @override
+  String get refundAction => 'Refund';
+
+  @override
+  String get refundFull => 'Full amount';
+
+  @override
+  String get refundAmountLabel => 'Refund amount';
+
+  @override
+  String get refundReasonHint => 'Reason';
+
+  @override
+  String get refundTime => 'Refund time';
+
+  @override
+  String get refundSaved => 'Refund recorded';
+
+  @override
+  String get refundUpdated => 'Refund updated';
+
+  @override
+  String get refundDeleted => 'Refund deleted';
+
+  @override
+  String get refundAlreadyFull => 'Already fully refunded';
+
+  @override
+  String get refundExceeds => 'Amount exceeds the refundable balance';
+
+  @override
+  String get refundInvalidAmount => 'Enter an amount greater than 0';
+
+  @override
+  String get refundHistory => 'Refunds';
+
+  @override
+  String get refundHint =>
+      'A refund is not income. It is credited to the original account so the balance stays even.';
+
+  @override
+  String get refundNoAccount =>
+      'This expense has no account, so the refund is recorded without changing a balance.';
+
+  @override
+  String get refundDelete => 'Delete refund';
+
+  @override
+  String get refundRemainingLabel => 'Refundable';
+
+  @override
+  String get exportTypeRefund => 'Refund';
 }

@@ -12,6 +12,7 @@ import '../../styles/tokens.dart';
 import '../../services/billing/post_processor.dart';
 import '../../utils/transaction_edit_utils.dart';
 import '../../utils/category_utils.dart';
+import '../../utils/refund_tx.dart';
 import '../category_icon.dart';
 import '../../pages/transaction/category_detail_page.dart';
 import '../../pages/tag/tag_detail_page.dart';
@@ -470,6 +471,7 @@ class TransactionListState extends ConsumerState<TransactionList> {
             final allItemsInDay = item.$3 as List<({Transaction t, Category? category})>;
             final isTransfer = it.t.type == 'transfer';
             final isExpense = it.t.type == 'expense';
+            final isRefund = RefundTx.isRefund(it.t.type);
 
             // 获取分类显示名称（二级分类显示为"一级分类→二级分类"）
             String categoryName;
@@ -535,18 +537,24 @@ class TransactionListState extends ConsumerState<TransactionList> {
                       // 获取附件数量（优先使用预加载数据）
                       final attachmentCount = _getAttachmentCountForTransaction(it.t.id);
 
+                      final refundLabel = '${AppLocalizations.of(context).refundTitle} · $categoryName';
                       return TransactionListItem(
                         icon: getCategoryIconData(category: it.category, categoryName: categoryName),
                         category: it.category,
                         title: isTransfer
                           ? (subtitle.isNotEmpty ? subtitle : AppLocalizations.of(context).transferTitle)
-                          : (subtitle.isNotEmpty ? subtitle : categoryName),
+                          : isRefund
+                              ? (subtitle.isNotEmpty ? subtitle : refundLabel)
+                              : (subtitle.isNotEmpty ? subtitle : categoryName),
                         categoryName: isTransfer
                           ? null  // 转账不显示第二行，保持布局一致
-                          : (subtitle.isNotEmpty ? null : categoryName),
+                          : isRefund
+                              ? refundLabel
+                              : (subtitle.isNotEmpty ? null : categoryName),
                         amount: it.t.amount,
                         isExpense: isExpense,
                         isTransfer: isTransfer,
+                        isRefund: isRefund,
                         hide: widget.hideAmounts,
                         happenedAt: it.t.happenedAt,
                         accountName: isTransfer

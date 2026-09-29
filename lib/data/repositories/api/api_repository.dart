@@ -535,6 +535,59 @@ class ApiRepository extends LocalRepository {
   }
 
   @override
+  Future<List<Transaction>> listRefunds(int originalId) async {
+    final paged = await api.listPaged(
+      '/transactions',
+      page: 1,
+      pageSize: 200,
+      extra: {'refund_of_id': '$originalId'},
+    );
+    return paged.items.map(txFromJson).toList();
+  }
+
+  @override
+  Future<int> addRefund({
+    required int originalId,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+  }) async {
+    final original = await getTransactionById(originalId);
+    if (original == null) {
+      throw StateError('原记录不存在');
+    }
+    final note = reason?.trim();
+    final row = await api.post('/transactions', {
+      'ledger_id': original.ledgerId,
+      'type': 'refund',
+      'amount': amount,
+      'category_id': original.categoryId,
+      'account_id': original.accountId,
+      'happened_at': happenedAt.toIso8601String(),
+      'note': note == null || note.isEmpty ? null : note,
+      'refund_of_id': originalId,
+    });
+    notifyChanged();
+    return asInt(row['id']);
+  }
+
+  @override
+  Future<void> updateRefund({
+    required int id,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+  }) async {
+    final note = reason?.trim();
+    await api.put('/transactions/$id', {
+      'amount': amount,
+      'happened_at': happenedAt.toIso8601String(),
+      'note': note == null || note.isEmpty ? null : note,
+    });
+    notifyChanged();
+  }
+
+  @override
   Future<int> insertTransactionCompanion(TransactionsCompanion item) {
     return addTransaction(
       ledgerId: item.ledgerId.value,

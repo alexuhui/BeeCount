@@ -236,6 +236,7 @@ class LocalAccountRepository implements AccountRepository {
         - COALESCE(SUM(CASE WHEN type = 'invest_loss' AND account_id = ?1 THEN amount ELSE 0 END), 0)
         + COALESCE(SUM(CASE WHEN type = 'transfer' AND to_account_id = ?1 THEN amount ELSE 0 END), 0)
         - COALESCE(SUM(CASE WHEN type = 'transfer' AND account_id = ?1 THEN amount ELSE 0 END), 0)
+        + COALESCE(SUM(CASE WHEN type = 'refund' AND account_id = ?1 THEN amount ELSE 0 END), 0)
         AS delta
       FROM transactions
       WHERE happened_at < ?2

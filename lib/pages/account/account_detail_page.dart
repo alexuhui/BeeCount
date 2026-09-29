@@ -952,14 +952,6 @@ class _NormalAccountContentState extends ConsumerState<_NormalAccountContent> {
       }
     }
 
-    final categoryAsync = tx.categoryId != null
-        ? await ref.read(categoriesProvider.future)
-        : null;
-    final category = categoryAsync?.cast<db.Category?>().firstWhere(
-          (c) => c?.id == tx.categoryId,
-          orElse: () => null,
-        );
-
     if (!context.mounted) return;
     if (InvestTx.isPnlType(tx.type)) {
       await Navigator.push(
@@ -973,7 +965,7 @@ class _NormalAccountContentState extends ConsumerState<_NormalAccountContent> {
         ),
       );
     } else {
-      await TransactionEditUtils.editTransaction(context, ref, tx, category);
+      await TransactionEditUtils.openDetail(context, tx.id);
     }
 
     ref.invalidate(accountStatsProvider(account.id));
@@ -1107,15 +1099,7 @@ class _InvestmentAccountContentState
         ),
       );
     } else {
-      final categoryAsync = tx.categoryId != null
-          ? await ref.read(categoriesProvider.future)
-          : null;
-      final category = categoryAsync?.cast<db.Category?>().firstWhere(
-            (c) => c?.id == tx.categoryId,
-            orElse: () => null,
-          );
-      if (!context.mounted) return;
-      await TransactionEditUtils.editTransaction(context, ref, tx, category);
+      await TransactionEditUtils.openDetail(context, tx.id);
     }
     ref.invalidate(accountStatsProvider(widget.account.id));
     ref.invalidate(accountTransactionsProvider(widget.account.id));
@@ -2777,6 +2761,9 @@ class _TransactionTile extends ConsumerWidget {
       case 'transfer':
         amountColor = isTransferOut ? BeeTokens.expenseColor(context, ref) : BeeTokens.incomeColor(context, ref);
         break;
+      case 'refund':
+        amountColor = BeeTokens.chartTransfer(context);
+        break;
       default:
         amountColor = BeeTokens.textPrimary(context);
     }
@@ -2820,6 +2807,13 @@ class _TransactionTile extends ConsumerWidget {
             displaySubtitle = '${l10n.transferFromPrefix} $fromAccountName';
           }
         }
+      }
+    } else if (transaction.type == 'refund') {
+      displayTitle = transaction.note?.isNotEmpty == true
+          ? transaction.note!
+          : l10n.refundTitle;
+      if (category != null) {
+        displaySubtitle = category.name;
       }
     } else if (InvestTx.isPnlType(transaction.type)) {
       if (transaction.note?.isNotEmpty == true) {

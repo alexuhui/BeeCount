@@ -136,6 +136,7 @@ Transaction txFromJson(Map<String, dynamic> m) => Transaction(
       payablePaymentId:
           asIntN(pick(m, ['payable_payment_id', 'payablePaymentId'])),
       investEvent: pick(m, ['invest_event', 'investEvent'])?.toString(),
+      refundOfId: asIntN(pick(m, ['refund_of_id', 'refundOfId'])),
     );
 
 RecurringTransaction recurringFromJson(Map<String, dynamic> m) =>

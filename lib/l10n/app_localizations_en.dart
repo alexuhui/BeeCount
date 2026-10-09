@@ -6146,7 +6146,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reimburseOverMessage =>
-      'This reimbursement is higher than the original expense. Credit this amount?';
+      'The reimbursements together exceed the original expense. Credit this amount?';
 
   @override
   String get exportTypeRefund => 'Refund';

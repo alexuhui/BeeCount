@@ -2251,7 +2251,7 @@
   "reimburseDelete": "刪除報銷",
   "reimburseOriginalLabel": "原金額",
   "reimburseOverTitle": "報銷高於原金額",
-  "reimburseOverMessage": "這筆報銷高於原支出金額，確認按這個金額入帳？",
+  "reimburseOverMessage": "報銷合計高於原支出金額，確認按這個金額入帳？",
   "exportTypeRefund": "退款",
   "exportTypeReimburse": "報銷"
 }

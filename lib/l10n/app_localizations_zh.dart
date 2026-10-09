@@ -5902,7 +5902,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reimburseOverTitle => '报销高于原金额';
 
   @override
-  String get reimburseOverMessage => '这笔报销高于原支出金额，确认按这个金额入账？';
+  String get reimburseOverMessage => '报销合计高于原支出金额，确认按这个金额入账？';
 
   @override
   String get exportTypeRefund => '退款';
@@ -11667,7 +11667,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get reimburseOverTitle => '報銷高於原金額';
 
   @override
-  String get reimburseOverMessage => '這筆報銷高於原支出金額，確認按這個金額入帳？';
+  String get reimburseOverMessage => '報銷合計高於原支出金額，確認按這個金額入帳？';
 
   @override
   String get exportTypeRefund => '退款';

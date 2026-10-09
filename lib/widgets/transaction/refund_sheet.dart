@@ -39,6 +39,7 @@ Future<bool?> showReimburseSheet({
   required BuildContext context,
   required int originalId,
   required double originalAmount,
+  required double alreadyReimbursed,
   required int? originalAccountId,
   Transaction? editing,
 }) {
@@ -47,7 +48,7 @@ Future<bool?> showReimburseSheet({
     reimbursement: true,
     originalId: originalId,
     originalAmount: originalAmount,
-    alreadyRefunded: 0,
+    alreadyRefunded: alreadyReimbursed,
     originalAccountId: originalAccountId,
     editing: editing,
   );
@@ -208,7 +209,8 @@ class _LinkedCreditSheetState extends ConsumerState<_LinkedCreditSheet> {
       setState(() => _error = l10n.refundExceeds);
       return;
     }
-    if (_reimburse && amount > widget.originalAmount + 0.009) {
+    final reimbursedTotal = widget.alreadyRefunded + amount;
+    if (_reimburse && reimbursedTotal > widget.originalAmount + 0.009) {
       final confirmed = await AppDialog.confirm<bool>(
             context,
             title: l10n.reimburseOverTitle,

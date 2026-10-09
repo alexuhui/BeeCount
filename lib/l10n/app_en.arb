@@ -2704,7 +2704,7 @@
   "reimburseDelete": "Delete reimbursement",
   "reimburseOriginalLabel": "Original",
   "reimburseOverTitle": "Above the original amount",
-  "reimburseOverMessage": "This reimbursement is higher than the original expense. Credit this amount?",
+  "reimburseOverMessage": "The reimbursements together exceed the original expense. Credit this amount?",
   "exportTypeRefund": "Refund",
   "exportTypeReimburse": "Reimbursement"
 }

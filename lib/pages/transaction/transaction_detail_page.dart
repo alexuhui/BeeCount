@@ -543,10 +543,19 @@ class _RefundBar extends ConsumerWidget {
                 height: 48,
                 child: FilledButton.icon(
                   onPressed: () async {
+                    final rows = await ref
+                        .read(repositoryProvider)
+                        .listReimbursements(original.id);
+                    if (!context.mounted) return;
+                    final already = rows.fold<double>(
+                      0,
+                      (sum, row) => sum + row.amount,
+                    );
                     final ok = await showReimburseSheet(
                       context: context,
                       originalId: original.id,
                       originalAmount: original.amount,
+                      alreadyReimbursed: already,
                       originalAccountId: original.accountId,
                     );
                     if (ok == true) onChanged();
@@ -743,13 +752,18 @@ class _ReimburseTile extends ConsumerWidget {
         (row.note == null || row.note!.isEmpty) ? time : '$time · ${row.note}';
     return InkWell(
       onTap: () async {
-        final original =
-            await ref.read(repositoryProvider).getTransactionById(originalId);
+        final repo = ref.read(repositoryProvider);
+        final original = await repo.getTransactionById(originalId);
+        final all = await repo.listReimbursements(originalId);
         if (!context.mounted || original == null) return;
+        final others = all
+            .where((item) => item.id != row.id)
+            .fold<double>(0, (sum, item) => sum + item.amount);
         final ok = await showReimburseSheet(
           context: context,
           originalId: originalId,
           originalAmount: original.amount,
+          alreadyReimbursed: others,
           originalAccountId: original.accountId,
           editing: row,
         );

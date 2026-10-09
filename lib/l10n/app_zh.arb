@@ -2549,7 +2549,7 @@
   "reimburseDelete": "删除报销",
   "reimburseOriginalLabel": "原金额",
   "reimburseOverTitle": "报销高于原金额",
-  "reimburseOverMessage": "这笔报销高于原支出金额，确认按这个金额入账？",
+  "reimburseOverMessage": "报销合计高于原支出金额，确认按这个金额入账？",
   "exportTypeRefund": "退款",
   "exportTypeReimburse": "报销"
 }

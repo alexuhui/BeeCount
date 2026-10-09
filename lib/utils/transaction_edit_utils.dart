@@ -39,10 +39,16 @@ class TransactionEditUtils {
       final original = await repo.getTransactionById(originalId);
       if (!context.mounted || original == null) return;
       if (ReimburseTx.isReimburse(transaction.type)) {
+        final reimbursements = await repo.listReimbursements(originalId);
+        if (!context.mounted) return;
+        final others = reimbursements
+            .where((row) => row.id != transaction.id)
+            .fold<double>(0, (sum, row) => sum + row.amount);
         await showReimburseSheet(
           context: context,
           originalId: originalId,
           originalAmount: original.amount,
+          alreadyReimbursed: others,
           originalAccountId: original.accountId,
           editing: transaction,
         );

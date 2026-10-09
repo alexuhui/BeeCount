@@ -11191,7 +11191,7 @@ abstract class AppLocalizations {
   /// No description provided for @reimburseOverMessage.
   ///
   /// In en, this message translates to:
-  /// **'This reimbursement is higher than the original expense. Credit this amount?'**
+  /// **'The reimbursements together exceed the original expense. Credit this amount?'**
   String get reimburseOverMessage;
 
   /// No description provided for @exportTypeRefund.

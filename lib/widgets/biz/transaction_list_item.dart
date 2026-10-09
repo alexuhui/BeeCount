@@ -20,6 +20,8 @@ class TransactionListItem extends ConsumerWidget {
   final bool isTransfer; // 是否为转账（转账不显示正负号）
   final bool isRefund; // 退款入账，但不使用收入颜色
   final bool isReimburse; // 报销入账，但不使用收入颜色
+  final double refundAmount; // 原支出关联的退款合计
+  final double reimburseAmount; // 原支出关联的报销合计
   final bool? hide; // 改为可选,null时使用全局状态
   final VoidCallback? onTap;
   final VoidCallback? onEdit; // 右侧编辑按钮
@@ -44,33 +46,34 @@ class TransactionListItem extends ConsumerWidget {
   final VoidCallback? onAttachmentTap; // 点击附件图标回调
 
   const TransactionListItem({
-      super.key,
-      required this.icon,
-      this.category,
-      required this.title,
-      required this.amount,
-      required this.isExpense,
-      this.isTransfer = false,
-      this.isRefund = false,
-      this.isReimburse = false,
-      this.hide,
-      this.onTap,
-      this.onEdit,
-      this.onCategoryTap,
-      this.categoryName,
-      this.onDelete,
-      this.accountName,
-      this.happenedAt,
-      this.isSelectionMode = false,
-      this.isSelected = false,
-      this.onSelectionChanged,
-      this.showFullDate = false,
-      this.tags,
-      this.onTagTap,
-      this.attachmentCount = 0,
-      this.onAttachmentTap,
+    super.key,
+    required this.icon,
+    this.category,
+    required this.title,
+    required this.amount,
+    required this.isExpense,
+    this.isTransfer = false,
+    this.isRefund = false,
+    this.isReimburse = false,
+    this.refundAmount = 0,
+    this.reimburseAmount = 0,
+    this.hide,
+    this.onTap,
+    this.onEdit,
+    this.onCategoryTap,
+    this.categoryName,
+    this.onDelete,
+    this.accountName,
+    this.happenedAt,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    this.onSelectionChanged,
+    this.showFullDate = false,
+    this.tags,
+    this.onTagTap,
+    this.attachmentCount = 0,
+    this.onAttachmentTap,
   });
-
 
   /// 检查是否有次要信息需要显示（时间、账户或附件）
   bool _hasSecondaryInfo(WidgetRef ref) {
@@ -80,7 +83,9 @@ class TransactionListItem extends ConsumerWidget {
     // 显示时间（设置开启 + 有数据 + 不是00:00:00）
     final showTime = ref.watch(showTransactionTimeProvider) &&
         happenedAt != null &&
-        (happenedAt!.hour != 0 || happenedAt!.minute != 0 || happenedAt!.second != 0);
+        (happenedAt!.hour != 0 ||
+            happenedAt!.minute != 0 ||
+            happenedAt!.second != 0);
 
     return showTime || accountName != null || attachmentCount > 0;
   }
@@ -98,7 +103,9 @@ class TransactionListItem extends ConsumerWidget {
           '${happenedAt!.hour.toString().padLeft(2, '0')}:${happenedAt!.minute.toString().padLeft(2, '0')}',
         );
       } else if (ref.watch(showTransactionTimeProvider) &&
-          (happenedAt!.hour != 0 || happenedAt!.minute != 0 || happenedAt!.second != 0)) {
+          (happenedAt!.hour != 0 ||
+              happenedAt!.minute != 0 ||
+              happenedAt!.second != 0)) {
         // 完整时间模式（HH:mm:ss）
         parts.add(
           '${happenedAt!.hour.toString().padLeft(2, '0')}:${happenedAt!.minute.toString().padLeft(2, '0')}:${happenedAt!.second.toString().padLeft(2, '0')}',
@@ -112,9 +119,9 @@ class TransactionListItem extends ConsumerWidget {
     }
 
     final textStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: BeeTokens.textTertiary(context),
-      fontSize: 11,
-    );
+          color: BeeTokens.textTertiary(context),
+          fontSize: 11,
+        );
 
     // 构建附件图标部件（可点击）
     Widget buildAttachmentWidget() {
@@ -158,6 +165,42 @@ class TransactionListItem extends ConsumerWidget {
           buildAttachmentWidget(),
         ],
       ],
+    );
+  }
+
+  Widget _buildLinkedAmount(
+    BuildContext context, {
+    required String label,
+    required double value,
+    required Color color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(width: 2),
+          AmountText(
+            value: value,
+            hide: hide,
+            signed: false,
+            decimals: 2,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -216,8 +259,8 @@ class TransactionListItem extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: BeeTokens.textSecondary(context),
-                        ),
+                              color: BeeTokens.textSecondary(context),
+                            ),
                       ),
                     ),
                   if (_hasSecondaryInfo(ref))
@@ -235,21 +278,36 @@ class TransactionListItem extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               AmountText(
-                  value: isExpense ? -amount : amount,
-                  hide: hide,
-                  signed: !isTransfer,
-                  decimals: 2,
-                    style: BeeTextTokens.title(context).copyWith(
-                      color: isTransfer
-                          ? BeeTokens.textPrimary(context)
-                          : isRefund
-                              ? BeeTokens.chartTransfer(context)
-                              : isReimburse
-                                  ? BeeTokens.statusPending(context)
-                                  : isExpense
+                value: isExpense ? -amount : amount,
+                hide: hide,
+                signed: !isTransfer,
+                decimals: 2,
+                style: BeeTextTokens.title(context).copyWith(
+                  color: isTransfer
+                      ? BeeTokens.textPrimary(context)
+                      : isRefund
+                          ? BeeTokens.chartTransfer(context)
+                          : isReimburse
+                              ? BeeTokens.statusPending(context)
+                              : isExpense
                                   ? BeeTokens.expenseColor(context, ref)
                                   : BeeTokens.incomeColor(context, ref),
-                    )),
+                ),
+              ),
+              if (isExpense && refundAmount > 0)
+                _buildLinkedAmount(
+                  context,
+                  label: '退',
+                  value: refundAmount,
+                  color: BeeTokens.chartTransfer(context),
+                ),
+              if (isExpense && reimburseAmount > 0)
+                _buildLinkedAmount(
+                  context,
+                  label: '报',
+                  value: reimburseAmount,
+                  color: BeeTokens.statusPending(context),
+                ),
               if (tags != null && tags!.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
@@ -312,7 +370,8 @@ class TransactionListItem extends ConsumerWidget {
                 final confirmed = await AppDialog.confirm<bool>(
                       context,
                       title: AppLocalizations.of(context).deleteConfirmTitle,
-                      message: AppLocalizations.of(context).deleteConfirmMessage,
+                      message:
+                          AppLocalizations.of(context).deleteConfirmMessage,
                     ) ??
                     false;
                 if (!confirmed) return;
@@ -320,7 +379,8 @@ class TransactionListItem extends ConsumerWidget {
                   await onDelete!();
                 } catch (e) {
                   if (context.mounted) {
-                    showToast(context, '${AppLocalizations.of(context).commonError}: $e');
+                    showToast(context,
+                        '${AppLocalizations.of(context).commonError}: $e');
                   }
                 }
               },
@@ -347,10 +407,11 @@ class TransactionListItem extends ConsumerWidget {
         confirmDismiss: (direction) async {
           // 显示确认对话框
           final confirmed = await AppDialog.confirm<bool>(
-            context,
-            title: '确认删除',
-            message: '确定要删除这笔交易吗？此操作无法撤销。',
-          ) ?? false;
+                context,
+                title: '确认删除',
+                message: '确定要删除这笔交易吗？此操作无法撤销。',
+              ) ??
+              false;
           if (!confirmed) return false;
 
           try {

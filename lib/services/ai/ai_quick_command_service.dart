@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../data/repositories/local/local_repository.dart';
+import '../../utils/refund_tx.dart';
 
 /// AI快捷指令服务
 class AIQuickCommandService {
@@ -20,6 +21,24 @@ class AIQuickCommandService {
   /// 简单格式化金额（保留2位小数）
   String _formatAmount(double amount) {
     return amount.toStringAsFixed(2);
+  }
+
+  Future<Map<int, double>> _linkedTotals() async {
+    final rows = await (db.select(db.transactions)
+          ..where(
+              (t) => t.ledgerId.equals(ledgerId) & t.refundOfId.isNotNull()))
+        .get();
+    final totals = <int, double>{};
+    for (final row in rows) {
+      final originalId = row.refundOfId;
+      if (originalId == null || !RefundTx.isLinkedCredit(row.type)) continue;
+      totals.update(
+        originalId,
+        (value) => value + row.amount,
+        ifAbsent: () => row.amount,
+      );
+    }
+    return totals;
   }
 
   /// 获取指定数据类型的数据文本
@@ -61,13 +80,17 @@ class AIQuickCommandService {
       }
 
       // 统计收支
+      final linkedTotals = await _linkedTotals();
       double totalIncome = 0;
       double totalExpense = 0;
       for (final t in transactions) {
         if (t.type == 'income') {
           totalIncome += t.amount;
         } else if (t.type == 'expense') {
-          totalExpense += t.amount;
+          totalExpense += RefundTx.netExpense(
+            original: t.amount,
+            linkedCredits: linkedTotals[t.id] ?? 0,
+          );
         }
       }
 
@@ -108,16 +131,23 @@ class AIQuickCommandService {
       }
 
       // 按分类统计
+      final linkedTotals = await _linkedTotals();
       final categoryTotals = <int, double>{};
       for (final t in transactions) {
         if (t.categoryId != null) {
-          categoryTotals[t.categoryId!] = (categoryTotals[t.categoryId!] ?? 0) + t.amount;
+          final net = RefundTx.netExpense(
+            original: t.amount,
+            linkedCredits: linkedTotals[t.id] ?? 0,
+          );
+          categoryTotals[t.categoryId!] =
+              (categoryTotals[t.categoryId!] ?? 0) + net;
         }
       }
 
       // 获取分类名称并排序
       final categoryList = <String>[];
-      final totalExpense = transactions.fold<double>(0, (sum, t) => sum + t.amount);
+      final totalExpense =
+          categoryTotals.values.fold<double>(0, (sum, value) => sum + value);
 
       final sortedEntries = categoryTotals.entries.toList()
         ..sort((a, b) => b.value.compareTo(a.value));
@@ -128,8 +158,11 @@ class AIQuickCommandService {
             .getSingleOrNull();
 
         if (category != null) {
-          final percentage = (entry.value / totalExpense * 100).toStringAsFixed(1);
-          categoryList.add('- ${category.name}: ${_formatAmount(entry.value)} ($percentage%)');
+          final percentage = totalExpense > 0
+              ? (entry.value / totalExpense * 100).toStringAsFixed(1)
+              : '0.0';
+          categoryList.add(
+              '- ${category.name}: ${_formatAmount(entry.value)} ($percentage%)');
         }
       }
 
@@ -174,7 +207,8 @@ ${categoryList.join('\n')}
         final date = t.happenedAt.toString().substring(0, 10);
         final typeStr = t.type == 'income' ? '收入' : '支出';
         final amountStr = _formatAmount(t.amount);
-        final noteStr = t.note != null && t.note!.isNotEmpty ? ' (${t.note})' : '';
+        final noteStr =
+            t.note != null && t.note!.isNotEmpty ? ' (${t.note})' : '';
 
         list.add('- $date $typeStr $amountStr ${categoryName ?? ""}$noteStr');
       }
@@ -195,6 +229,7 @@ ${list.join('\n')}
       final trends = <String>[];
 
       // 获取最近3个月的数据
+      final linkedTotals = await _linkedTotals();
       for (int i = 0; i < 3; i++) {
         final month = DateTime(now.year, now.month - i, 1);
         final nextMonth = DateTime(now.year, now.month - i + 1, 1);
@@ -212,12 +247,16 @@ ${list.join('\n')}
           if (t.type == 'income') {
             income += t.amount;
           } else if (t.type == 'expense') {
-            expense += t.amount;
+            expense += RefundTx.netExpense(
+              original: t.amount,
+              linkedCredits: linkedTotals[t.id] ?? 0,
+            );
           }
         }
 
         final monthStr = '${month.year}年${month.month}月';
-        trends.add('- $monthStr: 收入${_formatAmount(income)}, 支出${_formatAmount(expense)}');
+        trends.add(
+            '- $monthStr: 收入${_formatAmount(income)}, 支出${_formatAmount(expense)}');
       }
 
       return '''
@@ -281,7 +320,8 @@ ${trends.join('\n')}
 }
 
 /// Provider for AIQuickCommandService
-final aiQuickCommandServiceProvider = Provider.family<AIQuickCommandService, int>((ref, ledgerId) {
+final aiQuickCommandServiceProvider =
+    Provider.family<AIQuickCommandService, int>((ref, ledgerId) {
   final repo = ref.watch(repositoryProvider);
   // 注意: AIQuickCommandService 需要直接访问 BeeDatabase 实例进行查询
   return AIQuickCommandService(

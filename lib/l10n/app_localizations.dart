@@ -11071,7 +11071,7 @@ abstract class AppLocalizations {
   /// No description provided for @refundHint.
   ///
   /// In en, this message translates to:
-  /// **'A refund is not income. It defaults to the original account, and you can credit a different one.'**
+  /// **'A refund is not income. It defaults to the original account, and you can credit a different one. The amount may exceed the original expense.'**
   String get refundHint;
 
   /// No description provided for @refundNoAccount.
@@ -11097,6 +11097,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Credit account'**
   String get refundAccountLabel;
+
+  /// No description provided for @refundOverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Above the original amount'**
+  String get refundOverTitle;
+
+  /// No description provided for @refundOverMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Refunds and reimbursements together exceed the original expense. Credit this amount?'**
+  String get refundOverMessage;
 
   /// No description provided for @reimburseTitle.
   ///
@@ -11191,7 +11203,7 @@ abstract class AppLocalizations {
   /// No description provided for @reimburseOverMessage.
   ///
   /// In en, this message translates to:
-  /// **'The reimbursements together exceed the original expense. Credit this amount?'**
+  /// **'Refunds and reimbursements together exceed the original expense. Credit this amount?'**
   String get reimburseOverMessage;
 
   /// No description provided for @exportTypeRefund.

@@ -2684,11 +2684,13 @@
   "refundExceeds": "Amount exceeds the refundable balance",
   "refundInvalidAmount": "Enter an amount greater than 0",
   "refundHistory": "Refunds",
-  "refundHint": "A refund is not income. It defaults to the original account, and you can credit a different one.",
+  "refundHint": "A refund is not income. It defaults to the original account, and you can credit a different one. The amount may exceed the original expense.",
   "refundNoAccount": "With no account selected, the refund is recorded without changing a balance.",
   "refundDelete": "Delete refund",
   "refundRemainingLabel": "Refundable",
   "refundAccountLabel": "Credit account",
+  "refundOverTitle": "Above the original amount",
+  "refundOverMessage": "Refunds and reimbursements together exceed the original expense. Credit this amount?",
   "reimburseTitle": "Reimbursement",
   "reimburseAction": "Reimburse",
   "reimburseFull": "Full amount",
@@ -2704,7 +2706,7 @@
   "reimburseDelete": "Delete reimbursement",
   "reimburseOriginalLabel": "Original",
   "reimburseOverTitle": "Above the original amount",
-  "reimburseOverMessage": "The reimbursements together exceed the original expense. Credit this amount?",
+  "reimburseOverMessage": "Refunds and reimbursements together exceed the original expense. Credit this amount?",
   "exportTypeRefund": "Refund",
   "exportTypeReimburse": "Reimbursement"
 }

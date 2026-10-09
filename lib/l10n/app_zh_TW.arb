@@ -2231,11 +2231,13 @@
   "refundExceeds": "退款金額超過可退餘額",
   "refundInvalidAmount": "請輸入大於 0 的金額",
   "refundHistory": "退款記錄",
-  "refundHint": "退款不算收入。預設回到原帳戶，也可以改記到其他帳戶。",
+  "refundHint": "退款不算收入。預設回到原帳戶，也可以改記到其他帳戶；金額可以高於原支出。",
   "refundNoAccount": "未選擇帳戶時，退款只會留下記錄，不會改變帳戶餘額。",
   "refundDelete": "刪除退款",
   "refundRemainingLabel": "可退",
   "refundAccountLabel": "入帳帳戶",
+  "refundOverTitle": "退款高於原金額",
+  "refundOverMessage": "退款和報銷合計高於原支出金額，確認按這個金額入帳？",
   "reimburseTitle": "報銷",
   "reimburseAction": "報銷",
   "reimburseFull": "全額",
@@ -2251,7 +2253,7 @@
   "reimburseDelete": "刪除報銷",
   "reimburseOriginalLabel": "原金額",
   "reimburseOverTitle": "報銷高於原金額",
-  "reimburseOverMessage": "報銷合計高於原支出金額，確認按這個金額入帳？",
+  "reimburseOverMessage": "退款和報銷合計高於原支出金額，確認按這個金額入帳？",
   "exportTypeRefund": "退款",
   "exportTypeReimburse": "報銷"
 }

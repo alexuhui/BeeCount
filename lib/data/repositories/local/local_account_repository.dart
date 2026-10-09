@@ -14,10 +14,31 @@ class LocalAccountRepository implements AccountRepository {
 
   LocalAccountRepository(this.db);
 
+  Map<int, double> _linkedTotals(Iterable<Transaction> rows) {
+    final totals = <int, double>{};
+    for (final row in rows) {
+      final originalId = row.refundOfId;
+      if (originalId == null ||
+          (row.type != 'refund' && row.type != 'reimburse')) {
+        continue;
+      }
+      totals.update(
+        originalId,
+        (value) => value + row.amount,
+        ifAbsent: () => row.amount,
+      );
+    }
+    return totals;
+  }
+
+  double _netExpense(Transaction expense, Map<int, double> linkedTotals) {
+    final net = expense.amount - (linkedTotals[expense.id] ?? 0);
+    return net > 0 ? net : 0;
+  }
+
   @override
   Stream<List<Account>> watchAccountsForLedger(int ledgerId) {
-    return (db.select(db.accounts)
-          ..where((a) => a.ledgerId.equals(ledgerId)))
+    return (db.select(db.accounts)..where((a) => a.ledgerId.equals(ledgerId)))
         .watch();
   }
 
@@ -36,8 +57,7 @@ class LocalAccountRepository implements AccountRepository {
 
   @override
   Future<Account?> getAccount(int accountId) async {
-    return await (db.select(db.accounts)
-          ..where((a) => a.id.equals(accountId)))
+    return await (db.select(db.accounts)..where((a) => a.id.equals(accountId)))
         .getSingleOrNull();
   }
 
@@ -80,7 +100,8 @@ class LocalAccountRepository implements AccountRepository {
     String currency = 'CNY',
     double initialBalance = 0.0,
   }) async {
-    logger.info('AccountCreate', '📝 开始创建账户: name=$name, ledgerId=$ledgerId, type=$type, currency=$currency, initialBalance=$initialBalance');
+    logger.info('AccountCreate',
+        '📝 开始创建账户: name=$name, ledgerId=$ledgerId, type=$type, currency=$currency, initialBalance=$initialBalance');
 
     try {
       final companion = AccountsCompanion.insert(
@@ -117,7 +138,9 @@ class LocalAccountRepository implements AccountRepository {
         name: name != null ? d.Value(name) : const d.Value.absent(),
         type: type != null ? d.Value(type) : const d.Value.absent(),
         currency: currency != null ? d.Value(currency) : const d.Value.absent(),
-        initialBalance: initialBalance != null ? d.Value(initialBalance) : const d.Value.absent(),
+        initialBalance: initialBalance != null
+            ? d.Value(initialBalance)
+            : const d.Value.absent(),
       ),
     );
   }
@@ -154,7 +177,8 @@ class LocalAccountRepository implements AccountRepository {
 
     // 作为转入账户的转账
     final transfersIn = await (db.select(db.transactions)
-          ..where((t) => t.toAccountId.equals(accountId) & t.type.equals('transfer')))
+          ..where((t) =>
+              t.toAccountId.equals(accountId) & t.type.equals('transfer')))
         .get();
 
     for (final t in transfersIn) {
@@ -179,7 +203,8 @@ class LocalAccountRepository implements AccountRepository {
 
     // 获取所有交易
     final transactions = await (db.select(db.transactions)
-          ..where((t) => t.accountId.equals(accountId) | t.toAccountId.equals(accountId)))
+          ..where((t) =>
+              t.accountId.equals(accountId) | t.toAccountId.equals(accountId)))
         .get();
 
     double balance = account.initialBalance;
@@ -202,7 +227,8 @@ class LocalAccountRepository implements AccountRepository {
   Future<double> getAccountBalanceInLedger(int accountId, int ledgerId) async {
     final transactions = await (db.select(db.transactions)
           ..where((t) =>
-              (t.accountId.equals(accountId) | t.toAccountId.equals(accountId)) &
+              (t.accountId.equals(accountId) |
+                  t.toAccountId.equals(accountId)) &
               t.ledgerId.equals(ledgerId)))
         .get();
 
@@ -365,23 +391,22 @@ class LocalAccountRepository implements AccountRepository {
       return 0;
     }
 
-    return parseCount(mainCount.data['count']) + parseCount(toCount.data['count']);
+    return parseCount(mainCount.data['count']) +
+        parseCount(toCount.data['count']);
   }
 
   @override
   Future<double> getAccountExpense(int accountId) async {
     double expense = 0.0;
 
-    // 获取作为主账户的支出和转出
-    final normalTxs = await (db.select(db.transactions)
-          ..where((t) => t.accountId.equals(accountId) & t.excludeFromStats.equals(false)))
+    final allTxs = await (db.select(db.transactions)
+          ..where((t) => t.excludeFromStats.equals(false)))
         .get();
+    final linkedTotals = _linkedTotals(allTxs);
 
-    for (final t in normalTxs) {
+    for (final t in allTxs.where((t) => t.accountId == accountId)) {
       if (t.type == 'expense') {
-        expense += t.amount;
-      } else if (t.type == 'refund' || t.type == 'reimburse') {
-        expense -= t.amount;
+        expense += _netExpense(t, linkedTotals);
       } else if (t.type == 'transfer') {
         // 作为转出账户
         expense += t.amount;
@@ -397,7 +422,8 @@ class LocalAccountRepository implements AccountRepository {
 
     // 获取作为主账户的收入
     final normalTxs = await (db.select(db.transactions)
-          ..where((t) => t.accountId.equals(accountId) & t.excludeFromStats.equals(false)))
+          ..where((t) =>
+              t.accountId.equals(accountId) & t.excludeFromStats.equals(false)))
         .get();
 
     for (final t in normalTxs) {
@@ -408,7 +434,10 @@ class LocalAccountRepository implements AccountRepository {
 
     // 作为转入账户的转账
     final transfersIn = await (db.select(db.transactions)
-          ..where((t) => t.toAccountId.equals(accountId) & t.type.equals('transfer') & t.excludeFromStats.equals(false)))
+          ..where((t) =>
+              t.toAccountId.equals(accountId) &
+              t.type.equals('transfer') &
+              t.excludeFromStats.equals(false)))
         .get();
 
     for (final t in transfersIn) {
@@ -419,7 +448,8 @@ class LocalAccountRepository implements AccountRepository {
   }
 
   @override
-  Future<({double balance, double expense, double income})> getAccountStats(int accountId) async {
+  Future<({double balance, double expense, double income})> getAccountStats(
+      int accountId) async {
     final balance = await getAccountBalance(accountId);
     final expense = await getAccountExpense(accountId);
     final income = await getAccountIncome(accountId);
@@ -427,10 +457,12 @@ class LocalAccountRepository implements AccountRepository {
   }
 
   @override
-  Future<Map<int, ({double balance, double expense, double income})>> getAllAccountStats() async {
+  Future<Map<int, ({double balance, double expense, double income})>>
+      getAllAccountStats() async {
     final accounts = await db.select(db.accounts).get();
 
-    final Map<int, ({double balance, double expense, double income})> stats = {};
+    final Map<int, ({double balance, double expense, double income})> stats =
+        {};
     for (final account in accounts) {
       stats[account.id] = await getAccountStats(account.id);
     }
@@ -439,7 +471,13 @@ class LocalAccountRepository implements AccountRepository {
   }
 
   @override
-  Future<({double totalBalance, double availableFunds, double totalExpense, double totalIncome})> getAllAccountsTotalStats() async {
+  Future<
+      ({
+        double totalBalance,
+        double availableFunds,
+        double totalExpense,
+        double totalIncome
+      })> getAllAccountsTotalStats() async {
     final accounts = await db.select(db.accounts).get();
 
     // 净资产 ≈ 现金类账户余额之和 + 全部应收未收本金 − 全部应付未付本金。
@@ -508,6 +546,7 @@ class LocalAccountRepository implements AccountRepository {
     final allTxs = await (db.select(db.transactions)
           ..where((t) => t.accountId.isNotNull()))
         .get();
+    final linkedTotals = _linkedTotals(await db.select(db.transactions).get());
 
     double totalIncome = 0.0;
     double totalExpense = 0.0;
@@ -518,9 +557,7 @@ class LocalAccountRepository implements AccountRepository {
         if (t.type == 'income') {
           totalIncome += t.amount;
         } else if (t.type == 'expense') {
-          totalExpense += t.amount;
-        } else if (t.type == 'refund' || t.type == 'reimburse') {
-          totalExpense -= t.amount;
+          totalExpense += _netExpense(t, linkedTotals);
         }
         // 转账类型不计入总收入/支出
       }
@@ -611,7 +648,8 @@ class LocalAccountRepository implements AccountRepository {
   @override
   Stream<List<Transaction>> watchAccountTransactions(int accountId) {
     return (db.select(db.transactions)
-          ..where((t) => t.accountId.equals(accountId) | t.toAccountId.equals(accountId))
+          ..where((t) =>
+              t.accountId.equals(accountId) | t.toAccountId.equals(accountId))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc)
@@ -629,8 +667,7 @@ class LocalAccountRepository implements AccountRepository {
   @override
   Future<List<Account>> getAccountsByIds(List<int> accountIds) async {
     if (accountIds.isEmpty) return [];
-    return await (db.select(db.accounts)
-          ..where((a) => a.id.isIn(accountIds)))
+    return await (db.select(db.accounts)..where((a) => a.id.isIn(accountIds)))
         .get();
   }
 }

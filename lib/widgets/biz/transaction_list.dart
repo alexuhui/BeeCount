@@ -13,6 +13,7 @@ import '../../services/billing/post_processor.dart';
 import '../../utils/transaction_edit_utils.dart';
 import '../../utils/category_utils.dart';
 import '../../utils/refund_tx.dart';
+import '../../utils/linked_credit_totals.dart';
 import '../category_icon.dart';
 import '../../pages/transaction/category_detail_page.dart';
 import '../../pages/tag/tag_detail_page.dart';
@@ -107,7 +108,8 @@ class TransactionListState extends ConsumerState<TransactionList> {
   Set<int>? _preloadedIds;
   Set<int> get _preloadedIdSet {
     if (_preloadedIds == null && widget.transactionsWithDetails != null) {
-      _preloadedIds = widget.transactionsWithDetails!.map((t) => t.t.id).toSet();
+      _preloadedIds =
+          widget.transactionsWithDetails!.map((t) => t.t.id).toSet();
     }
     return _preloadedIds ?? {};
   }
@@ -211,7 +213,8 @@ class TransactionListState extends ConsumerState<TransactionList> {
     }
 
     final repo = ref.read(repositoryProvider);
-    final countsMap = await repo.getAttachmentCountsForTransactions(transactionIds);
+    final countsMap =
+        await repo.getAttachmentCountsForTransactions(transactionIds);
 
     if (mounted) {
       setState(() {
@@ -352,6 +355,28 @@ class TransactionListState extends ConsumerState<TransactionList> {
     }
   }
 
+  double _dayExpense(
+    List<({Transaction t, Category? category})> dayRows,
+  ) {
+    final linkedTotals = <int, double>{};
+    for (final item in _transactionsList) {
+      final originalId = item.t.refundOfId;
+      if (originalId == null || !RefundTx.isLinkedCredit(item.t.type)) continue;
+      linkedTotals.update(
+        originalId,
+        (value) => value + item.t.amount,
+        ifAbsent: () => item.t.amount,
+      );
+    }
+    var total = 0.0;
+    for (final item in dayRows) {
+      if (item.t.type != 'expense') continue;
+      final net = item.t.amount - (linkedTotals[item.t.id] ?? 0);
+      if (net > 0) total += net;
+    }
+    return total;
+  }
+
   @override
   Widget build(BuildContext context) {
     // 监听标签刷新信号，当标签变化时重新加载
@@ -370,14 +395,22 @@ class TransactionListState extends ConsumerState<TransactionList> {
     }
 
     _buildFlatItems();
+    final localLinkedTotals =
+        linkedCreditTotals(_transactionsList.map((item) => item.t));
+    final ledgerId =
+        _transactionsList.isEmpty ? null : _transactionsList.first.t.ledgerId;
+    final linkedTotals = ledgerId == null
+        ? localLinkedTotals
+        : ref.watch(linkedCreditTotalsProvider(ledgerId)).valueOrNull ??
+            localLinkedTotals;
 
     // 无数据时展示空状态
     if (_flatItems.isEmpty) {
       return widget.emptyWidget ??
-        AppEmpty(
-          text: AppLocalizations.of(context).commonEmpty,
-          subtext: AppLocalizations.of(context).homeNoRecords,
-        );
+          AppEmpty(
+            text: AppLocalizations.of(context).commonEmpty,
+            subtext: AppLocalizations.of(context).homeNoRecords,
+          );
     }
 
     // 使用FlutterListView渲染列表
@@ -393,14 +426,14 @@ class TransactionListState extends ConsumerState<TransactionList> {
             // 渲染日期头部
             final dateKey = item.$2 as String;
             final list = item.$3 as List<({Transaction t, Category? category})>;
-            double dayIncome = 0, dayExpense = 0;
+            double dayIncome = 0;
             for (final it in list) {
               // 转账不计入收支统计
               if (it.t.type == 'income') {
                 dayIncome += it.t.amount;
               }
-              dayExpense += RefundTx.expenseDelta(it.t.type, it.t.amount);
             }
+            final dayExpense = _dayExpense(list);
             final isFirst = index == 0;
 
             Widget header = Column(
@@ -429,12 +462,14 @@ class TransactionListState extends ConsumerState<TransactionList> {
             );
 
             // 如果启用可见性跟踪，则包装VisibilityDetector
-            if (widget.enableVisibilityTracking && widget.onDateVisibilityChanged != null) {
+            if (widget.enableVisibilityTracking &&
+                widget.onDateVisibilityChanged != null) {
               header = VisibilityDetector(
                 key: Key('header-$dateKey'),
                 onVisibilityChanged: (VisibilityInfo info) {
                   // 当可见比例大于50%时认为可见
-                  widget.onDateVisibilityChanged!(dateKey, info.visibleFraction > 0.5);
+                  widget.onDateVisibilityChanged!(
+                      dateKey, info.visibleFraction > 0.5);
                 },
                 child: header,
               );
@@ -466,7 +501,8 @@ class TransactionListState extends ConsumerState<TransactionList> {
           } else {
             // 渲染交易项
             final it = item.$2 as ({Transaction t, Category? category});
-            final allItemsInDay = item.$3 as List<({Transaction t, Category? category})>;
+            final allItemsInDay =
+                item.$3 as List<({Transaction t, Category? category})>;
             final isTransfer = it.t.type == 'transfer';
             final isExpense = it.t.type == 'expense';
             final isRefund = RefundTx.isRefund(it.t.type);
@@ -475,19 +511,28 @@ class TransactionListState extends ConsumerState<TransactionList> {
             // 获取分类显示名称（二级分类显示为"一级分类→二级分类"）
             String categoryName;
             final category = it.category;
-            if (category != null && category.level == 2 && category.parentId != null) {
+            if (category != null &&
+                category.level == 2 &&
+                category.parentId != null) {
               // 二级分类：获取所有分类，找到父分类
-              final allCategories = ref.watch(categoriesProvider).valueOrNull ?? [];
-              final parentCategory = allCategories.where((c) => c.id == category.parentId).firstOrNull;
+              final allCategories =
+                  ref.watch(categoriesProvider).valueOrNull ?? [];
+              final parentCategory = allCategories
+                  .where((c) => c.id == category.parentId)
+                  .firstOrNull;
               if (parentCategory != null) {
-                final parentName = CategoryUtils.getDisplayName(parentCategory.name, context);
-                final childName = CategoryUtils.getDisplayName(category.name, context);
+                final parentName =
+                    CategoryUtils.getDisplayName(parentCategory.name, context);
+                final childName =
+                    CategoryUtils.getDisplayName(category.name, context);
                 categoryName = '$parentName → $childName';
               } else {
-                categoryName = CategoryUtils.getDisplayName(category.name, context);
+                categoryName =
+                    CategoryUtils.getDisplayName(category.name, context);
               }
             } else {
-              categoryName = CategoryUtils.getDisplayName(category?.name, context);
+              categoryName =
+                  CategoryUtils.getDisplayName(category?.name, context);
             }
 
             final subtitle = it.t.note ?? '';
@@ -496,7 +541,8 @@ class TransactionListState extends ConsumerState<TransactionList> {
             final isLastInGroup = allItemsInDay.last.t.id == it.t.id;
 
             // 获取账户名称（仅在账户功能启用且有账户ID时）
-            final accountFeatureEnabled = ref.watch(accountFeatureEnabledProvider).valueOrNull ?? true;
+            final accountFeatureEnabled =
+                ref.watch(accountFeatureEnabledProvider).valueOrNull ?? true;
             String? accountName;
             String? toAccountName; // 转账目标账户名称
 
@@ -509,11 +555,16 @@ class TransactionListState extends ConsumerState<TransactionList> {
 
               // 非预加载模式下通过 Provider 获取
               if (accountName == null && !_hasFullDetails) {
-                final accountAsync = ref.watch(accountByIdProvider(it.t.accountId!));
+                final accountAsync =
+                    ref.watch(accountByIdProvider(it.t.accountId!));
                 accountName = accountAsync.valueOrNull?.name;
               }
-              if (isTransfer && toAccountName == null && !_hasFullDetails && it.t.toAccountId != null) {
-                final toAccountAsync = ref.watch(accountByIdProvider(it.t.toAccountId!));
+              if (isTransfer &&
+                  toAccountName == null &&
+                  !_hasFullDetails &&
+                  it.t.toAccountId != null) {
+                final toAccountAsync =
+                    ref.watch(accountByIdProvider(it.t.toAccountId!));
                 toAccountName = toAccountAsync.valueOrNull?.name;
               }
             }
@@ -522,120 +573,128 @@ class TransactionListState extends ConsumerState<TransactionList> {
               children: [
                 Builder(
                   builder: (context) {
-                      // 获取该交易的标签（优先使用预加载数据）
-                      final transactionTags = _getTagsForTransaction(it.t.id);
-                      final tagsList = transactionTags
-                          .map((t) => (id: t.id, name: t.name, color: t.color))
-                          .toList();
+                    // 获取该交易的标签（优先使用预加载数据）
+                    final transactionTags = _getTagsForTransaction(it.t.id);
+                    final tagsList = transactionTags
+                        .map((t) => (id: t.id, name: t.name, color: t.color))
+                        .toList();
 
-                      // 转账账户信息
-                      final transferAccountInfo = (accountName != null && toAccountName != null)
-                          ? '$accountName → $toAccountName'
-                          : null;
+                    // 转账账户信息
+                    final transferAccountInfo =
+                        (accountName != null && toAccountName != null)
+                            ? '$accountName → $toAccountName'
+                            : null;
 
-                      // 获取附件数量（优先使用预加载数据）
-                      final attachmentCount = _getAttachmentCountForTransaction(it.t.id);
+                    // 获取附件数量（优先使用预加载数据）
+                    final attachmentCount =
+                        _getAttachmentCountForTransaction(it.t.id);
 
-                      final l10n = AppLocalizations.of(context);
-                      final linkedLabel = isRefund
-                          ? '${l10n.refundTitle} · $categoryName'
-                          : isReimburse
-                              ? '${l10n.reimburseTitle} · $categoryName'
-                              : null;
-                      return TransactionListItem(
-                        icon: getCategoryIconData(category: it.category, categoryName: categoryName),
-                        category: it.category,
-                        title: isTransfer
-                          ? (subtitle.isNotEmpty ? subtitle : l10n.transferTitle)
+                    final l10n = AppLocalizations.of(context);
+                    final linkedLabel = isRefund
+                        ? '${l10n.refundTitle} · $categoryName'
+                        : isReimburse
+                            ? '${l10n.reimburseTitle} · $categoryName'
+                            : null;
+                    return TransactionListItem(
+                      icon: getCategoryIconData(
+                          category: it.category, categoryName: categoryName),
+                      category: it.category,
+                      title: isTransfer
+                          ? (subtitle.isNotEmpty
+                              ? subtitle
+                              : l10n.transferTitle)
                           : linkedLabel != null
                               ? (subtitle.isNotEmpty ? subtitle : linkedLabel)
                               : (subtitle.isNotEmpty ? subtitle : categoryName),
-                        categoryName: isTransfer
-                          ? null  // 转账不显示第二行，保持布局一致
+                      categoryName: isTransfer
+                          ? null // 转账不显示第二行，保持布局一致
                           : linkedLabel ??
                               (subtitle.isNotEmpty ? null : categoryName),
-                        amount: it.t.amount,
-                        isExpense: isExpense,
-                        isTransfer: isTransfer,
-                        isRefund: isRefund,
-                        isReimburse: isReimburse,
-                        hide: widget.hideAmounts,
-                        happenedAt: it.t.happenedAt,
-                        accountName: isTransfer
-                          ? transferAccountInfo  // 转账始终在第三行显示账户信息
+                      amount: it.t.amount,
+                      isExpense: isExpense,
+                      isTransfer: isTransfer,
+                      isRefund: isRefund,
+                      isReimburse: isReimburse,
+                      refundAmount: linkedTotals[it.t.id]?.refund ?? 0,
+                      reimburseAmount: linkedTotals[it.t.id]?.reimburse ?? 0,
+                      hide: widget.hideAmounts,
+                      happenedAt: it.t.happenedAt,
+                      accountName: isTransfer
+                          ? transferAccountInfo // 转账始终在第三行显示账户信息
                           : accountName,
-                        tags: tagsList.isNotEmpty ? tagsList : null,
-                        attachmentCount: attachmentCount,
-                        onAttachmentTap: attachmentCount > 0
-                            ? () async {
-                                switchToStreamMode(); // 用户交互，切换到 Stream 模式
-                                await Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => AttachmentPreviewPage.fromTransaction(
-                                      transactionId: it.t.id,
-                                    ),
+                      tags: tagsList.isNotEmpty ? tagsList : null,
+                      attachmentCount: attachmentCount,
+                      onAttachmentTap: attachmentCount > 0
+                          ? () async {
+                              switchToStreamMode(); // 用户交互，切换到 Stream 模式
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      AttachmentPreviewPage.fromTransaction(
+                                    transactionId: it.t.id,
                                   ),
-                                );
-                              }
-                            : null,
-                        onTagTap: (tagId, tagName) async {
-                          switchToStreamMode(); // 用户交互，切换到 Stream 模式
-                          await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => TagDetailPage(
-                                tagId: tagId,
-                                tagName: tagName,
-                              ),
+                                ),
+                              );
+                            }
+                          : null,
+                      onTagTap: (tagId, tagName) async {
+                        switchToStreamMode(); // 用户交互，切换到 Stream 模式
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => TagDetailPage(
+                              tagId: tagId,
+                              tagName: tagName,
                             ),
-                          );
-                        },
-                        onTap: () async {
-                          switchToStreamMode();
-                          await TransactionEditUtils.openDetail(context, it.t.id);
-                        },
-                        onEdit: () async {
-                          switchToStreamMode();
-                          await TransactionEditUtils.editTransaction(
-                            context,
-                            ref,
-                            it.t,
-                            it.category,
-                          );
-                        },
-                        onDelete: () async {
-                          switchToStreamMode();
-                          final repo = ref.read(repositoryProvider);
-                          await repo.deleteTransaction(it.t.id);
-                          if (!context.mounted) return;
-                          final curLedger = ref.read(currentLedgerIdProvider);
-                          ref.invalidate(countsForLedgerProvider(curLedger));
-                          ref.read(statsRefreshProvider.notifier).state++;
-                          PostProcessor.sync(ref, ledgerId: curLedger);
-                          showToast(
-                            context,
-                            AppLocalizations.of(context).ledgersDeleted,
-                          );
-                        },
-                        onCategoryTap: !isTransfer && it.category?.id != null
-                            ? () async {
-                                switchToStreamMode(); // 用户交互，切换到 Stream 模式
-                                await Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => CategoryDetailPage(
-                                      categoryId: it.category!.id,
-                                      categoryName: categoryName,
-                                    ),
+                          ),
+                        );
+                      },
+                      onTap: () async {
+                        switchToStreamMode();
+                        await TransactionEditUtils.openDetail(context, it.t.id);
+                      },
+                      onEdit: () async {
+                        switchToStreamMode();
+                        await TransactionEditUtils.editTransaction(
+                          context,
+                          ref,
+                          it.t,
+                          it.category,
+                        );
+                      },
+                      onDelete: () async {
+                        switchToStreamMode();
+                        final repo = ref.read(repositoryProvider);
+                        await repo.deleteTransaction(it.t.id);
+                        if (!context.mounted) return;
+                        final curLedger = ref.read(currentLedgerIdProvider);
+                        ref.invalidate(countsForLedgerProvider(curLedger));
+                        ref.read(statsRefreshProvider.notifier).state++;
+                        PostProcessor.sync(ref, ledgerId: curLedger);
+                        showToast(
+                          context,
+                          AppLocalizations.of(context).ledgersDeleted,
+                        );
+                      },
+                      onCategoryTap: !isTransfer && it.category?.id != null
+                          ? () async {
+                              switchToStreamMode(); // 用户交互，切换到 Stream 模式
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => CategoryDetailPage(
+                                    categoryId: it.category!.id,
+                                    categoryName: categoryName,
                                   ),
-                                );
-                              }
-                            : null,
-                      );
-                    },
-                  ),
-                  if (!isLastInGroup)
-                    BeeDivider.short(indent: 56 + 16, endIndent: 16),
-                ],
-              );
+                                ),
+                              );
+                            }
+                          : null,
+                    );
+                  },
+                ),
+                if (!isLastInGroup)
+                  BeeDivider.short(indent: 56 + 16, endIndent: 16),
+              ],
+            );
           }
         },
         childCount: _flatItems.length,

@@ -2529,11 +2529,13 @@
   "refundExceeds": "退款金额超过可退余额",
   "refundInvalidAmount": "请输入大于 0 的金额",
   "refundHistory": "退款记录",
-  "refundHint": "退款不算收入。默认回到原账户，也可以改记到其他账户。",
+  "refundHint": "退款不算收入。默认回到原账户，也可以改记到其他账户；金额可以高于原支出。",
   "refundNoAccount": "未选择账户时，退款只会留下记录，不会改变账户余额。",
   "refundDelete": "删除退款",
   "refundRemainingLabel": "可退",
   "refundAccountLabel": "入账账户",
+  "refundOverTitle": "退款高于原金额",
+  "refundOverMessage": "退款和报销合计高于原支出金额，确认按这个金额入账？",
   "reimburseTitle": "报销",
   "reimburseAction": "报销",
   "reimburseFull": "全额",
@@ -2549,7 +2551,7 @@
   "reimburseDelete": "删除报销",
   "reimburseOriginalLabel": "原金额",
   "reimburseOverTitle": "报销高于原金额",
-  "reimburseOverMessage": "报销合计高于原支出金额，确认按这个金额入账？",
+  "reimburseOverMessage": "退款和报销合计高于原支出金额，确认按这个金额入账？",
   "exportTypeRefund": "退款",
   "exportTypeReimburse": "报销"
 }

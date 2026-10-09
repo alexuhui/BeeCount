@@ -893,8 +893,14 @@ class _ExportPageState extends ConsumerState<ExportPage> {
             incomeByCategory[categoryName] =
                 (incomeByCategory[categoryName] ?? 0) + t.amount;
           } else {
+            final refunds = await repo.listRefunds(t.id);
+            final reimbursements = await repo.listReimbursements(t.id);
+            final linked = [...refunds, ...reimbursements]
+                .fold<double>(0, (sum, row) => sum + row.amount);
+            final netExpense =
+                (t.amount - linked).clamp(0, t.amount).toDouble();
             expenseByCategory[categoryName] =
-                (expenseByCategory[categoryName] ?? 0) + t.amount;
+                (expenseByCategory[categoryName] ?? 0) + netExpense;
           }
         }
       } else if (t.type == 'transfer') {

@@ -12,6 +12,7 @@ import '../../styles/tokens.dart';
 import '../../utils/category_utils.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/transaction_edit_utils.dart';
+import '../../utils/linked_credit_totals.dart';
 import '../../widgets/category_icon.dart';
 import 'category_detail_page.dart';
 
@@ -94,7 +95,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     }
 
     if (more) {
-      if (_loadingMore || _isSearching || _searchResults.length >= _searchTotal) {
+      if (_loadingMore ||
+          _isSearching ||
+          _searchResults.length >= _searchTotal) {
         return;
       }
       setState(() => _loadingMore = true);
@@ -201,7 +204,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 金额筛选
-                  Text(l10n.searchAmountFilter, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(l10n.searchAmountFilter,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -212,8 +216,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             border: const OutlineInputBorder(),
                             isDense: true,
                           ),
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          controller: TextEditingController(text: tempMinAmount?.toString() ?? ''),
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          controller: TextEditingController(
+                              text: tempMinAmount?.toString() ?? ''),
                           onChanged: (value) {
                             tempMinAmount = double.tryParse(value);
                           },
@@ -230,8 +236,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             border: const OutlineInputBorder(),
                             isDense: true,
                           ),
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          controller: TextEditingController(text: tempMaxAmount?.toString() ?? ''),
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          controller: TextEditingController(
+                              text: tempMaxAmount?.toString() ?? ''),
                           onChanged: (value) {
                             tempMaxAmount = double.tryParse(value);
                           },
@@ -241,7 +249,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   ),
                   const SizedBox(height: 16),
                   // 时间筛选
-                  Text(l10n.searchDateFilter, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(l10n.searchDateFilter,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
@@ -578,6 +587,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   Widget build(BuildContext context) {
     final hide = ref.watch(hideAmountsProvider);
     final l10n = AppLocalizations.of(context);
+    final localLinkedTotals =
+        linkedCreditTotals(_searchResults.map((item) => item.t));
+    final searchLedgerId =
+        _searchResults.isEmpty ? null : _searchResults.first.t.ledgerId;
+    final linkedTotals = searchLedgerId == null
+        ? localLinkedTotals
+        : ref.watch(linkedCreditTotalsProvider(searchLedgerId)).valueOrNull ??
+            localLinkedTotals;
 
     return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
@@ -616,13 +633,15 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
               decoration: BoxDecoration(
                 color: BeeTokens.surfaceElevated(context),
-                boxShadow: BeeTokens.isDark(context) ? null : [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                boxShadow: BeeTokens.isDark(context)
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: Colors.grey.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
               ),
               child: Column(
                 children: [
@@ -666,8 +685,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         onPressed: _showFilterDialog,
                         icon: Icon(
                           Icons.filter_list,
-                          color: (_minAmount != null || _maxAmount != null ||
-                                  _startDate != null || _endDate != null)
+                          color: (_minAmount != null ||
+                                  _maxAmount != null ||
+                                  _startDate != null ||
+                                  _endDate != null)
                               ? ref.watch(primaryColorProvider)
                               : BeeTokens.iconPrimary(context),
                         ),
@@ -676,8 +697,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     ],
                   ),
                   // 显示已选筛选条件
-                  if (_minAmount != null || _maxAmount != null ||
-                      _startDate != null || _endDate != null) ...[
+                  if (_minAmount != null ||
+                      _maxAmount != null ||
+                      _startDate != null ||
+                      _endDate != null) ...[
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
@@ -687,10 +710,16 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           Chip(
                             label: Text(
                               '${l10n.searchAmountFilter}: ${_minAmount?.toStringAsFixed(2) ?? '0'} ~ ${_maxAmount?.toStringAsFixed(2) ?? '∞'}',
-                              style: TextStyle(fontSize: 12, color: ref.watch(primaryColorProvider)),
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: ref.watch(primaryColorProvider)),
                             ),
-                            backgroundColor: ref.watch(primaryColorProvider).withValues(alpha: 0.1),
-                            side: BorderSide(color: ref.watch(primaryColorProvider), width: 1),
+                            backgroundColor: ref
+                                .watch(primaryColorProvider)
+                                .withValues(alpha: 0.1),
+                            side: BorderSide(
+                                color: ref.watch(primaryColorProvider),
+                                width: 1),
                             deleteIconColor: ref.watch(primaryColorProvider),
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
@@ -705,10 +734,16 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           Chip(
                             label: Text(
                               '${l10n.searchDateFilter}: ${_startDate != null ? '${_startDate!.year}-${_startDate!.month.toString().padLeft(2, '0')}-${_startDate!.day.toString().padLeft(2, '0')}' : l10n.searchDateStart} ~ ${_endDate != null ? '${_endDate!.year}-${_endDate!.month.toString().padLeft(2, '0')}-${_endDate!.day.toString().padLeft(2, '0')}' : l10n.searchDateEnd}',
-                              style: TextStyle(fontSize: 12, color: ref.watch(primaryColorProvider)),
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: ref.watch(primaryColorProvider)),
                             ),
-                            backgroundColor: ref.watch(primaryColorProvider).withValues(alpha: 0.1),
-                            side: BorderSide(color: ref.watch(primaryColorProvider), width: 1),
+                            backgroundColor: ref
+                                .watch(primaryColorProvider)
+                                .withValues(alpha: 0.1),
+                            side: BorderSide(
+                                color: ref.watch(primaryColorProvider),
+                                width: 1),
                             deleteIconColor: ref.watch(primaryColorProvider),
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
@@ -748,7 +783,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         Text(
                           AppLocalizations.of(context).searchNoInput,
                           style: TextStyle(
-                              color: BeeTokens.textTertiary(context), fontSize: 16),
+                              color: BeeTokens.textTertiary(context),
+                              fontSize: 16),
                         ),
                       ],
                     ),
@@ -766,7 +802,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         Text(
                           AppLocalizations.of(context).searchNoResults,
                           style: TextStyle(
-                              color: BeeTokens.textTertiary(context), fontSize: 16),
+                              color: BeeTokens.textTertiary(context),
+                              fontSize: 16),
                         ),
                       ],
                     ),
@@ -917,98 +954,106 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           return false;
                         },
                         child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
-                        itemCount: _searchResults.length +
-                            (_loadingMore ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index >= _searchResults.length) {
-                            return const Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Center(
-                                  child: CircularProgressIndicator()),
-                            );
-                          }
-                          final item = _searchResults[index];
-                          final isTransfer = item.t.type == 'transfer';
-                          final isExpense = item.t.type == 'expense';
-                          final isRefund = item.t.type == 'refund';
-                          final isReimburse = item.t.type == 'reimburse';
+                          padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+                          itemCount:
+                              _searchResults.length + (_loadingMore ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index >= _searchResults.length) {
+                              return const Padding(
+                                padding: EdgeInsets.all(16),
+                                child:
+                                    Center(child: CircularProgressIndicator()),
+                              );
+                            }
+                            final item = _searchResults[index];
+                            final isTransfer = item.t.type == 'transfer';
+                            final isExpense = item.t.type == 'expense';
+                            final isRefund = item.t.type == 'refund';
+                            final isReimburse = item.t.type == 'reimburse';
 
-                          // 获取分类显示名称
-                          final categoryName = CategoryUtils.getDisplayName(item.category?.name, context);
+                            // 获取分类显示名称
+                            final categoryName = CategoryUtils.getDisplayName(
+                                item.category?.name, context);
 
-                          final subtitle = item.t.note ?? '';
-                          final isSelected = _selectedIds.contains(item.t.id);
+                            final subtitle = item.t.note ?? '';
+                            final isSelected = _selectedIds.contains(item.t.id);
 
-                          final iconData = getCategoryIconData(
-                              category: item.category,
-                              categoryName: categoryName);
-
-                          return Column(
-                            children: [
-                              TransactionListItem(
-                                icon: iconData,
+                            final iconData = getCategoryIconData(
                                 category: item.category,
-                                title: (isRefund || isReimburse)
-                                    ? (subtitle.isNotEmpty
-                                        ? subtitle
-                                        : '${isRefund ? AppLocalizations.of(context).refundTitle : AppLocalizations.of(context).reimburseTitle} · $categoryName')
-                                    : (subtitle.isNotEmpty
-                                        ? subtitle
-                                        : categoryName),
-                                categoryName: (isRefund || isReimburse)
-                                    ? '${isRefund ? AppLocalizations.of(context).refundTitle : AppLocalizations.of(context).reimburseTitle} · $categoryName'
-                                    : (subtitle.isNotEmpty ? null : categoryName),
-                                amount: item.t.amount,
-                                isExpense: isExpense,
-                                isRefund: isRefund,
-                                isReimburse: isReimburse,
-                                hide: hide,
-                                happenedAt: item.t.happenedAt,
-                                showFullDate: true,
-                                isSelectionMode: _isBatchMode,
-                                isSelected: isSelected,
-                                onSelectionChanged: () =>
-                                    _toggleSelection(item.t.id),
-                                onTap: _isBatchMode
-                                    ? null
-                                    : () => TransactionEditUtils.openDetail(
-                                          context,
-                                          item.t.id,
-                                        ),
-                                onEdit: _isBatchMode
-                                    ? null
-                                    : () async {
-                                        await TransactionEditUtils
-                                            .editTransaction(
-                                          context,
-                                          ref,
-                                          item.t,
-                                          item.category,
-                                        );
-                                      },
-                                onCategoryTap: _isBatchMode ||
-                                        isTransfer ||
-                                        item.category?.id == null
-                                    ? null
-                                    : () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (_) => CategoryDetailPage(
-                                              categoryId: item.category!.id,
-                                              categoryName: categoryName,
-                                            ),
+                                categoryName: categoryName);
+
+                            return Column(
+                              children: [
+                                TransactionListItem(
+                                  icon: iconData,
+                                  category: item.category,
+                                  title: (isRefund || isReimburse)
+                                      ? (subtitle.isNotEmpty
+                                          ? subtitle
+                                          : '${isRefund ? AppLocalizations.of(context).refundTitle : AppLocalizations.of(context).reimburseTitle} · $categoryName')
+                                      : (subtitle.isNotEmpty
+                                          ? subtitle
+                                          : categoryName),
+                                  categoryName: (isRefund || isReimburse)
+                                      ? '${isRefund ? AppLocalizations.of(context).refundTitle : AppLocalizations.of(context).reimburseTitle} · $categoryName'
+                                      : (subtitle.isNotEmpty
+                                          ? null
+                                          : categoryName),
+                                  amount: item.t.amount,
+                                  isExpense: isExpense,
+                                  isRefund: isRefund,
+                                  isReimburse: isReimburse,
+                                  refundAmount:
+                                      linkedTotals[item.t.id]?.refund ?? 0,
+                                  reimburseAmount:
+                                      linkedTotals[item.t.id]?.reimburse ?? 0,
+                                  hide: hide,
+                                  happenedAt: item.t.happenedAt,
+                                  showFullDate: true,
+                                  isSelectionMode: _isBatchMode,
+                                  isSelected: isSelected,
+                                  onSelectionChanged: () =>
+                                      _toggleSelection(item.t.id),
+                                  onTap: _isBatchMode
+                                      ? null
+                                      : () => TransactionEditUtils.openDetail(
+                                            context,
+                                            item.t.id,
                                           ),
-                                        );
-                                      },
-                              ),
-                              if (index < _searchResults.length - 1)
-                                BeeDivider.short(
-                                    indent: 56 + 16, endIndent: 16),
-                            ],
-                          );
-                        },
-                      ),
+                                  onEdit: _isBatchMode
+                                      ? null
+                                      : () async {
+                                          await TransactionEditUtils
+                                              .editTransaction(
+                                            context,
+                                            ref,
+                                            item.t,
+                                            item.category,
+                                          );
+                                        },
+                                  onCategoryTap: _isBatchMode ||
+                                          isTransfer ||
+                                          item.category?.id == null
+                                      ? null
+                                      : () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  CategoryDetailPage(
+                                                categoryId: item.category!.id,
+                                                categoryName: categoryName,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                ),
+                                if (index < _searchResults.length - 1)
+                                  BeeDivider.short(
+                                      indent: 56 + 16, endIndent: 16),
+                              ],
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ],

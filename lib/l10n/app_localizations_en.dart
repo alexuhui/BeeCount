@@ -6082,7 +6082,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get refundHint =>
-      'A refund is not income. It defaults to the original account, and you can credit a different one.';
+      'A refund is not income. It defaults to the original account, and you can credit a different one. The amount may exceed the original expense.';
 
   @override
   String get refundNoAccount =>
@@ -6096,6 +6096,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get refundAccountLabel => 'Credit account';
+
+  @override
+  String get refundOverTitle => 'Above the original amount';
+
+  @override
+  String get refundOverMessage =>
+      'Refunds and reimbursements together exceed the original expense. Credit this amount?';
 
   @override
   String get reimburseTitle => 'Reimbursement';
@@ -6146,7 +6153,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reimburseOverMessage =>
-      'The reimbursements together exceed the original expense. Credit this amount?';
+      'Refunds and reimbursements together exceed the original expense. Credit this amount?';
 
   @override
   String get exportTypeRefund => 'Refund';

@@ -102,9 +102,10 @@ class LocalLedgerRepository implements LedgerRepository {
     List<Transaction>? transactions,
   }) async {
     // 如果没有传入 transactions，则查询
-    final rows = transactions ?? await (db.select(db.transactions)
-          ..where((t) => t.ledgerId.equals(ledgerId)))
-        .get();
+    final rows = transactions ??
+        await (db.select(db.transactions)
+              ..where((t) => t.ledgerId.equals(ledgerId)))
+            .get();
 
     // 交易数
     final transactionCount = rows.length;
@@ -118,6 +119,8 @@ class LocalLedgerRepository implements LedgerRepository {
         balance += t.amount;
       } else if (t.type == 'expense') {
         balance -= t.amount;
+      } else if (t.type == 'refund' || t.type == 'reimburse') {
+        balance += t.amount;
       }
       // transfer 不影响总余额
     }

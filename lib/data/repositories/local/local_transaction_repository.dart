@@ -57,13 +57,13 @@ class LocalTransactionRepository implements TransactionRepository {
   }) {
     final select = db.select(db.transactions);
     if (ledgerId != null) {
-      select.where((t) => t.ledgerId.equals(ledgerId) & InvestTx.dailyVisible(t));
+      select
+          .where((t) => t.ledgerId.equals(ledgerId) & InvestTx.dailyVisible(t));
     } else {
       select.where((t) => InvestTx.dailyVisible(t));
     }
     select.orderBy([
-      (t) => d.OrderingTerm(
-          expression: t.happenedAt, mode: d.OrderingMode.desc)
+      (t) => d.OrderingTerm(expression: t.happenedAt, mode: d.OrderingMode.desc)
     ]);
     final q = select.join([
       d.leftOuterJoin(db.categories,
@@ -235,9 +235,8 @@ class LocalTransactionRepository implements TransactionRepository {
         happenedAt:
             happenedAt != null ? d.Value(happenedAt) : const d.Value.absent(),
         accountId: accountIdValue,
-        investEvent: investEvent != null
-            ? d.Value(investEvent)
-            : const d.Value.absent(),
+        investEvent:
+            investEvent != null ? d.Value(investEvent) : const d.Value.absent(),
       ),
     );
   }
@@ -249,7 +248,8 @@ class LocalTransactionRepository implements TransactionRepository {
         .get();
     for (final child in children) {
       await _deleteAttachmentsForTransaction(child.id);
-      await (db.delete(db.transactions)..where((t) => t.id.equals(child.id))).go();
+      await (db.delete(db.transactions)..where((t) => t.id.equals(child.id)))
+          .go();
     }
 
     // 先删除关联的附件
@@ -281,11 +281,13 @@ class LocalTransactionRepository implements TransactionRepository {
         final file = File('${attachmentDir.path}/${attachment.fileName}');
         if (await file.exists()) {
           await file.delete();
-          logger.debug('LocalTransactionRepository', '删除附件文件: ${attachment.fileName}');
+          logger.debug(
+              'LocalTransactionRepository', '删除附件文件: ${attachment.fileName}');
         }
 
         // 删除缩略图
-        final thumbName = '${path.basenameWithoutExtension(attachment.fileName)}_thumb.jpg';
+        final thumbName =
+            '${path.basenameWithoutExtension(attachment.fileName)}_thumb.jpg';
         final thumbFile = File('${thumbDir.path}/$thumbName');
         if (await thumbFile.exists()) {
           await thumbFile.delete();
@@ -297,7 +299,8 @@ class LocalTransactionRepository implements TransactionRepository {
             ..where((a) => a.transactionId.equals(transactionId)))
           .go();
 
-      logger.info('LocalTransactionRepository', '已删除交易 $transactionId 的 ${attachments.length} 个附件');
+      logger.info('LocalTransactionRepository',
+          '已删除交易 $transactionId 的 ${attachments.length} 个附件');
     } catch (e, stackTrace) {
       logger.error('LocalTransactionRepository', '删除交易附件失败', e, stackTrace);
       // 不抛出异常，继续删除交易
@@ -375,10 +378,11 @@ class LocalTransactionRepository implements TransactionRepository {
   @override
   Future<List<Transaction>> getTransactionsByLedger(int ledgerId) async {
     return await (db.select(db.transactions)
-          ..where((t) => t.ledgerId.equals(ledgerId) & t.excludeFromStats.equals(false))
+          ..where((t) =>
+              t.ledgerId.equals(ledgerId) & t.excludeFromStats.equals(false))
           ..orderBy([
-            (t) =>
-                d.OrderingTerm(expression: t.happenedAt, mode: d.OrderingMode.desc)
+            (t) => d.OrderingTerm(
+                expression: t.happenedAt, mode: d.OrderingMode.desc)
           ]))
         .get();
   }
@@ -396,8 +400,8 @@ class LocalTransactionRepository implements TransactionRepository {
               t.happenedAt.isSmallerThanValue(end) &
               t.excludeFromStats.equals(false))
           ..orderBy([
-            (t) =>
-                d.OrderingTerm(expression: t.happenedAt, mode: d.OrderingMode.desc)
+            (t) => d.OrderingTerm(
+                expression: t.happenedAt, mode: d.OrderingMode.desc)
           ]))
         .get();
   }
@@ -423,8 +427,8 @@ class LocalTransactionRepository implements TransactionRepository {
     return await (db.select(db.transactions)
           ..where((t) => t.ledgerId.equals(ledgerId))
           ..orderBy([
-            (t) =>
-                d.OrderingTerm(expression: t.happenedAt, mode: d.OrderingMode.asc)
+            (t) => d.OrderingTerm(
+                expression: t.happenedAt, mode: d.OrderingMode.asc)
           ])
           ..limit(1))
         .getSingleOrNull();
@@ -435,8 +439,8 @@ class LocalTransactionRepository implements TransactionRepository {
     return await (db.select(db.transactions)
           ..where((t) => t.ledgerId.equals(ledgerId))
           ..orderBy([
-            (t) =>
-                d.OrderingTerm(expression: t.happenedAt, mode: d.OrderingMode.desc)
+            (t) => d.OrderingTerm(
+                expression: t.happenedAt, mode: d.OrderingMode.desc)
           ])
           ..limit(1))
         .getSingleOrNull();
@@ -488,7 +492,8 @@ class LocalTransactionRepository implements TransactionRepository {
 
     // 查看一条交易的 happened_at 值
     if (totalCount > 0) {
-      final sampleQuery = 'SELECT happened_at FROM transactions WHERE ledger_id = ? AND exclude_from_stats = 0 LIMIT 1';
+      final sampleQuery =
+          'SELECT happened_at FROM transactions WHERE ledger_id = ? AND exclude_from_stats = 0 LIMIT 1';
       final sample = await db.customSelect(
         sampleQuery,
         variables: [d.Variable.withInt(ledgerId)],
@@ -497,7 +502,8 @@ class LocalTransactionRepository implements TransactionRepository {
       print('🔍 样例 happened_at 值(int): $happenedAtValue');
 
       // 尝试转换为 DateTime 看看
-      final asDateTime = DateTime.fromMillisecondsSinceEpoch(happenedAtValue * 1000);
+      final asDateTime =
+          DateTime.fromMillisecondsSinceEpoch(happenedAtValue * 1000);
       print('🔍 转换为 DateTime (假设是秒): $asDateTime');
     }
 
@@ -507,15 +513,20 @@ class LocalTransactionRepository implements TransactionRepository {
       SELECT
         strftime('%Y-%m-%d', happened_at, 'unixepoch', 'localtime') as date,
         SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
-        SUM(CASE
-          WHEN type = 'expense' THEN amount
-          WHEN type IN ('refund', 'reimburse') THEN -amount
-          ELSE 0 END) as expense
-      FROM transactions
-      WHERE ledger_id = ?
-        AND happened_at >= ?
-        AND happened_at <= ?
-        AND exclude_from_stats = 0
+        SUM(CASE WHEN t.type = 'expense' THEN MAX(
+          t.amount - COALESCE((
+            SELECT SUM(linked.amount)
+            FROM transactions linked
+            WHERE linked.refund_of_id = t.id
+              AND linked.type IN ('refund', 'reimburse')
+          ), 0),
+          0
+        ) ELSE 0 END) as expense
+      FROM transactions t
+      WHERE t.ledger_id = ?
+        AND t.happened_at >= ?
+        AND t.happened_at <= ?
+        AND t.exclude_from_stats = 0
       GROUP BY date
       ORDER BY date DESC
     ''';
@@ -546,13 +557,15 @@ class LocalTransactionRepository implements TransactionRepository {
   }
 
   @override
-  Future<List<({
-    Transaction t,
-    Category? category,
-    List<Tag> tags,
-    List<TransactionAttachment> attachments,
-    Account? account,
-  })>> getTransactionsByDate({
+  Future<
+      List<
+          ({
+            Transaction t,
+            Category? category,
+            List<Tag> tags,
+            List<TransactionAttachment> attachments,
+            Account? account,
+          })>> getTransactionsByDate({
     required int ledgerId,
     required DateTime date,
   }) async {
@@ -650,13 +663,15 @@ class LocalTransactionRepository implements TransactionRepository {
   }
 
   @override
-  Future<List<({
-    Transaction t,
-    Category? category,
-    List<Tag> tags,
-    List<TransactionAttachment> attachments,
-    Account? account,
-  })>> getTransactionsByDateRange({
+  Future<
+      List<
+          ({
+            Transaction t,
+            Category? category,
+            List<Tag> tags,
+            List<TransactionAttachment> attachments,
+            Account? account,
+          })>> getTransactionsByDateRange({
     required int ledgerId,
     required DateTime startDate,
     required DateTime endDate,
@@ -779,7 +794,8 @@ class LocalTransactionRepository implements TransactionRepository {
     int? tagId,
     String? q,
   }) async {
-    final all = await watchTransactionsWithCategoryAll(ledgerId: ledgerId).first;
+    final all =
+        await watchTransactionsWithCategoryAll(ledgerId: ledgerId).first;
     var filtered = all;
     if (from != null) {
       filtered = filtered.where((e) => !e.t.happenedAt.isBefore(from)).toList();
@@ -795,7 +811,8 @@ class LocalTransactionRepository implements TransactionRepository {
     }
     if (accountId != null) {
       filtered = filtered
-          .where((e) => e.t.accountId == accountId || e.t.toAccountId == accountId)
+          .where(
+              (e) => e.t.accountId == accountId || e.t.toAccountId == accountId)
           .toList();
     }
     if (q != null && q.trim().isNotEmpty) {
@@ -839,8 +856,8 @@ class LocalTransactionRepository implements TransactionRepository {
   @override
   Future<List<Transaction>> listRefunds(int originalId) {
     return (db.select(db.transactions)
-          ..where((t) =>
-              t.refundOfId.equals(originalId) & t.type.equals('refund'))
+          ..where(
+              (t) => t.refundOfId.equals(originalId) & t.type.equals('refund'))
           ..orderBy([
             (t) => d.OrderingTerm(
                 expression: t.happenedAt, mode: d.OrderingMode.desc),
@@ -862,11 +879,6 @@ class LocalTransactionRepository implements TransactionRepository {
     }
     if (amount <= 0) {
       throw StateError('退款金额需大于 0');
-    }
-    final existing = await listRefunds(originalId);
-    final refunded = existing.fold<double>(0, (sum, t) => sum + t.amount);
-    if (refunded + amount > original.amount + 0.009) {
-      throw StateError('退款金额超过可退余额');
     }
     final note = reason?.trim();
     return db.into(db.transactions).insert(TransactionsCompanion.insert(
@@ -958,22 +970,13 @@ class LocalTransactionRepository implements TransactionRepository {
     required int? accountId,
   }) async {
     final current = await getTransactionById(id);
-    if (current == null || current.type != 'refund' || current.refundOfId == null) {
+    if (current == null ||
+        current.type != 'refund' ||
+        current.refundOfId == null) {
       throw StateError('退款记录不存在');
     }
     if (amount <= 0) {
       throw StateError('退款金额需大于 0');
-    }
-    final original = await getTransactionById(current.refundOfId!);
-    if (original == null) {
-      throw StateError('原记录不存在');
-    }
-    final existing = await listRefunds(original.id);
-    final others = existing
-        .where((t) => t.id != id)
-        .fold<double>(0, (sum, t) => sum + t.amount);
-    if (others + amount > original.amount + 0.009) {
-      throw StateError('退款金额超过可退余额');
     }
     final note = reason?.trim();
     await (db.update(db.transactions)..where((t) => t.id.equals(id))).write(

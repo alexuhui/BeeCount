@@ -38,12 +38,13 @@ class TransactionEditUtils {
       final originalId = transaction.refundOfId!;
       final original = await repo.getTransactionById(originalId);
       if (!context.mounted || original == null) return;
+      final refunds = await repo.listRefunds(originalId);
+      final reimbursements = await repo.listReimbursements(originalId);
+      if (!context.mounted) return;
+      final others = [...refunds, ...reimbursements]
+          .where((row) => row.id != transaction.id)
+          .fold<double>(0, (sum, row) => sum + row.amount);
       if (ReimburseTx.isReimburse(transaction.type)) {
-        final reimbursements = await repo.listReimbursements(originalId);
-        if (!context.mounted) return;
-        final others = reimbursements
-            .where((row) => row.id != transaction.id)
-            .fold<double>(0, (sum, row) => sum + row.amount);
         await showReimburseSheet(
           context: context,
           originalId: originalId,
@@ -54,11 +55,6 @@ class TransactionEditUtils {
         );
         return;
       }
-      final refunds = await repo.listRefunds(originalId);
-      if (!context.mounted) return;
-      final others = refunds
-          .where((row) => row.id != transaction.id)
-          .fold<double>(0, (sum, row) => sum + row.amount);
       await showRefundSheet(
         context: context,
         originalId: originalId,

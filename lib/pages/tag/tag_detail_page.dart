@@ -10,7 +10,7 @@ import '../../styles/tokens.dart';
 import '../../utils/transaction_edit_utils.dart';
 import '../../services/billing/post_processor.dart';
 import '../../utils/category_utils.dart';
-import '../../utils/refund_tx.dart';
+import '../../utils/linked_credit_totals.dart';
 import '../../l10n/app_localizations.dart';
 import 'tag_edit_page.dart';
 
@@ -73,7 +73,8 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
     final l10n = AppLocalizations.of(context);
     final tagAsync = ref.watch(_tagStreamProvider(widget.tagId));
     final statsAsync = ref.watch(_tagStatsProvider(widget.tagId));
-    final transactionsAsync = ref.watch(_tagTransactionsStreamProvider(widget.tagId));
+    final transactionsAsync =
+        ref.watch(_tagTransactionsStreamProvider(widget.tagId));
 
     return BeeScaffold(
       backgroundColor: BeeTokens.scaffoldBackground(context),
@@ -109,9 +110,8 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
                   tooltip: l10n.commonDelete,
-                  onPressed: tag != null
-                      ? () => _confirmDelete(tag, l10n)
-                      : null,
+                  onPressed:
+                      tag != null ? () => _confirmDelete(tag, l10n) : null,
                 ),
               ],
             ),
@@ -140,14 +140,16 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
                     }
                     return statsAsync.when(
                       loading: () => _buildSummaryCard(tag, null, l10n),
-                      error: (error, stack) => _buildSummaryCard(tag, null, l10n),
+                      error: (error, stack) =>
+                          _buildSummaryCard(tag, null, l10n),
                       data: (stats) => _buildSummaryCard(tag, stats, l10n),
                     );
                   },
                 ),
                 // 交易列表标题
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     children: [
                       Icon(
@@ -168,11 +170,13 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
                 // 交易列表
                 Expanded(
                   child: transactionsAsync.when(
-                    loading: () => const Center(child: CircularProgressIndicator()),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                     error: (error, stack) => Center(
                       child: Text('${l10n.commonError}: $error'),
                     ),
-                    data: (transactions) => _buildTransactionsList(transactions, l10n),
+                    data: (transactions) =>
+                        _buildTransactionsList(transactions, l10n),
                   ),
                 ),
               ],
@@ -272,12 +276,15 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
 
     // 按日期分组
     final Map<String, List<db.Transaction>> groupedTransactions = {};
+    final linkedTotals = linkedCreditTotals(transactions);
     for (final transaction in transactions) {
-      final dateKey = DateFormat('yyyy-MM-dd').format(transaction.happenedAt.toLocal());
+      final dateKey =
+          DateFormat('yyyy-MM-dd').format(transaction.happenedAt.toLocal());
       groupedTransactions.putIfAbsent(dateKey, () => []).add(transaction);
     }
 
-    final sortedKeys = groupedTransactions.keys.toList()..sort((a, b) => b.compareTo(a));
+    final sortedKeys = groupedTransactions.keys.toList()
+      ..sort((a, b) => b.compareTo(a));
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -293,7 +300,14 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
               dateText: dateKey,
               expense: dayTransactions.fold(
                 0.0,
-                (sum, t) => sum + RefundTx.expenseDelta(t.type, t.amount),
+                (sum, t) {
+                  if (t.type != 'expense') return sum;
+                  final linked = linkedTotals[t.id];
+                  final net = t.amount -
+                      (linked?.refund ?? 0) -
+                      (linked?.reimburse ?? 0);
+                  return sum + (net > 0 ? net : 0);
+                },
               ),
               income: dayTransactions
                   .where((t) => t.type == 'income')
@@ -301,28 +315,35 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
             ),
             ...dayTransactions.map((transaction) {
               final category = _categoryCache[transaction.categoryId];
-              final categoryName = CategoryUtils.getDisplayName(category?.name, context);
+              final categoryName =
+                  CategoryUtils.getDisplayName(category?.name, context);
 
               // 和首页保持一致：有备注显示备注，无备注显示分类名称
               final hasNote = transaction.note?.isNotEmpty == true;
               return TransactionListItem(
-                icon: getCategoryIconData(category: category, categoryName: categoryName),
+                icon: getCategoryIconData(
+                    category: category, categoryName: categoryName),
                 category: category,
-                title: transaction.type == 'refund' || transaction.type == 'reimburse'
+                title: transaction.type == 'refund' ||
+                        transaction.type == 'reimburse'
                     ? (hasNote
                         ? transaction.note!
                         : '${transaction.type == 'refund' ? l10n.refundTitle : l10n.reimburseTitle} · $categoryName')
                     : (hasNote ? transaction.note! : categoryName),
-                categoryName: transaction.type == 'refund' || transaction.type == 'reimburse'
+                categoryName: transaction.type == 'refund' ||
+                        transaction.type == 'reimburse'
                     ? '${transaction.type == 'refund' ? l10n.refundTitle : l10n.reimburseTitle} · $categoryName'
                     : (hasNote ? null : categoryName),
                 amount: transaction.amount,
                 isExpense: transaction.type == 'expense',
                 isRefund: transaction.type == 'refund',
                 isReimburse: transaction.type == 'reimburse',
+                refundAmount: linkedTotals[transaction.id]?.refund ?? 0,
+                reimburseAmount: linkedTotals[transaction.id]?.reimburse ?? 0,
                 happenedAt: transaction.happenedAt,
                 onTap: () async {
-                  await TransactionEditUtils.openDetail(context, transaction.id);
+                  await TransactionEditUtils.openDetail(
+                      context, transaction.id);
                 },
                 onEdit: () async {
                   await TransactionEditUtils.editTransaction(
@@ -343,7 +364,8 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
     );
   }
 
-  Future<void> _deleteTransaction(db.Transaction transaction, AppLocalizations l10n) async {
+  Future<void> _deleteTransaction(
+      db.Transaction transaction, AppLocalizations l10n) async {
     final repo = ref.read(repositoryProvider);
     final ledgerId = ref.read(currentLedgerIdProvider);
 
@@ -435,14 +457,17 @@ final _tagStreamProvider = StreamProvider.family<db.Tag?, int>((ref, tagId) {
 });
 
 /// 获取标签统计信息
-final _tagStatsProvider = FutureProvider.family<({int count, double expense, double income}), int>((ref, tagId) async {
+final _tagStatsProvider =
+    FutureProvider.family<({int count, double expense, double income}), int>(
+        (ref, tagId) async {
   ref.watch(tagListRefreshProvider);
   final repo = ref.watch(repositoryProvider);
   return await repo.getTagStats(tagId);
 });
 
 /// 监听标签下的交易
-final _tagTransactionsStreamProvider = StreamProvider.family<List<db.Transaction>, int>((ref, tagId) {
+final _tagTransactionsStreamProvider =
+    StreamProvider.family<List<db.Transaction>, int>((ref, tagId) {
   final repo = ref.watch(repositoryProvider);
   return repo.watchTransactionsByTag(tagId);
 });

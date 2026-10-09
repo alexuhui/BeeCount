@@ -7,21 +7,29 @@ class RefundTx {
   static bool isLinkedCredit(String type) =>
       isRefund(type) || ReimburseTx.isReimburse(type);
 
-  /// 支出统计：支出为正，退款和报销从支出里扣掉。其他类型不计入支出。
+  /// 单行支出统计。关联退款/报销本身不产生负支出。
+  /// 净支出必须结合原支出和全部关联记录计算。
   static double expenseDelta(String type, double amount) {
     if (type == 'expense') return amount;
-    if (isLinkedCredit(type)) return -amount;
     return 0;
   }
 
-  static double roundMoney(double value) => (value * 100).roundToDouble() / 100.0;
+  static double roundMoney(double value) =>
+      (value * 100).roundToDouble() / 100.0;
+
+  static double netExpense({
+    required double original,
+    required double linkedCredits,
+  }) {
+    final net = roundMoney(original - linkedCredits);
+    return net > 0 ? net : 0;
+  }
 
   static double remaining({
     required double original,
     required double refunded,
   }) {
-    final left = roundMoney(original - refunded);
-    return left < 0 ? 0 : left;
+    return netExpense(original: original, linkedCredits: refunded);
   }
 }
 

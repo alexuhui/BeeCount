@@ -12,6 +12,7 @@ import '../../styles/tokens.dart';
 import '../../utils/ui_scale_extensions.dart';
 import '../../utils/transaction_edit_utils.dart';
 import '../../utils/currencies.dart';
+import '../../utils/linked_credit_totals.dart';
 import '../../providers.dart';
 import '../../providers/calendar_providers.dart';
 import '../../l10n/app_localizations.dart';
@@ -457,7 +458,8 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
   }
 
   // 构建选中日期的交易列表（不显示日期和统计）
-  Widget _buildDateTransactionsList(BuildContext context, int ledgerId, DateTime date) {
+  Widget _buildDateTransactionsList(
+      BuildContext context, int ledgerId, DateTime date) {
     final l10n = AppLocalizations.of(context);
 
     final transactionsAsync = ref.watch(
@@ -481,6 +483,13 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
               ),
             );
           }
+          final localLinkedTotals =
+              linkedCreditTotals(transactions.map((item) => item.t));
+          final linkedTotals = ref
+                  .watch(
+                      linkedCreditTotalsProvider(transactions.first.t.ledgerId))
+                  .valueOrNull ??
+              localLinkedTotals;
 
           // 直接显示交易列表
           return ListView.builder(
@@ -508,7 +517,8 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                   .toList();
 
               return TransactionListItem(
-                icon: getCategoryIconData(category: category, categoryName: categoryName),
+                icon: getCategoryIconData(
+                    category: category, categoryName: categoryName),
                 category: category,
                 title: isTransfer
                     ? (subtitle.isNotEmpty ? subtitle : l10n.transferTitle)
@@ -527,6 +537,8 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 isTransfer: isTransfer,
                 isRefund: isRefund,
                 isReimburse: isReimburse,
+                refundAmount: linkedTotals[item.t.id]?.refund ?? 0,
+                reimburseAmount: linkedTotals[item.t.id]?.reimburse ?? 0,
                 happenedAt: item.t.happenedAt,
                 accountName: item.account?.name,
                 tags: tagsList.isNotEmpty ? tagsList : null,
@@ -589,6 +601,13 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
               ),
             );
           }
+          final localLinkedTotals =
+              linkedCreditTotals(transactions.map((item) => item.t));
+          final linkedTotals = ref
+                  .watch(
+                      linkedCreditTotalsProvider(transactions.first.t.ledgerId))
+                  .valueOrNull ??
+              localLinkedTotals;
 
           // 直接显示交易列表
           return ListView.builder(
@@ -616,7 +635,8 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                   .toList();
 
               return TransactionListItem(
-                icon: getCategoryIconData(category: category, categoryName: categoryName),
+                icon: getCategoryIconData(
+                    category: category, categoryName: categoryName),
                 category: category,
                 title: isTransfer
                     ? (subtitle.isNotEmpty ? subtitle : l10n.transferTitle)
@@ -635,6 +655,8 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 isTransfer: isTransfer,
                 isRefund: isRefund,
                 isReimburse: isReimburse,
+                refundAmount: linkedTotals[item.t.id]?.refund ?? 0,
+                reimburseAmount: linkedTotals[item.t.id]?.reimburse ?? 0,
                 happenedAt: item.t.happenedAt,
                 accountName: item.account?.name,
                 tags: tagsList.isNotEmpty ? tagsList : null,

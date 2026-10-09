@@ -11,6 +11,18 @@ class LocalBudgetRepository implements BudgetRepository {
 
   LocalBudgetRepository(this.db);
 
+  static const _netExpenseSql = '''
+    MAX(
+      t.amount - COALESCE((
+        SELECT SUM(linked.amount)
+        FROM transactions linked
+        WHERE linked.refund_of_id = t.id
+          AND linked.type IN ('refund', 'reimburse')
+      ), 0),
+      0
+    )
+  ''';
+
   // ============================================
   // 基础 CRUD 操作
   // ============================================
@@ -27,17 +39,17 @@ class LocalBudgetRepository implements BudgetRepository {
     bool? ignored,
   }) async {
     return await db.into(db.budgets).insert(
-      BudgetsCompanion.insert(
-        ledgerId: ledgerId,
-        year: year,
-        month: month,
-        categoryId: d.Value(categoryId),
-        amount: amount,
-        prompt: d.Value(prompt),
-        promptDay: d.Value(promptDay),
-        ignored: d.Value(ignored),
-      ),
-    );
+          BudgetsCompanion.insert(
+            ledgerId: ledgerId,
+            year: year,
+            month: month,
+            categoryId: d.Value(categoryId),
+            amount: amount,
+            prompt: d.Value(prompt),
+            promptDay: d.Value(promptDay),
+            ignored: d.Value(ignored),
+          ),
+        );
   }
 
   @override
@@ -58,8 +70,7 @@ class LocalBudgetRepository implements BudgetRepository {
   @override
   Future<void> deleteBudget(int id) async {
     // 先获取预算信息，判断是否为总预算
-    final budget = await (db.select(db.budgets)
-          ..where((b) => b.id.equals(id)))
+    final budget = await (db.select(db.budgets)..where((b) => b.id.equals(id)))
         .getSingleOrNull();
 
     if (budget == null) return;
@@ -94,7 +105,7 @@ class LocalBudgetRepository implements BudgetRepository {
       enabled: true,
       createdAt: now, // 这个字段对于总预算没有意义，设为当前时间
       updatedAt: now, // 这个字段对于总预算没有意义，设为当前时间
-      prompt: false,  // 总预算不需要提示
+      prompt: false, // 总预算不需要提示
       promptDay: null, // 总预算不需要提示日期
       ignored: false,
     );
@@ -108,13 +119,16 @@ class LocalBudgetRepository implements BudgetRepository {
   }
 
   @override
-  Future<List<Budget>> getCategoryBudgetsByMonth(int ledgerId, int year, int month) async {
+  Future<List<Budget>> getCategoryBudgetsByMonth(
+      int ledgerId, int year, int month) async {
     return await (db.select(db.budgets)
-          ..where((b) => b.ledgerId.equals(ledgerId) & b.year.equals(year) & b.month.equals(month) & b.enabled.equals(true)))
+          ..where((b) =>
+              b.ledgerId.equals(ledgerId) &
+              b.year.equals(year) &
+              b.month.equals(month) &
+              b.enabled.equals(true)))
         .get();
   }
-
-
 
   @override
   Future<Budget?> getBudgetByCategory(int ledgerId, int categoryId) async {
@@ -169,13 +183,11 @@ class LocalBudgetRepository implements BudgetRepository {
     // 分类预算：统计该分类支出（包含子分类）
     final result = await db.customSelect(
       '''
-      SELECT COALESCE(SUM(CASE
-        WHEN t.type IN ('refund', 'reimburse') THEN -t.amount
-        ELSE t.amount END), 0) as total
+      SELECT COALESCE(SUM($_netExpenseSql), 0) as total
       FROM transactions t
       LEFT JOIN categories c ON t.category_id = c.id
       WHERE t.ledger_id = ?
-        AND t.type IN ('expense', 'refund', 'reimburse')
+        AND t.type = 'expense'
         AND t.happened_at >= ?
         AND t.happened_at < ?
         AND (t.category_id = ? OR c.parent_id = ?)
@@ -190,7 +202,7 @@ class LocalBudgetRepository implements BudgetRepository {
       readsFrom: {db.transactions, db.categories},
     ).getSingle();
     used = _parseDouble(result.data['total']);
-    
+
     return BudgetUsage(used: used, budget: budget.amount);
   }
 
@@ -206,23 +218,25 @@ class LocalBudgetRepository implements BudgetRepository {
 
     // 获取分类预算使用情况
     final categoryUsages = await getCategoryBudgetUsagesAll(ledgerId, date);
-    if(categoryUsages.isNotEmpty){
+    if (categoryUsages.isNotEmpty) {
       double totalUsed = 0;
       double totalBudget = 0;
-      for(final categoryUsage in categoryUsages){
+      for (final categoryUsage in categoryUsages) {
         totalUsed += categoryUsage.usage.used;
         totalBudget += categoryUsage.usage.budget;
         // logger.info('local_budget_repository', 'name: ${categoryUsage.categoryName} categoryUsage.usage.used: ${categoryUsage.usage.used}  categoryUsage.usage.budget: ${categoryUsage.usage.budget}');
       }
       totalUsage = BudgetUsage(used: totalUsed, budget: totalBudget);
-    }else{
+    } else {
       totalUsage = BudgetUsage(used: 0, budget: 0);
     }
-    
+
     // logger.info('local_budget_repository', 'totalUsage.used: ${totalUsage?.used}  totalUsage.budget: ${totalUsage?.budget}');
 
     DateTime now = DateTime.now();
-    DateTime startDate = now.year == date.year && now.month == date.month ? now: DateTime(date.year, date.month, 1);
+    DateTime startDate = now.year == date.year && now.month == date.month
+        ? now
+        : DateTime(date.year, date.month, 1);
     DateTime endDate = DateTime(date.year, date.month + 1);
     final daysRemaining = endDate.difference(startDate).inDays;
 
@@ -245,7 +259,8 @@ class LocalBudgetRepository implements BudgetRepository {
     BudgetUsage? totalUsage;
 
     // 获取年度分类预算使用情况
-    final categoryUsages = await getYearlyCategoryBudgetUsagesAll(ledgerId, year);
+    final categoryUsages =
+        await getYearlyCategoryBudgetUsagesAll(ledgerId, year);
     if (categoryUsages.isNotEmpty) {
       double totalUsed = 0;
       double totalBudget = 0;
@@ -281,7 +296,8 @@ class LocalBudgetRepository implements BudgetRepository {
     int ledgerId,
     DateTime date,
   ) async {
-    final budgets = await getCategoryBudgetsByMonth(ledgerId, date.year, date.month);
+    final budgets =
+        await getCategoryBudgetsByMonth(ledgerId, date.year, date.month);
     final result = <CategoryBudgetUsage>[];
 
     for (final budget in budgets) {
@@ -336,7 +352,8 @@ class LocalBudgetRepository implements BudgetRepository {
     DateTime endDate = DateTime(date.year, date.month + 1);
 
     // 获取所有分类预算
-    final budgets = await getCategoryBudgetsByMonth(ledgerId, date.year, date.month);
+    final budgets =
+        await getCategoryBudgetsByMonth(ledgerId, date.year, date.month);
     final budgetMap = <int, Budget>{};
     for (final b in budgets) {
       final categoryId = b.categoryId;
@@ -344,17 +361,15 @@ class LocalBudgetRepository implements BudgetRepository {
       budgetMap[categoryId] = b;
     }
 
-     // 查询所有分类在该周期内的支出（按分类分组）
+    // 查询所有分类在该周期内的支出（按分类分组）
     final results = await db.customSelect(
       '''
     SELECT 
       t.category_id AS category_id,
-      COALESCE(SUM(CASE
-        WHEN t.type IN ('refund', 'reimburse') THEN -t.amount
-        ELSE t.amount END), 0) AS total_expense
+      COALESCE(SUM($_netExpenseSql), 0) AS total_expense
     FROM transactions t
     WHERE t.ledger_id = ?
-      AND t.type IN ('expense', 'refund', 'reimburse')
+      AND t.type = 'expense'
       AND t.happened_at >= ?
       AND t.happened_at < ?
       AND t.category_id IS NOT NULL  -- 排除未分类的交易
@@ -386,16 +401,16 @@ class LocalBudgetRepository implements BudgetRepository {
       final parentId = category.parentId;
       // 如果有父分类，归类到父分类
       final useId = parentId != null && parentId > 0 ? parentId : categoryId;
-      if(categoryUsed.containsKey(useId)){
+      if (categoryUsed.containsKey(useId)) {
         double used = categoryUsed[useId]!;
         categoryUsed[useId] = used + totalExpense;
-      }else{
+      } else {
         categoryUsed[useId] = totalExpense;
       }
     }
 
     // 添加支出项
-    for(final used in categoryUsed.entries){
+    for (final used in categoryUsed.entries) {
       final categoryId = used.key;
       final expense = used.value;
       // 预算
@@ -403,15 +418,15 @@ class LocalBudgetRepository implements BudgetRepository {
       budgetMap.remove(categoryId);
 
       late Category? category;
-      if( categoryMap.containsKey(categoryId)){
+      if (categoryMap.containsKey(categoryId)) {
         category = categoryMap[categoryId];
-      }else{
+      } else {
         category = await (db.select(db.categories)
-            ..where((c) => c.id.equals(categoryId)))
-          .getSingleOrNull();
+              ..where((c) => c.id.equals(categoryId)))
+            .getSingleOrNull();
       }
 
-      if(category == null) continue;
+      if (category == null) continue;
 
       categoryUsages.add(CategoryBudgetUsage(
         budgetId: budget?.id ?? 0, // 无预算时为0
@@ -423,14 +438,14 @@ class LocalBudgetRepository implements BudgetRepository {
     }
 
     // 添加未支出的预算
-    for(final budget in budgetMap.values){
+    for (final budget in budgetMap.values) {
       final categoryId = budget.categoryId!;
       // 获取分类信息
       final category = await (db.select(db.categories)
             ..where((c) => c.id.equals(categoryId)))
           .getSingleOrNull();
-      if(category == null) continue;
-      
+      if (category == null) continue;
+
       categoryUsages.add(CategoryBudgetUsage(
         budgetId: budget.id,
         categoryId: categoryId,
@@ -478,12 +493,10 @@ class LocalBudgetRepository implements BudgetRepository {
       '''
     SELECT 
       t.category_id AS category_id,
-      COALESCE(SUM(CASE
-        WHEN t.type IN ('refund', 'reimburse') THEN -t.amount
-        ELSE t.amount END), 0) AS total_expense
+      COALESCE(SUM($_netExpenseSql), 0) AS total_expense
     FROM transactions t
     WHERE t.ledger_id = ?
-      AND t.type IN ('expense', 'refund', 'reimburse')
+      AND t.type = 'expense'
       AND t.happened_at >= ?
       AND t.happened_at < ?
       AND t.category_id IS NOT NULL

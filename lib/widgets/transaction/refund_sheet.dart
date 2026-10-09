@@ -123,7 +123,9 @@ class _LinkedCreditSheetState extends ConsumerState<_LinkedCreditSheet> {
     final editing = widget.editing;
     final initial = editing != null
         ? RefundTx.roundMoney(editing.amount)
-        : (_reimburse ? RefundTx.roundMoney(widget.originalAmount) : _remaining);
+        : (_reimburse || _remaining <= 0
+            ? RefundTx.roundMoney(widget.originalAmount)
+            : _remaining);
     _amountCtrl = TextEditingController(text: _formatAmount(initial));
     _reasonCtrl = TextEditingController(text: editing?.note ?? '');
     _happenedAt = editing?.happenedAt.toLocal() ?? DateTime.now();
@@ -205,16 +207,13 @@ class _LinkedCreditSheetState extends ConsumerState<_LinkedCreditSheet> {
       setState(() => _error = l10n.refundInvalidAmount);
       return;
     }
-    if (!_reimburse && amount > _remaining + 0.009) {
-      setState(() => _error = l10n.refundExceeds);
-      return;
-    }
-    final reimbursedTotal = widget.alreadyRefunded + amount;
-    if (_reimburse && reimbursedTotal > widget.originalAmount + 0.009) {
+    final linkedTotal = widget.alreadyRefunded + amount;
+    if (linkedTotal > widget.originalAmount + 0.009) {
       final confirmed = await AppDialog.confirm<bool>(
             context,
-            title: l10n.reimburseOverTitle,
-            message: l10n.reimburseOverMessage,
+            title: _reimburse ? l10n.reimburseOverTitle : l10n.refundOverTitle,
+            message:
+                _reimburse ? l10n.reimburseOverMessage : l10n.refundOverMessage,
           ) ??
           false;
       if (!confirmed || !mounted) return;
@@ -459,9 +458,7 @@ class _LinkedCreditSheetState extends ConsumerState<_LinkedCreditSheet> {
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
-                  onPressed: _saving || (!_reimburse && _remaining <= 0)
-                      ? null
-                      : _submit,
+                  onPressed: _saving ? null : _submit,
                   child: _saving
                       ? const SizedBox(
                           width: 16,

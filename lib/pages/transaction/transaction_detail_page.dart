@@ -115,16 +115,17 @@ class _DetailBody extends ConsumerWidget {
       detail.category?.name ?? l10n.commonUncategorized,
       context,
     );
-    final timeText = DateFormat('yyyy-MM-dd HH:mm:ss').format(tx.happenedAt.toLocal());
+    final timeText =
+        DateFormat('yyyy-MM-dd HH:mm:ss').format(tx.happenedAt.toLocal());
     final amountColor = isRefund
         ? BeeTokens.chartTransfer(context)
         : isReimburse
             ? BeeTokens.statusPending(context)
             : isTransfer
-            ? BeeTokens.textPrimary(context)
-            : isExpense
-                ? BeeTokens.expenseColor(context, ref)
-                : BeeTokens.incomeColor(context, ref);
+                ? BeeTokens.textPrimary(context)
+                : isExpense
+                    ? BeeTokens.expenseColor(context, ref)
+                    : BeeTokens.incomeColor(context, ref);
 
     return ListView(
       padding: EdgeInsets.all(16.0.scaled(context, ref)),
@@ -221,7 +222,8 @@ class _DetailBody extends ConsumerWidget {
                   value: tx.note!,
                 ),
               ],
-              if (detail.ledgerName != null && detail.ledgerName!.isNotEmpty) ...[
+              if (detail.ledgerName != null &&
+                  detail.ledgerName!.isNotEmpty) ...[
                 BeeTokens.cardDivider(context),
                 _InfoRow(
                   label: l10n.transactionDetailLedger,
@@ -466,14 +468,14 @@ class _TransactionDetail {
   });
 }
 
-final _refundsProvider =
-    FutureProvider.family.autoDispose<List<db.Transaction>, int>((ref, id) async {
+final _refundsProvider = FutureProvider.family
+    .autoDispose<List<db.Transaction>, int>((ref, id) async {
   ref.watch(statsRefreshProvider);
   return ref.watch(repositoryProvider).listRefunds(id);
 });
 
-final _reimbursementsProvider =
-    FutureProvider.family.autoDispose<List<db.Transaction>, int>((ref, id) async {
+final _reimbursementsProvider = FutureProvider.family
+    .autoDispose<List<db.Transaction>, int>((ref, id) async {
   ref.watch(statsRefreshProvider);
   return ref.watch(repositoryProvider).listReimbursements(id);
 });
@@ -487,15 +489,6 @@ class _RefundBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final refundsAsync = ref.watch(_refundsProvider(original.id));
-    final refunded = refundsAsync.maybeWhen(
-      data: (rows) => rows.fold<double>(0, (sum, row) => sum + row.amount),
-      orElse: () => 0.0,
-    );
-    final remaining = RefundTx.remaining(
-      original: original.amount,
-      refunded: refunded,
-    );
     final primary = Theme.of(context).colorScheme.primary;
 
     return SafeArea(
@@ -512,21 +505,26 @@ class _RefundBar extends ConsumerWidget {
               child: SizedBox(
                 height: 48,
                 child: FilledButton.icon(
-                  onPressed: remaining <= 0
-                      ? null
-                      : () async {
-                          final ok = await showRefundSheet(
-                            context: context,
-                            originalId: original.id,
-                            originalAmount: original.amount,
-                            alreadyRefunded: refunded,
-                            originalAccountId: original.accountId,
-                          );
-                          if (ok == true) onChanged();
-                        },
+                  onPressed: () async {
+                    final repo = ref.read(repositoryProvider);
+                    final refunds = await repo.listRefunds(original.id);
+                    final reimbursements =
+                        await repo.listReimbursements(original.id);
+                    if (!context.mounted) return;
+                    final already = [...refunds, ...reimbursements]
+                        .fold<double>(0, (sum, row) => sum + row.amount);
+                    final ok = await showRefundSheet(
+                      context: context,
+                      originalId: original.id,
+                      originalAmount: original.amount,
+                      alreadyRefunded: already,
+                      originalAccountId: original.accountId,
+                    );
+                    if (ok == true) onChanged();
+                  },
                   icon: const Icon(Icons.undo),
                   label: Text(
-                    remaining <= 0 ? l10n.refundAlreadyFull : l10n.refundAction,
+                    l10n.refundAction,
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   style: FilledButton.styleFrom(
@@ -543,14 +541,13 @@ class _RefundBar extends ConsumerWidget {
                 height: 48,
                 child: FilledButton.icon(
                   onPressed: () async {
-                    final rows = await ref
-                        .read(repositoryProvider)
-                        .listReimbursements(original.id);
+                    final repo = ref.read(repositoryProvider);
+                    final refunds = await repo.listRefunds(original.id);
+                    final reimbursements =
+                        await repo.listReimbursements(original.id);
                     if (!context.mounted) return;
-                    final already = rows.fold<double>(
-                      0,
-                      (sum, row) => sum + row.amount,
-                    );
+                    final already = [...refunds, ...reimbursements]
+                        .fold<double>(0, (sum, row) => sum + row.amount);
                     final ok = await showReimburseSheet(
                       context: context,
                       originalId: original.id,
@@ -597,27 +594,27 @@ class _RefundHistory extends ConsumerWidget {
           children: [
             const SizedBox(height: 12),
             SectionCard(
-          margin: EdgeInsets.zero,
-          padding: EdgeInsets.zero,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                child: Text(
-                  l10n.refundHistory,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: BeeTokens.textSecondary(context),
+              margin: EdgeInsets.zero,
+              padding: EdgeInsets.zero,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Text(
+                      l10n.refundHistory,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: BeeTokens.textSecondary(context),
+                      ),
+                    ),
                   ),
-                ),
+                  for (var i = 0; i < rows.length; i++) ...[
+                    if (i > 0) BeeTokens.cardDivider(context),
+                    _RefundTile(refund: rows[i], originalId: originalId),
+                  ],
+                ],
               ),
-              for (var i = 0; i < rows.length; i++) ...[
-                if (i > 0) BeeTokens.cardDivider(context),
-                _RefundTile(refund: rows[i], originalId: originalId),
-              ],
-            ],
-          ),
             ),
           ],
         );
@@ -643,9 +640,10 @@ class _RefundTile extends ConsumerWidget {
       onTap: () async {
         final repo = ref.read(repositoryProvider);
         final original = await repo.getTransactionById(originalId);
-        final all = await repo.listRefunds(originalId);
+        final refunds = await repo.listRefunds(originalId);
+        final reimbursements = await repo.listReimbursements(originalId);
         if (!context.mounted || original == null) return;
-        final others = all
+        final others = [...refunds, ...reimbursements]
             .where((row) => row.id != refund.id)
             .fold<double>(0, (sum, row) => sum + row.amount);
         final ok = await showRefundSheet(
@@ -710,27 +708,27 @@ class _ReimburseHistory extends ConsumerWidget {
           children: [
             const SizedBox(height: 12),
             SectionCard(
-          margin: EdgeInsets.zero,
-          padding: EdgeInsets.zero,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                child: Text(
-                  l10n.reimburseHistory,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: BeeTokens.textSecondary(context),
+              margin: EdgeInsets.zero,
+              padding: EdgeInsets.zero,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Text(
+                      l10n.reimburseHistory,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: BeeTokens.textSecondary(context),
+                      ),
+                    ),
                   ),
-                ),
+                  for (var i = 0; i < rows.length; i++) ...[
+                    if (i > 0) BeeTokens.cardDivider(context),
+                    _ReimburseTile(row: rows[i], originalId: originalId),
+                  ],
+                ],
               ),
-              for (var i = 0; i < rows.length; i++) ...[
-                if (i > 0) BeeTokens.cardDivider(context),
-                _ReimburseTile(row: rows[i], originalId: originalId),
-              ],
-            ],
-          ),
             ),
           ],
         );
@@ -747,16 +745,18 @@ class _ReimburseTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final time = DateFormat('yyyy-MM-dd HH:mm').format(row.happenedAt.toLocal());
+    final time =
+        DateFormat('yyyy-MM-dd HH:mm').format(row.happenedAt.toLocal());
     final reason =
         (row.note == null || row.note!.isEmpty) ? time : '$time · ${row.note}';
     return InkWell(
       onTap: () async {
         final repo = ref.read(repositoryProvider);
         final original = await repo.getTransactionById(originalId);
-        final all = await repo.listReimbursements(originalId);
+        final refunds = await repo.listRefunds(originalId);
+        final reimbursements = await repo.listReimbursements(originalId);
         if (!context.mounted || original == null) return;
-        final others = all
+        final others = [...refunds, ...reimbursements]
             .where((item) => item.id != row.id)
             .fold<double>(0, (sum, item) => sum + item.amount);
         final ok = await showReimburseSheet(
@@ -803,15 +803,14 @@ class _ReimburseTile extends ConsumerWidget {
   }
 }
 
-final _transactionDetailProvider =
-    FutureProvider.family.autoDispose<_TransactionDetail?, int>((ref, id) async {
+final _transactionDetailProvider = FutureProvider.family
+    .autoDispose<_TransactionDetail?, int>((ref, id) async {
   final repo = ref.watch(repositoryProvider);
   final tx = await repo.getTransactionById(id);
   if (tx == null) return null;
 
-  final category = tx.categoryId != null
-      ? await repo.getCategoryById(tx.categoryId!)
-      : null;
+  final category =
+      tx.categoryId != null ? await repo.getCategoryById(tx.categoryId!) : null;
   final tagsMap = await repo.getTagsForTransactions([id]);
   final tags = tagsMap[id] ?? [];
   final attachments = await repo.getAttachmentsByTransaction(id);

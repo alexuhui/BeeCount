@@ -11,31 +11,70 @@ class LocalStatisticsRepository implements StatisticsRepository {
 
   LocalStatisticsRepository(this.db);
 
-  d.Expression<bool> _typeWhere($TransactionsTable t, String type) {
-    if (type == 'expense') {
-      return t.type.isIn(const ['expense', 'refund', 'reimburse']);
-    }
-    return t.type.equals(type);
+  Future<List<Transaction>> _ledgerRows(int ledgerId) {
+    return (db.select(db.transactions)
+          ..where((t) =>
+              t.ledgerId.equals(ledgerId) & t.excludeFromStats.equals(false)))
+        .get();
   }
 
-  double _signedAmount(Transaction t, String type) {
-    if (type == 'expense') return RefundTx.expenseDelta(t.type, t.amount);
-    return t.amount;
+  Map<int, double> _linkedTotals(Iterable<Transaction> rows) {
+    final totals = <int, double>{};
+    for (final row in rows) {
+      final originalId = row.refundOfId;
+      if (originalId == null || !RefundTx.isLinkedCredit(row.type)) continue;
+      totals.update(
+        originalId,
+        (value) => value + row.amount,
+        ifAbsent: () => row.amount,
+      );
+    }
+    return totals;
+  }
+
+  double _netExpense(Transaction expense, Map<int, double> linkedTotals) {
+    final net = expense.amount - (linkedTotals[expense.id] ?? 0);
+    return net > 0 ? net : 0;
+  }
+
+  bool _inRange(Transaction row, DateTime start, DateTime end) {
+    return !row.happenedAt.isBefore(start) && row.happenedAt.isBefore(end);
+  }
+
+  Future<(double income, double expense)> _rangeTotals(
+    int ledgerId,
+    DateTime start,
+    DateTime end,
+  ) async {
+    final rows = await _ledgerRows(ledgerId);
+    final linkedTotals = _linkedTotals(rows);
+    var income = 0.0;
+    var expense = 0.0;
+    for (final row in rows) {
+      if (!_inRange(row, start, end)) continue;
+      if (row.type == 'income') {
+        income += row.amount;
+      } else if (row.type == 'expense') {
+        expense += _netExpense(row, linkedTotals);
+      }
+    }
+    return (income, expense);
   }
 
   @override
-  Future<List<({int? id, String name, String? icon, double total})>> totalsByCategory({
+  Future<List<({int? id, String name, String? icon, double total})>>
+      totalsByCategory({
     required int ledgerId,
     required String type,
     required DateTime start,
     required DateTime end,
   }) async {
+    final allRows = await _ledgerRows(ledgerId);
+    final linkedTotals = _linkedTotals(allRows);
+    final selected =
+        allRows.where((t) => t.type == type && _inRange(t, start, end));
     final q = (db.select(db.transactions)
-          ..where((t) =>
-              t.ledgerId.equals(ledgerId) &
-              _typeWhere(t, type) &
-              t.happenedAt.isBetweenValues(start, end) &
-              t.excludeFromStats.equals(false)))
+          ..where((t) => t.id.isIn(selected.map((row) => row.id).toList())))
         .join([
       d.leftOuterJoin(db.categories,
           db.categories.id.equalsExp(db.transactions.categoryId)),
@@ -52,30 +91,43 @@ class LocalStatisticsRepository implements StatisticsRepository {
       final icon = c?.icon;
       names[id] = name;
       icons[id] = icon;
-      final signed = _signedAmount(t, type);
-      map.update(id, (v) => v + signed, ifAbsent: () => signed);
+      final value = type == 'expense' ? _netExpense(t, linkedTotals) : t.amount;
+      map.update(id, (v) => v + value, ifAbsent: () => value);
     }
     final list = map.entries
-        .map((e) => (id: e.key, name: names[e.key] ?? '未分类', icon: icons[e.key], total: e.value))
+        .map((e) => (
+              id: e.key,
+              name: names[e.key] ?? '未分类',
+              icon: icons[e.key],
+              total: e.value
+            ))
         .toList()
       ..sort((a, b) => b.total.compareTo(a.total));
     return list;
   }
 
   @override
-  Future<List<({int? id, String name, String? icon, int? parentId, int level, double total})>>
-      totalsByCategoryWithHierarchy({
+  Future<
+      List<
+          ({
+            int? id,
+            String name,
+            String? icon,
+            int? parentId,
+            int level,
+            double total
+          })>> totalsByCategoryWithHierarchy({
     required int ledgerId,
     required String type,
     required DateTime start,
     required DateTime end,
   }) async {
+    final allRows = await _ledgerRows(ledgerId);
+    final linkedTotals = _linkedTotals(allRows);
+    final selected =
+        allRows.where((t) => t.type == type && _inRange(t, start, end));
     final q = (db.select(db.transactions)
-          ..where((t) =>
-              t.ledgerId.equals(ledgerId) &
-              _typeWhere(t, type) &
-              t.happenedAt.isBetweenValues(start, end) &
-              t.excludeFromStats.equals(false)))
+          ..where((t) => t.id.isIn(selected.map((row) => row.id).toList())))
         .join([
       d.leftOuterJoin(db.categories,
           db.categories.id.equalsExp(db.transactions.categoryId)),
@@ -83,7 +135,8 @@ class LocalStatisticsRepository implements StatisticsRepository {
 
     final rows = await q.get();
     final map = <int?, double>{};
-    final categoryInfo = <int?, ({String name, String? icon, int? parentId, int level})>{};
+    final categoryInfo =
+        <int?, ({String name, String? icon, int? parentId, int level})>{};
 
     for (final r in rows) {
       final t = r.readTable(db.transactions);
@@ -106,8 +159,8 @@ class LocalStatisticsRepository implements StatisticsRepository {
         );
       }
 
-      final signed = _signedAmount(t, type);
-      map.update(id, (v) => v + signed, ifAbsent: () => signed);
+      final value = type == 'expense' ? _netExpense(t, linkedTotals) : t.amount;
+      map.update(id, (v) => v + value, ifAbsent: () => value);
     }
 
     final list = map.entries.map((e) {
@@ -133,19 +186,16 @@ class LocalStatisticsRepository implements StatisticsRepository {
     required DateTime start,
     required DateTime end,
   }) async {
-    final rows = await (db.select(db.transactions)
-          ..where((t) =>
-              t.ledgerId.equals(ledgerId) &
-              _typeWhere(t, type) &
-              t.happenedAt.isBetweenValues(start, end) &
-              t.excludeFromStats.equals(false)))
-        .get();
+    final allRows = await _ledgerRows(ledgerId);
+    final linkedTotals = _linkedTotals(allRows);
+    final rows =
+        allRows.where((t) => t.type == type && _inRange(t, start, end));
     final map = <DateTime, double>{};
     for (final t in rows) {
       final dt = t.happenedAt.toLocal();
       final day = DateTime(dt.year, dt.month, dt.day);
-      final signed = _signedAmount(t, type);
-      map.update(day, (v) => v + signed, ifAbsent: () => signed);
+      final value = type == 'expense' ? _netExpense(t, linkedTotals) : t.amount;
+      map.update(day, (v) => v + value, ifAbsent: () => value);
     }
     // ensure full range continuity
     final result = <({DateTime day, double total})>[];
@@ -165,18 +215,15 @@ class LocalStatisticsRepository implements StatisticsRepository {
   }) async {
     final start = DateTime(year, 1, 1);
     final end = DateTime(year + 1, 1, 1);
-    final rows = await (db.select(db.transactions)
-          ..where((t) =>
-              t.ledgerId.equals(ledgerId) &
-              _typeWhere(t, type) &
-              t.happenedAt.isBetweenValues(start, end) &
-              t.excludeFromStats.equals(false)))
-        .get();
+    final allRows = await _ledgerRows(ledgerId);
+    final linkedTotals = _linkedTotals(allRows);
+    final rows =
+        allRows.where((t) => t.type == type && _inRange(t, start, end));
     final map = <int, double>{};
     for (final t in rows) {
       final dt = t.happenedAt.toLocal();
-      final signed = _signedAmount(t, type);
-      map.update(dt.month, (v) => v + signed, ifAbsent: () => signed);
+      final value = type == 'expense' ? _netExpense(t, linkedTotals) : t.amount;
+      map.update(dt.month, (v) => v + value, ifAbsent: () => value);
     }
     final result = <({DateTime month, double total})>[];
     for (int m = 1; m <= 12; m++) {
@@ -190,19 +237,20 @@ class LocalStatisticsRepository implements StatisticsRepository {
     required int ledgerId,
     required String type,
   }) async {
-    final rows = await (db.select(db.transactions)
-          ..where((t) => t.ledgerId.equals(ledgerId) & _typeWhere(t, type) & t.excludeFromStats.equals(false)))
-        .get();
+    final rows = await _ledgerRows(ledgerId);
     if (rows.isEmpty) return const [];
+    final linkedTotals = _linkedTotals(rows);
+    final typedRows = rows.where((t) => t.type == type);
     final map = <int, double>{};
     int minYear = 9999, maxYear = 0;
-    for (final t in rows) {
+    for (final t in typedRows) {
       final y = t.happenedAt.toLocal().year;
       if (y < minYear) minYear = y;
       if (y > maxYear) maxYear = y;
-      final signed = _signedAmount(t, type);
-      map.update(y, (v) => v + signed, ifAbsent: () => signed);
+      final value = type == 'expense' ? _netExpense(t, linkedTotals) : t.amount;
+      map.update(y, (v) => v + value, ifAbsent: () => value);
     }
+    if (map.isEmpty) return const [];
     final out = <({int year, double total})>[];
     for (int y = minYear; y <= maxYear; y++) {
       out.add((year: y, total: map[y] ?? 0));
@@ -216,29 +264,7 @@ class LocalStatisticsRepository implements StatisticsRepository {
     required DateTime start,
     required DateTime end,
   }) async {
-    // 使用 SQL 聚合查询，比查出全部数据再累加快得多
-    final result = await db.customSelect(
-      '''
-      SELECT
-        COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS income,
-        COALESCE(SUM(CASE
-          WHEN type = 'expense' THEN amount
-          WHEN type IN ('refund', 'reimburse') THEN -amount
-          ELSE 0 END), 0) AS expense
-      FROM transactions
-      WHERE ledger_id = ?1 AND happened_at >= ?2 AND happened_at < ?3 AND exclude_from_stats = 0
-      ''',
-      variables: [
-        d.Variable<int>(ledgerId),
-        d.Variable<DateTime>(start),
-        d.Variable<DateTime>(end),
-      ],
-      readsFrom: {db.transactions},
-    ).getSingle();
-
-    final income = (result.data['income'] as num?)?.toDouble() ?? 0.0;
-    final expense = (result.data['expense'] as num?)?.toDouble() ?? 0.0;
-    return (income, expense);
+    return _rangeTotals(ledgerId, start, end);
   }
 
   @override
@@ -248,30 +274,7 @@ class LocalStatisticsRepository implements StatisticsRepository {
   }) async {
     final start = DateTime(month.year, month.month, 1);
     final end = DateTime(month.year, month.month + 1, 1);
-
-    // 使用 SQL 聚合查询，比查出全部数据再累加快得多
-    final result = await db.customSelect(
-      '''
-      SELECT
-        COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS income,
-        COALESCE(SUM(CASE
-          WHEN type = 'expense' THEN amount
-          WHEN type IN ('refund', 'reimburse') THEN -amount
-          ELSE 0 END), 0) AS expense
-      FROM transactions
-      WHERE ledger_id = ?1 AND happened_at >= ?2 AND happened_at < ?3 AND exclude_from_stats = 0
-      ''',
-      variables: [
-        d.Variable<int>(ledgerId),
-        d.Variable<DateTime>(start),
-        d.Variable<DateTime>(end),
-      ],
-      readsFrom: {db.transactions},
-    ).getSingle();
-
-    final income = (result.data['income'] as num?)?.toDouble() ?? 0.0;
-    final expense = (result.data['expense'] as num?)?.toDouble() ?? 0.0;
-    return (income, expense);
+    return _rangeTotals(ledgerId, start, end);
   }
 
   @override
@@ -281,29 +284,6 @@ class LocalStatisticsRepository implements StatisticsRepository {
   }) async {
     final start = DateTime(year, 1, 1);
     final end = DateTime(year + 1, 1, 1);
-
-    // 使用 SQL 聚合查询，比查出全部数据再累加快得多
-    final result = await db.customSelect(
-      '''
-      SELECT
-        COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS income,
-        COALESCE(SUM(CASE
-          WHEN type = 'expense' THEN amount
-          WHEN type IN ('refund', 'reimburse') THEN -amount
-          ELSE 0 END), 0) AS expense
-      FROM transactions
-      WHERE ledger_id = ?1 AND happened_at >= ?2 AND happened_at < ?3 AND exclude_from_stats = 0
-      ''',
-      variables: [
-        d.Variable<int>(ledgerId),
-        d.Variable<DateTime>(start),
-        d.Variable<DateTime>(end),
-      ],
-      readsFrom: {db.transactions},
-    ).getSingle();
-
-    final income = (result.data['income'] as num?)?.toDouble() ?? 0.0;
-    final expense = (result.data['expense'] as num?)?.toDouble() ?? 0.0;
-    return (income, expense);
+    return _rangeTotals(ledgerId, start, end);
   }
 }

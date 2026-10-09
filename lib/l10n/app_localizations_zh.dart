@@ -5842,7 +5842,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get refundHistory => '退款记录';
 
   @override
-  String get refundHint => '退款不算收入。默认回到原账户，也可以改记到其他账户。';
+  String get refundHint => '退款不算收入。默认回到原账户，也可以改记到其他账户；金额可以高于原支出。';
 
   @override
   String get refundNoAccount => '未选择账户时，退款只会留下记录，不会改变账户余额。';
@@ -5855,6 +5855,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get refundAccountLabel => '入账账户';
+
+  @override
+  String get refundOverTitle => '退款高于原金额';
+
+  @override
+  String get refundOverMessage => '退款和报销合计高于原支出金额，确认按这个金额入账？';
 
   @override
   String get reimburseTitle => '报销';
@@ -5902,7 +5908,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reimburseOverTitle => '报销高于原金额';
 
   @override
-  String get reimburseOverMessage => '报销合计高于原支出金额，确认按这个金额入账？';
+  String get reimburseOverMessage => '退款和报销合计高于原支出金额，确认按这个金额入账？';
 
   @override
   String get exportTypeRefund => '退款';
@@ -11607,7 +11613,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get refundHistory => '退款記錄';
 
   @override
-  String get refundHint => '退款不算收入。預設回到原帳戶，也可以改記到其他帳戶。';
+  String get refundHint => '退款不算收入。預設回到原帳戶，也可以改記到其他帳戶；金額可以高於原支出。';
 
   @override
   String get refundNoAccount => '未選擇帳戶時，退款只會留下記錄，不會改變帳戶餘額。';
@@ -11620,6 +11626,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get refundAccountLabel => '入帳帳戶';
+
+  @override
+  String get refundOverTitle => '退款高於原金額';
+
+  @override
+  String get refundOverMessage => '退款和報銷合計高於原支出金額，確認按這個金額入帳？';
 
   @override
   String get reimburseTitle => '報銷';
@@ -11667,7 +11679,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get reimburseOverTitle => '報銷高於原金額';
 
   @override
-  String get reimburseOverMessage => '報銷合計高於原支出金額，確認按這個金額入帳？';
+  String get reimburseOverMessage => '退款和報銷合計高於原支出金額，確認按這個金額入帳？';
 
   @override
   String get exportTypeRefund => '退款';

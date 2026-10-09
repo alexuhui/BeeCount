@@ -21,12 +21,12 @@ class LocalTagRepository implements TagRepository {
     int sortOrder = 0,
   }) async {
     return await db.into(db.tags).insert(
-      TagsCompanion.insert(
-        name: name,
-        color: d.Value(color),
-        sortOrder: d.Value(sortOrder),
-      ),
-    );
+          TagsCompanion.insert(
+            name: name,
+            color: d.Value(color),
+            sortOrder: d.Value(sortOrder),
+          ),
+        );
   }
 
   @override
@@ -40,7 +40,8 @@ class LocalTagRepository implements TagRepository {
       TagsCompanion(
         name: name != null ? d.Value(name) : const d.Value.absent(),
         color: color != null ? d.Value(color) : const d.Value.absent(),
-        sortOrder: sortOrder != null ? d.Value(sortOrder) : const d.Value.absent(),
+        sortOrder:
+            sortOrder != null ? d.Value(sortOrder) : const d.Value.absent(),
       ),
     );
   }
@@ -49,8 +50,8 @@ class LocalTagRepository implements TagRepository {
   Future<void> deleteTag(int id) async {
     await db.transaction(() async {
       // 先删除关联关系
-      await (db.delete(db.transactionTags)
-        ..where((t) => t.tagId.equals(id))).go();
+      await (db.delete(db.transactionTags)..where((t) => t.tagId.equals(id)))
+          .go();
       // 再删除标签
       await (db.delete(db.tags)..where((t) => t.id.equals(id))).go();
     });
@@ -58,20 +59,21 @@ class LocalTagRepository implements TagRepository {
 
   @override
   Future<Tag?> getTagById(int id) async {
-    return await (db.select(db.tags)
-      ..where((t) => t.id.equals(id))).getSingleOrNull();
+    return await (db.select(db.tags)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
   }
 
   @override
   Future<Tag?> getTagByName(String name) async {
-    return await (db.select(db.tags)
-      ..where((t) => t.name.equals(name))).getSingleOrNull();
+    return await (db.select(db.tags)..where((t) => t.name.equals(name)))
+        .getSingleOrNull();
   }
 
   @override
   Future<List<Tag>> getAllTags() async {
     return await (db.select(db.tags)
-      ..orderBy([(t) => d.OrderingTerm(expression: t.sortOrder)])).get();
+          ..orderBy([(t) => d.OrderingTerm(expression: t.sortOrder)]))
+        .get();
   }
 
   @override
@@ -92,16 +94,17 @@ class LocalTagRepository implements TagRepository {
   }) async {
     // 检查是否已存在
     final existing = await (db.select(db.transactionTags)
-      ..where((t) => t.transactionId.equals(transactionId) & t.tagId.equals(tagId)))
+          ..where((t) =>
+              t.transactionId.equals(transactionId) & t.tagId.equals(tagId)))
         .getSingleOrNull();
 
     if (existing == null) {
       await db.into(db.transactionTags).insert(
-        TransactionTagsCompanion.insert(
-          transactionId: transactionId,
-          tagId: tagId,
-        ),
-      );
+            TransactionTagsCompanion.insert(
+              transactionId: transactionId,
+              tagId: tagId,
+            ),
+          );
     }
   }
 
@@ -123,14 +126,16 @@ class LocalTagRepository implements TagRepository {
     required int tagId,
   }) async {
     await (db.delete(db.transactionTags)
-      ..where((t) => t.transactionId.equals(transactionId) & t.tagId.equals(tagId)))
+          ..where((t) =>
+              t.transactionId.equals(transactionId) & t.tagId.equals(tagId)))
         .go();
   }
 
   @override
   Future<void> removeAllTagsFromTransaction(int transactionId) async {
     await (db.delete(db.transactionTags)
-      ..where((t) => t.transactionId.equals(transactionId))).go();
+          ..where((t) => t.transactionId.equals(transactionId)))
+        .go();
   }
 
   @override
@@ -143,7 +148,8 @@ class LocalTagRepository implements TagRepository {
       await removeAllTagsFromTransaction(transactionId);
       // 再添加新的关联
       if (tagIds.isNotEmpty) {
-        await addTagsToTransaction(transactionId: transactionId, tagIds: tagIds);
+        await addTagsToTransaction(
+            transactionId: transactionId, tagIds: tagIds);
       }
     });
   }
@@ -155,14 +161,16 @@ class LocalTagRepository implements TagRepository {
         db.transactionTags,
         db.transactionTags.tagId.equalsExp(db.tags.id),
       ),
-    ])..where(db.transactionTags.transactionId.equals(transactionId));
+    ])
+      ..where(db.transactionTags.transactionId.equals(transactionId));
 
     final rows = await query.get();
     return rows.map((row) => row.readTable(db.tags)).toList();
   }
 
   @override
-  Future<Map<int, List<Tag>>> getTagsForTransactions(List<int> transactionIds) async {
+  Future<Map<int, List<Tag>>> getTagsForTransactions(
+      List<int> transactionIds) async {
     if (transactionIds.isEmpty) return {};
 
     final query = db.select(db.transactionTags).join([
@@ -170,7 +178,8 @@ class LocalTagRepository implements TagRepository {
         db.tags,
         db.tags.id.equalsExp(db.transactionTags.tagId),
       ),
-    ])..where(db.transactionTags.transactionId.isIn(transactionIds));
+    ])
+      ..where(db.transactionTags.transactionId.isIn(transactionIds));
 
     final rows = await query.get();
 
@@ -187,7 +196,8 @@ class LocalTagRepository implements TagRepository {
   @override
   Future<List<int>> getTransactionIdsByTag(int tagId) async {
     final rows = await (db.select(db.transactionTags)
-      ..where((t) => t.tagId.equals(tagId))).get();
+          ..where((t) => t.tagId.equals(tagId)))
+        .get();
     return rows.map((r) => r.transactionId).toList();
   }
 
@@ -246,14 +256,22 @@ class LocalTagRepository implements TagRepository {
   }
 
   @override
-  Future<({int count, double expense, double income})> getTagStats(int tagId) async {
+  Future<({int count, double expense, double income})> getTagStats(
+      int tagId) async {
     final result = await db.customSelect(
       '''
       SELECT
         COUNT(*) as count,
         COALESCE(SUM(CASE
-          WHEN tx.type = 'expense' THEN tx.amount
-          WHEN tx.type IN ('refund', 'reimburse') THEN -tx.amount
+          WHEN tx.type = 'expense' THEN MAX(
+            tx.amount - COALESCE((
+              SELECT SUM(linked.amount)
+              FROM transactions linked
+              WHERE linked.refund_of_id = tx.id
+                AND linked.type IN ('refund', 'reimburse')
+            ), 0),
+            0
+          )
           ELSE 0 END), 0) as expense,
         COALESCE(SUM(CASE WHEN tx.type = 'income' THEN tx.amount ELSE 0 END), 0) as income
       FROM transaction_tags tt
@@ -296,7 +314,10 @@ class LocalTagRepository implements TagRepository {
       ),
     ])
       ..where(db.transactionTags.tagId.equals(tagId))
-      ..orderBy([d.OrderingTerm(expression: db.transactions.happenedAt, mode: d.OrderingMode.desc)]);
+      ..orderBy([
+        d.OrderingTerm(
+            expression: db.transactions.happenedAt, mode: d.OrderingMode.desc)
+      ]);
 
     final rows = await query.get();
     return rows.map((row) => row.readTable(db.transactions)).toList();
@@ -316,10 +337,13 @@ class LocalTagRepository implements TagRepository {
     ])
       ..where(
         db.transactionTags.tagId.equals(tagId) &
-        db.transactions.happenedAt.isBiggerOrEqualValue(start) &
-        db.transactions.happenedAt.isSmallerThanValue(end),
+            db.transactions.happenedAt.isBiggerOrEqualValue(start) &
+            db.transactions.happenedAt.isSmallerThanValue(end),
       )
-      ..orderBy([d.OrderingTerm(expression: db.transactions.happenedAt, mode: d.OrderingMode.desc)]);
+      ..orderBy([
+        d.OrderingTerm(
+            expression: db.transactions.happenedAt, mode: d.OrderingMode.desc)
+      ]);
 
     final rows = await query.get();
     return rows.map((row) => row.readTable(db.transactions)).toList();
@@ -332,7 +356,8 @@ class LocalTagRepository implements TagRepository {
   @override
   Stream<List<Tag>> watchAllTags() {
     return (db.select(db.tags)
-      ..orderBy([(t) => d.OrderingTerm(expression: t.sortOrder)])).watch();
+          ..orderBy([(t) => d.OrderingTerm(expression: t.sortOrder)]))
+        .watch();
   }
 
   @override
@@ -374,70 +399,84 @@ class LocalTagRepository implements TagRepository {
 
   @override
   Stream<Tag?> watchTag(int tagId) {
-    return (db.select(db.tags)
-      ..where((t) => t.id.equals(tagId))).watchSingleOrNull();
+    return (db.select(db.tags)..where((t) => t.id.equals(tagId)))
+        .watchSingleOrNull();
   }
 
   @override
   Stream<List<Tag>> watchTagsForTransaction(int transactionId) {
-    return db.customSelect(
-      '''
+    return db
+        .customSelect(
+          '''
       SELECT t.*
       FROM tags t
       INNER JOIN transaction_tags tt ON t.id = tt.tag_id
       WHERE tt.transaction_id = ?
       ORDER BY t.sort_order
       ''',
-      variables: [d.Variable.withInt(transactionId)],
-      readsFrom: {db.tags, db.transactionTags},
-    ).watch().map((rows) {
-      return rows.map((row) {
-        return Tag(
-          id: row.read<int>('id'),
-          name: row.read<String>('name'),
-          color: row.read<String?>('color'),
-          sortOrder: row.read<int>('sort_order'),
-          createdAt: row.read<DateTime>('created_at'),
-        );
-      }).toList();
-    });
+          variables: [d.Variable.withInt(transactionId)],
+          readsFrom: {db.tags, db.transactionTags},
+        )
+        .watch()
+        .map((rows) {
+          return rows.map((row) {
+            return Tag(
+              id: row.read<int>('id'),
+              name: row.read<String>('name'),
+              color: row.read<String?>('color'),
+              sortOrder: row.read<int>('sort_order'),
+              createdAt: row.read<DateTime>('created_at'),
+            );
+          }).toList();
+        });
   }
 
   @override
   Stream<List<Transaction>> watchTransactionsByTag(int tagId) {
-    return db.customSelect(
-      '''
-      SELECT tx.*
+    return db
+        .customSelect(
+          '''
+      SELECT DISTINCT tx.*
       FROM transactions tx
-      INNER JOIN transaction_tags tt ON tx.id = tt.transaction_id
-      WHERE tt.tag_id = ? AND tx.exclude_from_stats = 0
+      LEFT JOIN transaction_tags tt ON tx.id = tt.transaction_id
+      WHERE tx.exclude_from_stats = 0
+        AND (
+          tt.tag_id = ?
+          OR tx.refund_of_id IN (
+            SELECT tagged.transaction_id
+            FROM transaction_tags tagged
+            WHERE tagged.tag_id = ?
+          )
+        )
       ORDER BY tx.happened_at DESC
       ''',
-      variables: [d.Variable.withInt(tagId)],
-      readsFrom: {db.transactions, db.transactionTags},
-    ).watch().map((rows) {
-      return rows.map((row) {
-        return Transaction(
-          id: row.read<int>('id'),
-          ledgerId: row.read<int>('ledger_id'),
-          type: row.read<String>('type'),
-          amount: row.read<double>('amount'),
-          categoryId: row.read<int?>('category_id'),
-          accountId: row.read<int?>('account_id'),
-          toAccountId: row.read<int?>('to_account_id'),
-          happenedAt: row.read<DateTime>('happened_at'),
-          note: row.read<String?>('note'),
-          recurringId: row.read<int?>('recurring_id'),
-          excludeFromStats: row.read<bool>('exclude_from_stats'),
-          receivableId: row.read<int?>('receivable_id'),
-          payableId: row.read<int?>('payable_id'),
-          receivablePaymentId: row.read<int?>('receivable_payment_id'),
-          payablePaymentId: row.read<int?>('payable_payment_id'),
-          investEvent: row.read<String?>('invest_event'),
-          refundOfId: row.read<int?>('refund_of_id'),
-        );
-      }).toList();
-    });
+          variables: [d.Variable.withInt(tagId), d.Variable.withInt(tagId)],
+          readsFrom: {db.transactions, db.transactionTags},
+        )
+        .watch()
+        .map((rows) {
+          return rows.map((row) {
+            return Transaction(
+              id: row.read<int>('id'),
+              ledgerId: row.read<int>('ledger_id'),
+              type: row.read<String>('type'),
+              amount: row.read<double>('amount'),
+              categoryId: row.read<int?>('category_id'),
+              accountId: row.read<int?>('account_id'),
+              toAccountId: row.read<int?>('to_account_id'),
+              happenedAt: row.read<DateTime>('happened_at'),
+              note: row.read<String?>('note'),
+              recurringId: row.read<int?>('recurring_id'),
+              excludeFromStats: row.read<bool>('exclude_from_stats'),
+              receivableId: row.read<int?>('receivable_id'),
+              payableId: row.read<int?>('payable_id'),
+              receivablePaymentId: row.read<int?>('receivable_payment_id'),
+              payablePaymentId: row.read<int?>('payable_payment_id'),
+              investEvent: row.read<String?>('invest_event'),
+              refundOfId: row.read<int?>('refund_of_id'),
+            );
+          }).toList();
+        });
   }
 
   // ============================================
@@ -461,7 +500,8 @@ class LocalTagRepository implements TagRepository {
   }
 
   @override
-  Future<void> updateTagSortOrders(List<({int id, int sortOrder})> updates) async {
+  Future<void> updateTagSortOrders(
+      List<({int id, int sortOrder})> updates) async {
     await db.transaction(() async {
       for (final update in updates) {
         await (db.update(db.tags)..where((t) => t.id.equals(update.id)))

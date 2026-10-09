@@ -227,18 +227,42 @@ abstract class TransactionRepository {
   Future<List<Transaction>> listRefunds(int originalId);
 
   /// 对一笔支出记一笔退款。退款入账，但不计入收入。
+  /// [accountId] 为入账账户，null 表示不入账。
   Future<int> addRefund({
     required int originalId,
     required double amount,
     required DateTime happenedAt,
     String? reason,
+    required int? accountId,
   });
 
-  /// 修改一笔退款的金额、时间和原因。
+  /// 修改一笔退款的金额、时间、原因和入账账户。
   Future<void> updateRefund({
     required int id,
     required double amount,
     required DateTime happenedAt,
     String? reason,
+    required int? accountId,
+  });
+
+  /// 某笔支出已记录的报销（按时间倒序）。
+  Future<List<Transaction>> listReimbursements(int originalId);
+
+  /// 对一笔支出记一笔报销。报销入账，但不计入收入，金额可以高于原支出。
+  Future<int> addReimbursement({
+    required int originalId,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+    required int? accountId,
+  });
+
+  /// 修改一笔报销的金额、时间、原因和入账账户。
+  Future<void> updateReimbursement({
+    required int id,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+    required int? accountId,
   });
 }

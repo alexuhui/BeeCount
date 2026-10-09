@@ -6,6 +6,12 @@ import '../../data/db.dart';
 import '../../l10n/app_localizations.dart';
 import '../ui/ui.dart';
 
+/// 账户选择结果。取消为 null；选「不选择账户」时 [accountId] 为 null。
+class AccountPick {
+  final int? accountId;
+  const AccountPick(this.accountId);
+}
+
 /// 账户选择器数据模型
 class AccountOption {
   final int? id;
@@ -25,11 +31,13 @@ class AccountOption {
 class AccountPicker extends ConsumerStatefulWidget {
   final int? selectedAccountId;
   final bool allowNull;
+  final bool returnPick;
 
   const AccountPicker({
     super.key,
     this.selectedAccountId,
     this.allowNull = true,
+    this.returnPick = false,
   });
 
   @override
@@ -51,6 +59,27 @@ class AccountPicker extends ConsumerStatefulWidget {
       builder: (_) => AccountPicker(
         selectedAccountId: selectedAccountId,
         allowNull: allowNull,
+      ),
+    );
+  }
+
+  /// 与 [show] 相同，但能区分「取消」和「不选择账户」。
+  static Future<AccountPick?> showPicked(
+    BuildContext context, {
+    int? selectedAccountId,
+    bool allowNull = true,
+  }) {
+    return showModalBottomSheet<AccountPick>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      isScrollControlled: true,
+      builder: (_) => AccountPicker(
+        selectedAccountId: selectedAccountId,
+        allowNull: allowNull,
+        returnPick: true,
       ),
     );
   }
@@ -235,7 +264,12 @@ class _AccountPickerState extends ConsumerState<AccountPicker> {
                           ? null
                           : () {
                               final selected = _options[_selectedIndex];
-                              Navigator.pop(context, selected.id);
+                              Navigator.pop(
+                                context,
+                                widget.returnPick
+                                    ? AccountPick(selected.id)
+                                    : selected.id,
+                              );
                             },
                       child: Text(
                         l10n.commonOk,

@@ -2764,6 +2764,9 @@ class _TransactionTile extends ConsumerWidget {
       case 'refund':
         amountColor = BeeTokens.chartTransfer(context);
         break;
+      case 'reimburse':
+        amountColor = BeeTokens.statusPending(context);
+        break;
       default:
         amountColor = BeeTokens.textPrimary(context);
     }
@@ -2808,10 +2811,10 @@ class _TransactionTile extends ConsumerWidget {
           }
         }
       }
-    } else if (transaction.type == 'refund') {
+    } else if (transaction.type == 'refund' || transaction.type == 'reimburse') {
       displayTitle = transaction.note?.isNotEmpty == true
           ? transaction.note!
-          : l10n.refundTitle;
+          : (transaction.type == 'refund' ? l10n.refundTitle : l10n.reimburseTitle);
       if (category != null) {
         displaySubtitle = category.name;
       }

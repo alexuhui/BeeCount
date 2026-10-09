@@ -851,6 +851,7 @@ class LocalTransactionRepository implements TransactionRepository {
     required double amount,
     required DateTime happenedAt,
     String? reason,
+    required int? accountId,
   }) async {
     final original = await getTransactionById(originalId);
     if (original == null || original.type != 'expense') {
@@ -870,11 +871,79 @@ class LocalTransactionRepository implements TransactionRepository {
           type: 'refund',
           amount: amount,
           categoryId: d.Value(original.categoryId),
-          accountId: d.Value(original.accountId),
+          accountId: d.Value(accountId),
           happenedAt: d.Value(happenedAt),
           note: d.Value(note == null || note.isEmpty ? null : note),
           refundOfId: d.Value(originalId),
         ));
+  }
+
+  @override
+  Future<List<Transaction>> listReimbursements(int originalId) {
+    return (db.select(db.transactions)
+          ..where((t) =>
+              t.refundOfId.equals(originalId) & t.type.equals('reimburse'))
+          ..orderBy([
+            (t) => d.OrderingTerm(
+                expression: t.happenedAt, mode: d.OrderingMode.desc),
+          ]))
+        .get();
+  }
+
+  @override
+  Future<int> addReimbursement({
+    required int originalId,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+    required int? accountId,
+  }) async {
+    final original = await getTransactionById(originalId);
+    if (original == null || original.type != 'expense') {
+      throw StateError('只能对支出记录报销');
+    }
+    if (amount <= 0) {
+      throw StateError('报销金额需大于 0');
+    }
+    final note = reason?.trim();
+    return db.into(db.transactions).insert(TransactionsCompanion.insert(
+          ledgerId: original.ledgerId,
+          type: 'reimburse',
+          amount: amount,
+          categoryId: d.Value(original.categoryId),
+          accountId: d.Value(accountId),
+          happenedAt: d.Value(happenedAt),
+          note: d.Value(note == null || note.isEmpty ? null : note),
+          refundOfId: d.Value(originalId),
+        ));
+  }
+
+  @override
+  Future<void> updateReimbursement({
+    required int id,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+    required int? accountId,
+  }) async {
+    final current = await getTransactionById(id);
+    if (current == null ||
+        current.type != 'reimburse' ||
+        current.refundOfId == null) {
+      throw StateError('报销记录不存在');
+    }
+    if (amount <= 0) {
+      throw StateError('报销金额需大于 0');
+    }
+    final note = reason?.trim();
+    await (db.update(db.transactions)..where((t) => t.id.equals(id))).write(
+      TransactionsCompanion(
+        amount: d.Value(amount),
+        happenedAt: d.Value(happenedAt),
+        note: d.Value(note == null || note.isEmpty ? null : note),
+        accountId: d.Value(accountId),
+      ),
+    );
   }
 
   @override
@@ -883,6 +952,7 @@ class LocalTransactionRepository implements TransactionRepository {
     required double amount,
     required DateTime happenedAt,
     String? reason,
+    required int? accountId,
   }) async {
     final current = await getTransactionById(id);
     if (current == null || current.type != 'refund' || current.refundOfId == null) {
@@ -908,6 +978,7 @@ class LocalTransactionRepository implements TransactionRepository {
         amount: d.Value(amount),
         happenedAt: d.Value(happenedAt),
         note: d.Value(note == null || note.isEmpty ? null : note),
+        accountId: d.Value(accountId),
       ),
     );
   }

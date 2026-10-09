@@ -11,6 +11,7 @@ import '../../services/api/beecount_api_exception.dart';
 import '../../services/billing/post_processor.dart';
 import '../../styles/tokens.dart';
 import '../../utils/refund_tx.dart';
+import '../biz/account_picker.dart';
 import '../ui/ui.dart';
 
 /// 记一笔退款，或修改已有退款。成功时返回 true。
@@ -19,7 +20,46 @@ Future<bool?> showRefundSheet({
   required int originalId,
   required double originalAmount,
   required double alreadyRefunded,
-  bool creditsAccount = true,
+  required int? originalAccountId,
+  Transaction? editing,
+}) {
+  return _showLinkedSheet(
+    context: context,
+    reimbursement: false,
+    originalId: originalId,
+    originalAmount: originalAmount,
+    alreadyRefunded: alreadyRefunded,
+    originalAccountId: originalAccountId,
+    editing: editing,
+  );
+}
+
+/// 记一笔报销，或修改已有报销。金额可以高于原支出。成功时返回 true。
+Future<bool?> showReimburseSheet({
+  required BuildContext context,
+  required int originalId,
+  required double originalAmount,
+  required int? originalAccountId,
+  Transaction? editing,
+}) {
+  return _showLinkedSheet(
+    context: context,
+    reimbursement: true,
+    originalId: originalId,
+    originalAmount: originalAmount,
+    alreadyRefunded: 0,
+    originalAccountId: originalAccountId,
+    editing: editing,
+  );
+}
+
+Future<bool?> _showLinkedSheet({
+  required BuildContext context,
+  required bool reimbursement,
+  required int originalId,
+  required double originalAmount,
+  required double alreadyRefunded,
+  required int? originalAccountId,
   Transaction? editing,
 }) {
   return showModalBottomSheet<bool>(
@@ -29,42 +69,47 @@ Future<bool?> showRefundSheet({
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
-    builder: (ctx) => RefundSheet(
+    builder: (ctx) => _LinkedCreditSheet(
+      reimbursement: reimbursement,
       originalId: originalId,
       originalAmount: originalAmount,
       alreadyRefunded: alreadyRefunded,
-      creditsAccount: creditsAccount,
+      originalAccountId: originalAccountId,
       editing: editing,
     ),
   );
 }
 
-class RefundSheet extends ConsumerStatefulWidget {
+class _LinkedCreditSheet extends ConsumerStatefulWidget {
+  final bool reimbursement;
   final int originalId;
   final double originalAmount;
   final double alreadyRefunded;
-  final bool creditsAccount;
+  final int? originalAccountId;
   final Transaction? editing;
 
-  const RefundSheet({
-    super.key,
+  const _LinkedCreditSheet({
+    required this.reimbursement,
     required this.originalId,
     required this.originalAmount,
     required this.alreadyRefunded,
-    required this.creditsAccount,
+    required this.originalAccountId,
     this.editing,
   });
 
   @override
-  ConsumerState<RefundSheet> createState() => _RefundSheetState();
+  ConsumerState<_LinkedCreditSheet> createState() => _LinkedCreditSheetState();
 }
 
-class _RefundSheetState extends ConsumerState<RefundSheet> {
+class _LinkedCreditSheetState extends ConsumerState<_LinkedCreditSheet> {
   late final TextEditingController _amountCtrl;
   late final TextEditingController _reasonCtrl;
   late DateTime _happenedAt;
+  late int? _accountId;
   bool _saving = false;
   String? _error;
+
+  bool get _reimburse => widget.reimbursement;
 
   double get _remaining => RefundTx.remaining(
         original: widget.originalAmount,
@@ -75,12 +120,13 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
   void initState() {
     super.initState();
     final editing = widget.editing;
-    final initial = editing == null
-        ? _remaining
-        : RefundTx.roundMoney(editing.amount);
+    final initial = editing != null
+        ? RefundTx.roundMoney(editing.amount)
+        : (_reimburse ? RefundTx.roundMoney(widget.originalAmount) : _remaining);
     _amountCtrl = TextEditingController(text: _formatAmount(initial));
     _reasonCtrl = TextEditingController(text: editing?.note ?? '');
     _happenedAt = editing?.happenedAt.toLocal() ?? DateTime.now();
+    _accountId = editing?.accountId ?? widget.originalAccountId;
   }
 
   @override
@@ -127,6 +173,15 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
     });
   }
 
+  Future<void> _pickAccount() async {
+    final picked = await AccountPicker.showPicked(
+      context,
+      selectedAccountId: _accountId,
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _accountId = picked.accountId);
+  }
+
   String _errorText(Object error, AppLocalizations l10n) {
     if (error is BeeCountApiException && error.body != null) {
       try {
@@ -149,9 +204,18 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
       setState(() => _error = l10n.refundInvalidAmount);
       return;
     }
-    if (amount > _remaining + 0.009) {
+    if (!_reimburse && amount > _remaining + 0.009) {
       setState(() => _error = l10n.refundExceeds);
       return;
+    }
+    if (_reimburse && amount > widget.originalAmount + 0.009) {
+      final confirmed = await AppDialog.confirm<bool>(
+            context,
+            title: l10n.reimburseOverTitle,
+            message: l10n.reimburseOverMessage,
+          ) ??
+          false;
+      if (!confirmed || !mounted) return;
     }
     setState(() {
       _saving = true;
@@ -159,20 +223,41 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
     });
     final repo = ref.read(repositoryProvider);
     final reason = _reasonCtrl.text.trim();
+    final note = reason.isEmpty ? null : reason;
     try {
-      if (widget.editing == null) {
+      if (_reimburse) {
+        if (widget.editing == null) {
+          await repo.addReimbursement(
+            originalId: widget.originalId,
+            amount: amount,
+            happenedAt: _happenedAt,
+            reason: note,
+            accountId: _accountId,
+          );
+        } else {
+          await repo.updateReimbursement(
+            id: widget.editing!.id,
+            amount: amount,
+            happenedAt: _happenedAt,
+            reason: note,
+            accountId: _accountId,
+          );
+        }
+      } else if (widget.editing == null) {
         await repo.addRefund(
           originalId: widget.originalId,
           amount: amount,
           happenedAt: _happenedAt,
-          reason: reason.isEmpty ? null : reason,
+          reason: note,
+          accountId: _accountId,
         );
       } else {
         await repo.updateRefund(
           id: widget.editing!.id,
           amount: amount,
           happenedAt: _happenedAt,
-          reason: reason.isEmpty ? null : reason,
+          reason: note,
+          accountId: _accountId,
         );
       }
       final ledgerId = ref.read(currentLedgerIdProvider);
@@ -180,10 +265,10 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
       ref.invalidate(countsForLedgerProvider(ledgerId));
       ref.read(statsRefreshProvider.notifier).state++;
       if (!mounted) return;
-      showToast(
-        context,
-        widget.editing == null ? l10n.refundSaved : l10n.refundUpdated,
-      );
+      final saved = widget.editing == null
+          ? (_reimburse ? l10n.reimburseSaved : l10n.refundSaved)
+          : (_reimburse ? l10n.reimburseUpdated : l10n.refundUpdated);
+      showToast(context, saved);
       Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
@@ -200,7 +285,7 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
     final l10n = AppLocalizations.of(context);
     final confirmed = await AppDialog.confirm<bool>(
           context,
-          title: l10n.refundDelete,
+          title: _reimburse ? l10n.reimburseDelete : l10n.refundDelete,
           message: l10n.deleteConfirmMessage,
         ) ??
         false;
@@ -213,7 +298,10 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
       ref.invalidate(countsForLedgerProvider(ledgerId));
       ref.read(statsRefreshProvider.notifier).state++;
       if (!mounted) return;
-      showToast(context, l10n.refundDeleted);
+      showToast(
+        context,
+        _reimburse ? l10n.reimburseDeleted : l10n.refundDeleted,
+      );
       Navigator.pop(context, true);
     } catch (e) {
       if (mounted) setState(() => _error = _errorText(e, l10n));
@@ -227,6 +315,18 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
     final l10n = AppLocalizations.of(context);
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     final primary = Theme.of(context).colorScheme.primary;
+    final accounts = ref.watch(allAccountsStreamProvider).asData?.value ?? [];
+    final accountName = _accountId == null
+        ? l10n.accountNone
+        : accounts
+                .where((account) => account.id == _accountId)
+                .map((account) => account.name)
+                .firstOrNull ??
+            l10n.accountNone;
+    final fillAmount = _reimburse ? widget.originalAmount : _remaining;
+    final hint = _accountId == null
+        ? (_reimburse ? l10n.reimburseNoAccount : l10n.refundNoAccount)
+        : (_reimburse ? l10n.reimburseHint : l10n.refundHint);
 
     return SafeArea(
       child: Padding(
@@ -239,7 +339,7 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
               children: [
                 Expanded(
                   child: Text(
-                    l10n.refundTitle,
+                    _reimburse ? l10n.reimburseTitle : l10n.refundTitle,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: BeeTokens.textPrimary(context),
@@ -247,7 +347,9 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
                   ),
                 ),
                 Text(
-                  '${l10n.refundRemainingLabel} ${_formatAmount(_remaining)}',
+                  _reimburse
+                      ? '${l10n.reimburseOriginalLabel} ${_formatAmount(widget.originalAmount)}'
+                      : '${l10n.refundRemainingLabel} ${_formatAmount(_remaining)}',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: primary,
                         fontWeight: FontWeight.w600,
@@ -257,7 +359,7 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
             ),
             const SizedBox(height: 4),
             Text(
-              widget.creditsAccount ? l10n.refundHint : l10n.refundNoAccount,
+              hint,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: BeeTokens.textSecondary(context),
                   ),
@@ -272,7 +374,9 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
               ],
               style: TextStyle(color: BeeTokens.textPrimary(context)),
               decoration: InputDecoration(
-                labelText: l10n.refundAmountLabel,
+                labelText: _reimburse
+                    ? l10n.reimburseAmountLabel
+                    : l10n.refundAmountLabel,
                 isDense: true,
                 filled: true,
                 fillColor: BeeTokens.surfaceInput(context),
@@ -281,24 +385,34 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
                   borderSide: BorderSide.none,
                 ),
                 suffixIcon: TextButton(
-                  onPressed: _remaining <= 0
+                  onPressed: fillAmount <= 0
                       ? null
                       : () {
                           setState(() {
-                            _amountCtrl.text = _formatAmount(_remaining);
+                            _amountCtrl.text = _formatAmount(fillAmount);
                             _amountCtrl.selection = TextSelection.fromPosition(
                               TextPosition(offset: _amountCtrl.text.length),
                             );
                           });
                         },
-                  child: Text(l10n.refundFull),
+                  child: Text(
+                    _reimburse ? l10n.reimburseFull : l10n.refundFull,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 8),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text(l10n.refundTime),
+              title: Text(l10n.refundAccountLabel),
+              subtitle: Text(accountName),
+              trailing: const Icon(Icons.account_balance_wallet_outlined),
+              onTap: _pickAccount,
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                _reimburse ? l10n.reimburseTime : l10n.refundTime,
+              ),
               subtitle: Text(_formatDateTime(_happenedAt)),
               trailing: const Icon(Icons.schedule),
               onTap: _pickDateTime,
@@ -307,7 +421,9 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
               controller: _reasonCtrl,
               style: TextStyle(color: BeeTokens.textPrimary(context)),
               decoration: InputDecoration(
-                labelText: l10n.refundReasonHint,
+                labelText: _reimburse
+                    ? l10n.reimburseReasonHint
+                    : l10n.refundReasonHint,
                 isDense: true,
                 filled: true,
                 fillColor: BeeTokens.surfaceInput(context),
@@ -330,7 +446,9 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
                 if (widget.editing != null)
                   TextButton(
                     onPressed: _saving ? null : _delete,
-                    child: Text(l10n.refundDelete),
+                    child: Text(
+                      _reimburse ? l10n.reimburseDelete : l10n.refundDelete,
+                    ),
                   ),
                 const Spacer(),
                 TextButton(
@@ -339,7 +457,9 @@ class _RefundSheetState extends ConsumerState<RefundSheet> {
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
-                  onPressed: _saving || _remaining <= 0 ? null : _submit,
+                  onPressed: _saving || (!_reimburse && _remaining <= 0)
+                      ? null
+                      : _submit,
                   child: _saving
                       ? const SizedBox(
                           width: 16,

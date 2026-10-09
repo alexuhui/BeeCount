@@ -11071,13 +11071,13 @@ abstract class AppLocalizations {
   /// No description provided for @refundHint.
   ///
   /// In en, this message translates to:
-  /// **'A refund is not income. It is credited to the original account so the balance stays even.'**
+  /// **'A refund is not income. It defaults to the original account, and you can credit a different one.'**
   String get refundHint;
 
   /// No description provided for @refundNoAccount.
   ///
   /// In en, this message translates to:
-  /// **'This expense has no account, so the refund is recorded without changing a balance.'**
+  /// **'With no account selected, the refund is recorded without changing a balance.'**
   String get refundNoAccount;
 
   /// No description provided for @refundDelete.
@@ -11092,11 +11092,119 @@ abstract class AppLocalizations {
   /// **'Refundable'**
   String get refundRemainingLabel;
 
+  /// No description provided for @refundAccountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit account'**
+  String get refundAccountLabel;
+
+  /// No description provided for @reimburseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reimbursement'**
+  String get reimburseTitle;
+
+  /// No description provided for @reimburseAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reimburse'**
+  String get reimburseAction;
+
+  /// No description provided for @reimburseFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Full amount'**
+  String get reimburseFull;
+
+  /// No description provided for @reimburseAmountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reimbursement amount'**
+  String get reimburseAmountLabel;
+
+  /// No description provided for @reimburseReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get reimburseReasonHint;
+
+  /// No description provided for @reimburseTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Reimbursement time'**
+  String get reimburseTime;
+
+  /// No description provided for @reimburseSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Reimbursement recorded'**
+  String get reimburseSaved;
+
+  /// No description provided for @reimburseUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Reimbursement updated'**
+  String get reimburseUpdated;
+
+  /// No description provided for @reimburseDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Reimbursement deleted'**
+  String get reimburseDeleted;
+
+  /// No description provided for @reimburseHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Reimbursements'**
+  String get reimburseHistory;
+
+  /// No description provided for @reimburseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A reimbursement is not income. It defaults to the original account, and you can credit a different one. The amount may exceed the original expense.'**
+  String get reimburseHint;
+
+  /// No description provided for @reimburseNoAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'With no account selected, the reimbursement is recorded without changing a balance.'**
+  String get reimburseNoAccount;
+
+  /// No description provided for @reimburseDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete reimbursement'**
+  String get reimburseDelete;
+
+  /// No description provided for @reimburseOriginalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Original'**
+  String get reimburseOriginalLabel;
+
+  /// No description provided for @reimburseOverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Above the original amount'**
+  String get reimburseOverTitle;
+
+  /// No description provided for @reimburseOverMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This reimbursement is higher than the original expense. Credit this amount?'**
+  String get reimburseOverMessage;
+
   /// No description provided for @exportTypeRefund.
   ///
   /// In en, this message translates to:
   /// **'Refund'**
   String get exportTypeRefund;
+
+  /// No description provided for @exportTypeReimburse.
+  ///
+  /// In en, this message translates to:
+  /// **'Reimbursement'**
+  String get exportTypeReimburse;
 }
 
 class _AppLocalizationsDelegate

@@ -33,11 +33,23 @@ class TransactionEditUtils {
 
     if (!context.mounted) return;
 
-    if (RefundTx.isRefund(transaction.type) && transaction.refundOfId != null) {
+    if (RefundTx.isLinkedCredit(transaction.type) &&
+        transaction.refundOfId != null) {
       final originalId = transaction.refundOfId!;
       final original = await repo.getTransactionById(originalId);
-      final refunds = await repo.listRefunds(originalId);
       if (!context.mounted || original == null) return;
+      if (ReimburseTx.isReimburse(transaction.type)) {
+        await showReimburseSheet(
+          context: context,
+          originalId: originalId,
+          originalAmount: original.amount,
+          originalAccountId: original.accountId,
+          editing: transaction,
+        );
+        return;
+      }
+      final refunds = await repo.listRefunds(originalId);
+      if (!context.mounted) return;
       final others = refunds
           .where((row) => row.id != transaction.id)
           .fold<double>(0, (sum, row) => sum + row.amount);
@@ -46,7 +58,7 @@ class TransactionEditUtils {
         originalId: originalId,
         originalAmount: original.amount,
         alreadyRefunded: others,
-        creditsAccount: original.accountId != null,
+        originalAccountId: original.accountId,
         editing: transaction,
       );
       return;

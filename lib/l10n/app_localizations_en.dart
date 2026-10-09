@@ -6082,11 +6082,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get refundHint =>
-      'A refund is not income. It is credited to the original account so the balance stays even.';
+      'A refund is not income. It defaults to the original account, and you can credit a different one.';
 
   @override
   String get refundNoAccount =>
-      'This expense has no account, so the refund is recorded without changing a balance.';
+      'With no account selected, the refund is recorded without changing a balance.';
 
   @override
   String get refundDelete => 'Delete refund';
@@ -6095,5 +6095,62 @@ class AppLocalizationsEn extends AppLocalizations {
   String get refundRemainingLabel => 'Refundable';
 
   @override
+  String get refundAccountLabel => 'Credit account';
+
+  @override
+  String get reimburseTitle => 'Reimbursement';
+
+  @override
+  String get reimburseAction => 'Reimburse';
+
+  @override
+  String get reimburseFull => 'Full amount';
+
+  @override
+  String get reimburseAmountLabel => 'Reimbursement amount';
+
+  @override
+  String get reimburseReasonHint => 'Note';
+
+  @override
+  String get reimburseTime => 'Reimbursement time';
+
+  @override
+  String get reimburseSaved => 'Reimbursement recorded';
+
+  @override
+  String get reimburseUpdated => 'Reimbursement updated';
+
+  @override
+  String get reimburseDeleted => 'Reimbursement deleted';
+
+  @override
+  String get reimburseHistory => 'Reimbursements';
+
+  @override
+  String get reimburseHint =>
+      'A reimbursement is not income. It defaults to the original account, and you can credit a different one. The amount may exceed the original expense.';
+
+  @override
+  String get reimburseNoAccount =>
+      'With no account selected, the reimbursement is recorded without changing a balance.';
+
+  @override
+  String get reimburseDelete => 'Delete reimbursement';
+
+  @override
+  String get reimburseOriginalLabel => 'Original';
+
+  @override
+  String get reimburseOverTitle => 'Above the original amount';
+
+  @override
+  String get reimburseOverMessage =>
+      'This reimbursement is higher than the original expense. Credit this amount?';
+
+  @override
   String get exportTypeRefund => 'Refund';
+
+  @override
+  String get exportTypeReimburse => 'Reimbursement';
 }

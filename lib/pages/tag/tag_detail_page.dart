@@ -306,15 +306,18 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
               return TransactionListItem(
                 icon: getCategoryIconData(category: category, categoryName: categoryName),
                 category: category,
-                title: transaction.type == 'refund'
-                    ? (hasNote ? transaction.note! : '${l10n.refundTitle} · $categoryName')
+                title: transaction.type == 'refund' || transaction.type == 'reimburse'
+                    ? (hasNote
+                        ? transaction.note!
+                        : '${transaction.type == 'refund' ? l10n.refundTitle : l10n.reimburseTitle} · $categoryName')
                     : (hasNote ? transaction.note! : categoryName),
-                categoryName: transaction.type == 'refund'
-                    ? '${l10n.refundTitle} · $categoryName'
+                categoryName: transaction.type == 'refund' || transaction.type == 'reimburse'
+                    ? '${transaction.type == 'refund' ? l10n.refundTitle : l10n.reimburseTitle} · $categoryName'
                     : (hasNote ? null : categoryName),
                 amount: transaction.amount,
                 isExpense: transaction.type == 'expense',
                 isRefund: transaction.type == 'refund',
+                isReimburse: transaction.type == 'reimburse',
                 happenedAt: transaction.happenedAt,
                 onTap: () async {
                   await TransactionEditUtils.openDetail(context, transaction.id);

@@ -33,6 +33,7 @@ class InvestTx {
       switch (type) {
         case 'income':
         case 'refund':
+        case 'reimburse':
         case gain:
           return balance + amount;
         case 'expense':

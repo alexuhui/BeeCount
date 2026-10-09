@@ -73,6 +73,7 @@ class TransactionDetailPage extends ConsumerWidget {
             onChanged: () {
               ref.invalidate(_transactionDetailProvider(transactionId));
               ref.invalidate(_refundsProvider(detail.tx.id));
+              ref.invalidate(_reimbursementsProvider(detail.tx.id));
             },
           );
         },
@@ -109,6 +110,7 @@ class _DetailBody extends ConsumerWidget {
     final isExpense = tx.type == 'expense' || tx.type == InvestTx.loss;
     final isTransfer = tx.type == 'transfer';
     final isRefund = RefundTx.isRefund(tx.type);
+    final isReimburse = ReimburseTx.isReimburse(tx.type);
     final categoryName = CategoryUtils.getDisplayName(
       detail.category?.name ?? l10n.commonUncategorized,
       context,
@@ -116,7 +118,9 @@ class _DetailBody extends ConsumerWidget {
     final timeText = DateFormat('yyyy-MM-dd HH:mm:ss').format(tx.happenedAt.toLocal());
     final amountColor = isRefund
         ? BeeTokens.chartTransfer(context)
-        : isTransfer
+        : isReimburse
+            ? BeeTokens.statusPending(context)
+            : isTransfer
             ? BeeTokens.textPrimary(context)
             : isExpense
                 ? BeeTokens.expenseColor(context, ref)
@@ -211,7 +215,9 @@ class _DetailBody extends ConsumerWidget {
                 _InfoRow(
                   label: isRefund
                       ? l10n.refundReasonHint
-                      : l10n.transactionDetailNote,
+                      : isReimburse
+                          ? l10n.reimburseReasonHint
+                          : l10n.transactionDetailNote,
                   value: tx.note!,
                 ),
               ],
@@ -229,7 +235,7 @@ class _DetailBody extends ConsumerWidget {
                   value: _investEventLabel(l10n, tx.investEvent!),
                 ),
               ],
-              if (isRefund && tx.refundOfId != null) ...[
+              if ((isRefund || isReimburse) && tx.refundOfId != null) ...[
                 BeeTokens.cardDivider(context),
                 InkWell(
                   onTap: () {
@@ -282,8 +288,8 @@ class _DetailBody extends ConsumerWidget {
           ),
         ],
         if (tx.type == 'expense') ...[
-          SizedBox(height: 12.0.scaled(context, ref)),
           _RefundHistory(originalId: tx.id),
+          _ReimburseHistory(originalId: tx.id),
         ],
         if (detail.attachments.isNotEmpty) ...[
           SizedBox(height: 12.0.scaled(context, ref)),
@@ -339,6 +345,8 @@ class _DetailBody extends ConsumerWidget {
         return l10n.transferTitle;
       case RefundTx.typeName:
         return l10n.refundTitle;
+      case ReimburseTx.typeName:
+        return l10n.reimburseTitle;
       case InvestTx.gain:
         return l10n.investGain;
       case InvestTx.loss:
@@ -464,6 +472,12 @@ final _refundsProvider =
   return ref.watch(repositoryProvider).listRefunds(id);
 });
 
+final _reimbursementsProvider =
+    FutureProvider.family.autoDispose<List<db.Transaction>, int>((ref, id) async {
+  ref.watch(statsRefreshProvider);
+  return ref.watch(repositoryProvider).listReimbursements(id);
+});
+
 class _RefundBar extends ConsumerWidget {
   final db.Transaction original;
   final VoidCallback onChanged;
@@ -492,33 +506,64 @@ class _RefundBar extends ConsumerWidget {
           16.0.scaled(context, ref),
           12,
         ),
-        child: SizedBox(
-          height: 48,
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: remaining <= 0
-                ? null
-                : () async {
-                    final ok = await showRefundSheet(
+        child: Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 48,
+                child: FilledButton.icon(
+                  onPressed: remaining <= 0
+                      ? null
+                      : () async {
+                          final ok = await showRefundSheet(
+                            context: context,
+                            originalId: original.id,
+                            originalAmount: original.amount,
+                            alreadyRefunded: refunded,
+                            originalAccountId: original.accountId,
+                          );
+                          if (ok == true) onChanged();
+                        },
+                  icon: const Icon(Icons.undo),
+                  label: Text(
+                    remaining <= 0 ? l10n.refundAlreadyFull : l10n.refundAction,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: primary,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: BeeTokens.surfaceDisabled(context),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SizedBox(
+                height: 48,
+                child: FilledButton.icon(
+                  onPressed: () async {
+                    final ok = await showReimburseSheet(
                       context: context,
                       originalId: original.id,
                       originalAmount: original.amount,
-                      alreadyRefunded: refunded,
-                      creditsAccount: original.accountId != null,
+                      originalAccountId: original.accountId,
                     );
                     if (ok == true) onChanged();
                   },
-            icon: const Icon(Icons.undo),
-            label: Text(
-              remaining <= 0 ? l10n.refundAlreadyFull : l10n.refundAction,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+                  icon: const Icon(Icons.receipt_long_outlined),
+                  label: Text(
+                    l10n.reimburseAction,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: BeeTokens.statusPending(context),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
             ),
-            style: FilledButton.styleFrom(
-              backgroundColor: primary,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: BeeTokens.surfaceDisabled(context),
-            ),
-          ),
+          ],
         ),
       ),
     );
@@ -539,7 +584,10 @@ class _RefundHistory extends ConsumerWidget {
       error: (_, __) => const SizedBox.shrink(),
       data: (rows) {
         if (rows.isEmpty) return const SizedBox.shrink();
-        return SectionCard(
+        return Column(
+          children: [
+            const SizedBox(height: 12),
+            SectionCard(
           margin: EdgeInsets.zero,
           padding: EdgeInsets.zero,
           child: Column(
@@ -561,6 +609,8 @@ class _RefundHistory extends ConsumerWidget {
               ],
             ],
           ),
+            ),
+          ],
         );
       },
     );
@@ -594,7 +644,7 @@ class _RefundTile extends ConsumerWidget {
           originalId: originalId,
           originalAmount: original.amount,
           alreadyRefunded: others,
-          creditsAccount: original.accountId != null,
+          originalAccountId: original.accountId,
           editing: refund,
         );
         if (ok == true) {
@@ -624,6 +674,112 @@ class _RefundTile extends ConsumerWidget {
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: BeeTokens.chartTransfer(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReimburseHistory extends ConsumerWidget {
+  final int originalId;
+
+  const _ReimburseHistory({required this.originalId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final rowsAsync = ref.watch(_reimbursementsProvider(originalId));
+    return rowsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (rows) {
+        if (rows.isEmpty) return const SizedBox.shrink();
+        return Column(
+          children: [
+            const SizedBox(height: 12),
+            SectionCard(
+          margin: EdgeInsets.zero,
+          padding: EdgeInsets.zero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: Text(
+                  l10n.reimburseHistory,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: BeeTokens.textSecondary(context),
+                  ),
+                ),
+              ),
+              for (var i = 0; i < rows.length; i++) ...[
+                if (i > 0) BeeTokens.cardDivider(context),
+                _ReimburseTile(row: rows[i], originalId: originalId),
+              ],
+            ],
+          ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ReimburseTile extends ConsumerWidget {
+  final db.Transaction row;
+  final int originalId;
+
+  const _ReimburseTile({required this.row, required this.originalId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final time = DateFormat('yyyy-MM-dd HH:mm').format(row.happenedAt.toLocal());
+    final reason =
+        (row.note == null || row.note!.isEmpty) ? time : '$time · ${row.note}';
+    return InkWell(
+      onTap: () async {
+        final original =
+            await ref.read(repositoryProvider).getTransactionById(originalId);
+        if (!context.mounted || original == null) return;
+        final ok = await showReimburseSheet(
+          context: context,
+          originalId: originalId,
+          originalAmount: original.amount,
+          originalAccountId: original.accountId,
+          editing: row,
+        );
+        if (ok == true) {
+          ref.invalidate(_reimbursementsProvider(originalId));
+          ref.invalidate(_transactionDetailProvider(originalId));
+          ref.invalidate(_transactionDetailProvider(row.id));
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                reason,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: BeeTokens.textPrimary(context),
+                ),
+              ),
+            ),
+            AmountText(
+              value: row.amount,
+              signed: true,
+              decimals: 2,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: BeeTokens.statusPending(context),
               ),
             ),
           ],

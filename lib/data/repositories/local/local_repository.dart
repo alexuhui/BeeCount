@@ -231,12 +231,14 @@ class LocalRepository extends BaseRepository {
     required double amount,
     required DateTime happenedAt,
     String? reason,
+    required int? accountId,
   }) =>
       _transactionRepo.addRefund(
         originalId: originalId,
         amount: amount,
         happenedAt: happenedAt,
         reason: reason,
+        accountId: accountId,
       );
 
   @override
@@ -245,12 +247,50 @@ class LocalRepository extends BaseRepository {
     required double amount,
     required DateTime happenedAt,
     String? reason,
+    required int? accountId,
   }) =>
       _transactionRepo.updateRefund(
         id: id,
         amount: amount,
         happenedAt: happenedAt,
         reason: reason,
+        accountId: accountId,
+      );
+
+  @override
+  Future<List<Transaction>> listReimbursements(int originalId) =>
+      _transactionRepo.listReimbursements(originalId);
+
+  @override
+  Future<int> addReimbursement({
+    required int originalId,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+    required int? accountId,
+  }) =>
+      _transactionRepo.addReimbursement(
+        originalId: originalId,
+        amount: amount,
+        happenedAt: happenedAt,
+        reason: reason,
+        accountId: accountId,
+      );
+
+  @override
+  Future<void> updateReimbursement({
+    required int id,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+    required int? accountId,
+  }) =>
+      _transactionRepo.updateReimbursement(
+        id: id,
+        amount: amount,
+        happenedAt: happenedAt,
+        reason: reason,
+        accountId: accountId,
       );
 
   @override

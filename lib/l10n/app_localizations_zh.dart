@@ -5842,10 +5842,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get refundHistory => '退款记录';
 
   @override
-  String get refundHint => '退款不算收入。钱会回到原账户，用来把这笔支出平回去。';
+  String get refundHint => '退款不算收入。默认回到原账户，也可以改记到其他账户。';
 
   @override
-  String get refundNoAccount => '这笔支出没有关联账户，退款只会留下记录，不会改变账户余额。';
+  String get refundNoAccount => '未选择账户时，退款只会留下记录，不会改变账户余额。';
 
   @override
   String get refundDelete => '删除退款';
@@ -5854,7 +5854,61 @@ class AppLocalizationsZh extends AppLocalizations {
   String get refundRemainingLabel => '可退';
 
   @override
+  String get refundAccountLabel => '入账账户';
+
+  @override
+  String get reimburseTitle => '报销';
+
+  @override
+  String get reimburseAction => '报销';
+
+  @override
+  String get reimburseFull => '全额';
+
+  @override
+  String get reimburseAmountLabel => '报销金额';
+
+  @override
+  String get reimburseReasonHint => '报销说明';
+
+  @override
+  String get reimburseTime => '报销时间';
+
+  @override
+  String get reimburseSaved => '已记录报销';
+
+  @override
+  String get reimburseUpdated => '已更新报销';
+
+  @override
+  String get reimburseDeleted => '已删除报销';
+
+  @override
+  String get reimburseHistory => '报销记录';
+
+  @override
+  String get reimburseHint => '报销不算收入。默认回到原账户，也可以改记到其他账户。金额可以高于原支出。';
+
+  @override
+  String get reimburseNoAccount => '未选择账户时，报销只会留下记录，不会改变账户余额。';
+
+  @override
+  String get reimburseDelete => '删除报销';
+
+  @override
+  String get reimburseOriginalLabel => '原金额';
+
+  @override
+  String get reimburseOverTitle => '报销高于原金额';
+
+  @override
+  String get reimburseOverMessage => '这笔报销高于原支出金额，确认按这个金额入账？';
+
+  @override
   String get exportTypeRefund => '退款';
+
+  @override
+  String get exportTypeReimburse => '报销';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -11553,10 +11607,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get refundHistory => '退款記錄';
 
   @override
-  String get refundHint => '退款不算收入。款項會回到原帳戶，用來把這筆支出平回去。';
+  String get refundHint => '退款不算收入。預設回到原帳戶，也可以改記到其他帳戶。';
 
   @override
-  String get refundNoAccount => '這筆支出沒有關聯帳戶，退款只會留下記錄，不會改變帳戶餘額。';
+  String get refundNoAccount => '未選擇帳戶時，退款只會留下記錄，不會改變帳戶餘額。';
 
   @override
   String get refundDelete => '刪除退款';
@@ -11565,5 +11619,59 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get refundRemainingLabel => '可退';
 
   @override
+  String get refundAccountLabel => '入帳帳戶';
+
+  @override
+  String get reimburseTitle => '報銷';
+
+  @override
+  String get reimburseAction => '報銷';
+
+  @override
+  String get reimburseFull => '全額';
+
+  @override
+  String get reimburseAmountLabel => '報銷金額';
+
+  @override
+  String get reimburseReasonHint => '報銷說明';
+
+  @override
+  String get reimburseTime => '報銷時間';
+
+  @override
+  String get reimburseSaved => '已記錄報銷';
+
+  @override
+  String get reimburseUpdated => '已更新報銷';
+
+  @override
+  String get reimburseDeleted => '已刪除報銷';
+
+  @override
+  String get reimburseHistory => '報銷記錄';
+
+  @override
+  String get reimburseHint => '報銷不算收入。預設回到原帳戶，也可以改記到其他帳戶。金額可以高於原支出。';
+
+  @override
+  String get reimburseNoAccount => '未選擇帳戶時，報銷只會留下記錄，不會改變帳戶餘額。';
+
+  @override
+  String get reimburseDelete => '刪除報銷';
+
+  @override
+  String get reimburseOriginalLabel => '原金額';
+
+  @override
+  String get reimburseOverTitle => '報銷高於原金額';
+
+  @override
+  String get reimburseOverMessage => '這筆報銷高於原支出金額，確認按這個金額入帳？';
+
+  @override
   String get exportTypeRefund => '退款';
+
+  @override
+  String get exportTypeReimburse => '報銷';
 }

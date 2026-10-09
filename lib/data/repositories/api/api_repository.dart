@@ -542,7 +542,23 @@ class ApiRepository extends LocalRepository {
       pageSize: 200,
       extra: {'refund_of_id': '$originalId'},
     );
-    return paged.items.map(txFromJson).toList();
+    return paged.items
+        .map(txFromJson)
+        .where((row) => row.type == 'refund')
+        .toList();
+  }
+
+  Future<List<Transaction>> _listLinked(int originalId, String type) async {
+    final paged = await api.listPaged(
+      '/transactions',
+      page: 1,
+      pageSize: 200,
+      extra: {'refund_of_id': '$originalId'},
+    );
+    return paged.items
+        .map(txFromJson)
+        .where((row) => row.type == type)
+        .toList();
   }
 
   @override
@@ -551,24 +567,16 @@ class ApiRepository extends LocalRepository {
     required double amount,
     required DateTime happenedAt,
     String? reason,
-  }) async {
-    final original = await getTransactionById(originalId);
-    if (original == null) {
-      throw StateError('原记录不存在');
-    }
-    final note = reason?.trim();
-    final row = await api.post('/transactions', {
-      'ledger_id': original.ledgerId,
-      'type': 'refund',
-      'amount': amount,
-      'category_id': original.categoryId,
-      'account_id': original.accountId,
-      'happened_at': happenedAt.toIso8601String(),
-      'note': note == null || note.isEmpty ? null : note,
-      'refund_of_id': originalId,
-    });
-    notifyChanged();
-    return asInt(row['id']);
+    required int? accountId,
+  }) {
+    return _addLinked(
+      type: 'refund',
+      originalId: originalId,
+      amount: amount,
+      happenedAt: happenedAt,
+      reason: reason,
+      accountId: accountId,
+    );
   }
 
   @override
@@ -577,12 +585,97 @@ class ApiRepository extends LocalRepository {
     required double amount,
     required DateTime happenedAt,
     String? reason,
+    required int? accountId,
+  }) {
+    return _updateLinked(
+      id: id,
+      amount: amount,
+      happenedAt: happenedAt,
+      reason: reason,
+      accountId: accountId,
+    );
+  }
+
+  @override
+  Future<List<Transaction>> listReimbursements(int originalId) {
+    return _listLinked(originalId, 'reimburse');
+  }
+
+  @override
+  Future<int> addReimbursement({
+    required int originalId,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+    required int? accountId,
+  }) {
+    return _addLinked(
+      type: 'reimburse',
+      originalId: originalId,
+      amount: amount,
+      happenedAt: happenedAt,
+      reason: reason,
+      accountId: accountId,
+    );
+  }
+
+  @override
+  Future<void> updateReimbursement({
+    required int id,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+    required int? accountId,
+  }) {
+    return _updateLinked(
+      id: id,
+      amount: amount,
+      happenedAt: happenedAt,
+      reason: reason,
+      accountId: accountId,
+    );
+  }
+
+  Future<int> _addLinked({
+    required String type,
+    required int originalId,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+    required int? accountId,
+  }) async {
+    final original = await getTransactionById(originalId);
+    if (original == null) {
+      throw StateError('原记录不存在');
+    }
+    final note = reason?.trim();
+    final row = await api.post('/transactions', {
+      'ledger_id': original.ledgerId,
+      'type': type,
+      'amount': amount,
+      'category_id': original.categoryId,
+      'account_id': accountId,
+      'happened_at': happenedAt.toIso8601String(),
+      'note': note == null || note.isEmpty ? null : note,
+      'refund_of_id': originalId,
+    });
+    notifyChanged();
+    return asInt(row['id']);
+  }
+
+  Future<void> _updateLinked({
+    required int id,
+    required double amount,
+    required DateTime happenedAt,
+    String? reason,
+    required int? accountId,
   }) async {
     final note = reason?.trim();
     await api.put('/transactions/$id', {
       'amount': amount,
       'happened_at': happenedAt.toIso8601String(),
       'note': note == null || note.isEmpty ? null : note,
+      'account_id': accountId,
     });
     notifyChanged();
   }

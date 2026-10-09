@@ -494,6 +494,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
               final isExpense = item.t.type == 'expense';
               final isTransfer = item.t.type == 'transfer';
               final isRefund = item.t.type == 'refund';
+              final isReimburse = item.t.type == 'reimburse';
 
               // 分类名称
               final categoryName = category?.name ?? l10n.commonUncategorized;
@@ -511,18 +512,21 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 category: category,
                 title: isTransfer
                     ? (subtitle.isNotEmpty ? subtitle : l10n.transferTitle)
-                    : isRefund
-                        ? (subtitle.isNotEmpty ? subtitle : '${l10n.refundTitle} · $categoryName')
+                    : (isRefund || isReimburse)
+                        ? (subtitle.isNotEmpty
+                            ? subtitle
+                            : '${isRefund ? l10n.refundTitle : l10n.reimburseTitle} · $categoryName')
                         : (subtitle.isNotEmpty ? subtitle : categoryName),
                 categoryName: isTransfer
                     ? null
-                    : isRefund
-                        ? '${l10n.refundTitle} · $categoryName'
+                    : (isRefund || isReimburse)
+                        ? '${isRefund ? l10n.refundTitle : l10n.reimburseTitle} · $categoryName'
                         : (subtitle.isNotEmpty ? categoryName : null),
                 amount: item.t.amount,
                 isExpense: isExpense,
                 isTransfer: isTransfer,
                 isRefund: isRefund,
+                isReimburse: isReimburse,
                 happenedAt: item.t.happenedAt,
                 accountName: item.account?.name,
                 tags: tagsList.isNotEmpty ? tagsList : null,
@@ -598,6 +602,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
               final isExpense = item.t.type == 'expense';
               final isTransfer = item.t.type == 'transfer';
               final isRefund = item.t.type == 'refund';
+              final isReimburse = item.t.type == 'reimburse';
 
               // 分类名称
               final categoryName = category?.name ?? l10n.commonUncategorized;
@@ -615,18 +620,21 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 category: category,
                 title: isTransfer
                     ? (subtitle.isNotEmpty ? subtitle : l10n.transferTitle)
-                    : isRefund
-                        ? (subtitle.isNotEmpty ? subtitle : '${l10n.refundTitle} · $categoryName')
+                    : (isRefund || isReimburse)
+                        ? (subtitle.isNotEmpty
+                            ? subtitle
+                            : '${isRefund ? l10n.refundTitle : l10n.reimburseTitle} · $categoryName')
                         : (subtitle.isNotEmpty ? subtitle : categoryName),
                 categoryName: isTransfer
                     ? null
-                    : isRefund
-                        ? '${l10n.refundTitle} · $categoryName'
+                    : (isRefund || isReimburse)
+                        ? '${isRefund ? l10n.refundTitle : l10n.reimburseTitle} · $categoryName'
                         : (subtitle.isNotEmpty ? categoryName : null),
                 amount: item.t.amount,
                 isExpense: isExpense,
                 isTransfer: isTransfer,
                 isRefund: isRefund,
+                isReimburse: isReimburse,
                 happenedAt: item.t.happenedAt,
                 accountName: item.account?.name,
                 tags: tagsList.isNotEmpty ? tagsList : null,

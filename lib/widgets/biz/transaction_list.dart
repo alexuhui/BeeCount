@@ -472,6 +472,7 @@ class TransactionListState extends ConsumerState<TransactionList> {
             final isTransfer = it.t.type == 'transfer';
             final isExpense = it.t.type == 'expense';
             final isRefund = RefundTx.isRefund(it.t.type);
+            final isReimburse = ReimburseTx.isReimburse(it.t.type);
 
             // 获取分类显示名称（二级分类显示为"一级分类→二级分类"）
             String categoryName;
@@ -537,24 +538,29 @@ class TransactionListState extends ConsumerState<TransactionList> {
                       // 获取附件数量（优先使用预加载数据）
                       final attachmentCount = _getAttachmentCountForTransaction(it.t.id);
 
-                      final refundLabel = '${AppLocalizations.of(context).refundTitle} · $categoryName';
+                      final l10n = AppLocalizations.of(context);
+                      final linkedLabel = isRefund
+                          ? '${l10n.refundTitle} · $categoryName'
+                          : isReimburse
+                              ? '${l10n.reimburseTitle} · $categoryName'
+                              : null;
                       return TransactionListItem(
                         icon: getCategoryIconData(category: it.category, categoryName: categoryName),
                         category: it.category,
                         title: isTransfer
-                          ? (subtitle.isNotEmpty ? subtitle : AppLocalizations.of(context).transferTitle)
-                          : isRefund
-                              ? (subtitle.isNotEmpty ? subtitle : refundLabel)
+                          ? (subtitle.isNotEmpty ? subtitle : l10n.transferTitle)
+                          : linkedLabel != null
+                              ? (subtitle.isNotEmpty ? subtitle : linkedLabel)
                               : (subtitle.isNotEmpty ? subtitle : categoryName),
                         categoryName: isTransfer
                           ? null  // 转账不显示第二行，保持布局一致
-                          : isRefund
-                              ? refundLabel
-                              : (subtitle.isNotEmpty ? null : categoryName),
+                          : linkedLabel ??
+                              (subtitle.isNotEmpty ? null : categoryName),
                         amount: it.t.amount,
                         isExpense: isExpense,
                         isTransfer: isTransfer,
                         isRefund: isRefund,
+                        isReimburse: isReimburse,
                         hide: widget.hideAmounts,
                         happenedAt: it.t.happenedAt,
                         accountName: isTransfer

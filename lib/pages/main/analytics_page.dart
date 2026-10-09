@@ -795,6 +795,7 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                             category: item.category,
                             name: item.name,
                             value: item.total,
+                            type: _type,
                             budget: budgetMap != null && item.id != null
                                 ? budgetMap[item.id]
                                 : null,

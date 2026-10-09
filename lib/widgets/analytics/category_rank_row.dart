@@ -2,18 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../styles/tokens.dart';
 import '../../widgets/category_icon.dart';
-import '../biz/biz.dart';
 import '../../utils/category_utils.dart';
 import '../../providers.dart';
 import '../../pages/transaction/category_detail_page.dart';
 import '../../l10n/app_localizations.dart';
 import '../../data/db.dart' as db;
+import '../../utils/linked_credit_totals.dart';
 
 class CategoryRankRow extends ConsumerStatefulWidget {
   final int? categoryId; // 分类ID
   final db.Category? category; // 分类对象（用于显示图标）
   final String name;
   final double value;
+  final String type;
   final double? budget; // 预算金额（可选）
   final double percent; // 0..1 (相对于总金额的真实占比)
   final Color color;
@@ -28,6 +29,7 @@ class CategoryRankRow extends ConsumerStatefulWidget {
     this.category,
     required this.name,
     required this.value,
+    required this.type,
     this.budget,
     required this.percent,
     required this.color,
@@ -90,19 +92,19 @@ class _CategoryRankRowState extends ConsumerState<CategoryRankRow> {
       // 获取该二级分类在指定时间范围内的交易总额
       final transactions = await repo.getTransactionsByCategory(subCat.id);
 
-      // 筛选时间范围并计算总额
-      double total = 0.0;
-      for (final tx in transactions) {
-        if (tx.happenedAt.isAfter(widget.start.subtract(const Duration(seconds: 1))) &&
-            tx.happenedAt.isBefore(widget.end.add(const Duration(days: 1))) &&
-            tx.ledgerId == ledgerId) {
-          total += tx.amount;
-        }
-      }
+      final ledgerTransactions =
+          transactions.where((tx) => tx.ledgerId == ledgerId);
+      final total = transactionStatTotalInRange(
+        ledgerTransactions,
+        type: widget.type,
+        start: widget.start,
+        end: widget.end,
+      );
 
       if (total > 0) {
         // 计算真实占比（相对于整体总额，而非一级分类）
-        final percent = widget.percent * (total / totalAmount);
+        final percent =
+            totalAmount > 0 ? widget.percent * (total / totalAmount) : 0.0;
         subCatData.add((
           id: subCat.id,
           category: subCat,

@@ -21,6 +21,31 @@ class InvestTx {
   static Expression<bool> dailyVisible(Transactions t) =>
       t.excludeFromStats.equals(false) & t.type.isNotIn(pnlTypes);
 
+  static ({double inflow, double outflow}) accountCashFlow({
+    required String type,
+    required double amount,
+    required int accountId,
+    int? txAccountId,
+    int? txToAccountId,
+  }) {
+    if (txAccountId == accountId) {
+      switch (type) {
+        case 'income':
+        case 'refund':
+        case 'reimburse':
+        case gain:
+          return (inflow: amount, outflow: 0);
+        case 'expense':
+        case loss:
+        case 'transfer':
+          return (inflow: 0, outflow: amount);
+      }
+    } else if (txToAccountId == accountId && type == 'transfer') {
+      return (inflow: amount, outflow: 0);
+    }
+    return (inflow: 0, outflow: 0);
+  }
+
   static double applyToBalance({
     required double balance,
     required String type,

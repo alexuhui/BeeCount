@@ -690,7 +690,13 @@ List<_AccountMonthGroup> _groupAccountTransactionsByMonth({
   for (final tx in chronological) {
     final local = tx.happenedAt.toLocal();
     final key = '${local.year}-${local.month}';
-    final flow = _accountTxFlow(tx, accountId);
+    final flow = InvestTx.accountCashFlow(
+      type: tx.type,
+      amount: tx.amount,
+      accountId: accountId,
+      txAccountId: tx.accountId,
+      txToAccountId: tx.toAccountId,
+    );
     inflowByKey[key] = (inflowByKey[key] ?? 0) + flow.inflow;
     outflowByKey[key] = (outflowByKey[key] ?? 0) + flow.outflow;
     running = InvestTx.applyToBalance(
@@ -739,28 +745,6 @@ double _accountCurrentBalance({
     );
   }
   return running;
-}
-
-({double inflow, double outflow}) _accountTxFlow(
-  db.Transaction tx,
-  int accountId,
-) {
-  if (tx.accountId == accountId) {
-    switch (tx.type) {
-      case 'income':
-      case InvestTx.gain:
-        return (inflow: tx.amount, outflow: 0);
-      case 'expense':
-      case InvestTx.loss:
-      case 'transfer':
-        return (inflow: 0, outflow: tx.amount);
-      default:
-        return (inflow: 0, outflow: 0);
-    }
-  } else if (tx.toAccountId == accountId && tx.type == 'transfer') {
-    return (inflow: tx.amount, outflow: 0);
-  }
-  return (inflow: 0, outflow: 0);
 }
 
 /// 普通账户内容

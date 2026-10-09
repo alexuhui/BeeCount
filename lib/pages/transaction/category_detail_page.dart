@@ -70,7 +70,10 @@ class _CategoryDetailPageState extends ConsumerState<CategoryDetailPage> {
       error: (error, stack) => AsyncValue.error(error, stack),
       data: (transactions) {
         final totalCount = transactions.length;
-        final totalAmount = transactions.fold(0.0, (sum, t) => sum + t.amount);
+        final totalAmount = transactions.fold(
+          0.0,
+          (sum, t) => sum + _categoryStatAmount(t),
+        );
         final averageAmount = totalCount > 0 ? totalAmount / totalCount : 0.0;
         return AsyncValue.data((
           totalCount: totalCount,
@@ -381,6 +384,8 @@ class _CategoryDetailPageState extends ConsumerState<CategoryDetailPage> {
               title: _getTransactionTitle(transaction),
               amount: transaction.amount,
               isExpense: transaction.type == 'expense',
+              isRefund: RefundTx.isRefund(transaction.type),
+              isReimburse: ReimburseTx.isReimburse(transaction.type),
               happenedAt: transaction.happenedAt,
               onTap: () async {
                 await TransactionEditUtils.openDetail(context, transaction.id);
@@ -458,6 +463,8 @@ class _CategoryDetailPageState extends ConsumerState<CategoryDetailPage> {
               title: _getTransactionTitle(transaction),
               amount: transaction.amount,
               isExpense: transaction.type == 'expense',
+              isRefund: RefundTx.isRefund(transaction.type),
+              isReimburse: ReimburseTx.isReimburse(transaction.type),
               happenedAt: transaction.happenedAt,
               onTap: () async {
                 await TransactionEditUtils.openDetail(context, transaction.id);
@@ -507,6 +514,14 @@ class _CategoryDetailPageState extends ConsumerState<CategoryDetailPage> {
     final categoryName = category?.name ?? widget.categoryName;
     // 使用统一的图标获取逻辑,优先使用分类对象的icon字段
     return getCategoryIconData(category: category, categoryName: categoryName);
+  }
+
+  double _categoryStatAmount(db.Transaction t) {
+    if (t.type == 'income') return t.amount;
+    if (t.type == 'expense' || RefundTx.isLinkedCredit(t.type)) {
+      return RefundTx.expenseDelta(t.type, t.amount);
+    }
+    return 0;
   }
 
   String _getTransactionTitle(db.Transaction transaction) {

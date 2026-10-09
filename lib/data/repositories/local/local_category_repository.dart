@@ -267,8 +267,14 @@ class LocalCategoryRepository implements CategoryRepository {
       '''
       SELECT
         COUNT(*) as count,
-        SUM(amount) as total,
-        AVG(amount) as average
+        SUM(CASE
+          WHEN type = 'income' OR type = 'expense' THEN amount
+          WHEN type IN ('refund', 'reimburse') THEN -amount
+          ELSE 0 END) as total,
+        AVG(CASE
+          WHEN type = 'income' OR type = 'expense' THEN amount
+          WHEN type IN ('refund', 'reimburse') THEN -amount
+          ELSE 0 END) as average
       FROM transactions
       WHERE category_id = ?1
       ''',

@@ -7,6 +7,13 @@ class RefundTx {
   static bool isLinkedCredit(String type) =>
       isRefund(type) || ReimburseTx.isReimburse(type);
 
+  /// 支出统计：支出为正，退款和报销从支出里扣掉。其他类型不计入支出。
+  static double expenseDelta(String type, double amount) {
+    if (type == 'expense') return amount;
+    if (isLinkedCredit(type)) return -amount;
+    return 0;
+  }
+
   static double roundMoney(double value) => (value * 100).roundToDouble() / 100.0;
 
   static double remaining({

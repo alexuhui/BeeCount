@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' as d;
 
 import '../../db.dart';
+import '../../../utils/refund_tx.dart';
 import '../statistics_repository.dart';
 
 /// 本地统计Repository实现
@@ -9,6 +10,18 @@ class LocalStatisticsRepository implements StatisticsRepository {
   final BeeDatabase db;
 
   LocalStatisticsRepository(this.db);
+
+  d.Expression<bool> _typeWhere($TransactionsTable t, String type) {
+    if (type == 'expense') {
+      return t.type.isIn(const ['expense', 'refund', 'reimburse']);
+    }
+    return t.type.equals(type);
+  }
+
+  double _signedAmount(Transaction t, String type) {
+    if (type == 'expense') return RefundTx.expenseDelta(t.type, t.amount);
+    return t.amount;
+  }
 
   @override
   Future<List<({int? id, String name, String? icon, double total})>> totalsByCategory({
@@ -20,7 +33,7 @@ class LocalStatisticsRepository implements StatisticsRepository {
     final q = (db.select(db.transactions)
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
-              t.type.equals(type) &
+              _typeWhere(t, type) &
               t.happenedAt.isBetweenValues(start, end) &
               t.excludeFromStats.equals(false)))
         .join([
@@ -39,7 +52,8 @@ class LocalStatisticsRepository implements StatisticsRepository {
       final icon = c?.icon;
       names[id] = name;
       icons[id] = icon;
-      map.update(id, (v) => v + t.amount, ifAbsent: () => t.amount);
+      final signed = _signedAmount(t, type);
+      map.update(id, (v) => v + signed, ifAbsent: () => signed);
     }
     final list = map.entries
         .map((e) => (id: e.key, name: names[e.key] ?? '未分类', icon: icons[e.key], total: e.value))
@@ -59,7 +73,7 @@ class LocalStatisticsRepository implements StatisticsRepository {
     final q = (db.select(db.transactions)
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
-              t.type.equals(type) &
+              _typeWhere(t, type) &
               t.happenedAt.isBetweenValues(start, end) &
               t.excludeFromStats.equals(false)))
         .join([
@@ -92,7 +106,8 @@ class LocalStatisticsRepository implements StatisticsRepository {
         );
       }
 
-      map.update(id, (v) => v + t.amount, ifAbsent: () => t.amount);
+      final signed = _signedAmount(t, type);
+      map.update(id, (v) => v + signed, ifAbsent: () => signed);
     }
 
     final list = map.entries.map((e) {
@@ -121,7 +136,7 @@ class LocalStatisticsRepository implements StatisticsRepository {
     final rows = await (db.select(db.transactions)
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
-              t.type.equals(type) &
+              _typeWhere(t, type) &
               t.happenedAt.isBetweenValues(start, end) &
               t.excludeFromStats.equals(false)))
         .get();
@@ -129,7 +144,8 @@ class LocalStatisticsRepository implements StatisticsRepository {
     for (final t in rows) {
       final dt = t.happenedAt.toLocal();
       final day = DateTime(dt.year, dt.month, dt.day);
-      map.update(day, (v) => v + t.amount, ifAbsent: () => t.amount);
+      final signed = _signedAmount(t, type);
+      map.update(day, (v) => v + signed, ifAbsent: () => signed);
     }
     // ensure full range continuity
     final result = <({DateTime day, double total})>[];
@@ -152,14 +168,15 @@ class LocalStatisticsRepository implements StatisticsRepository {
     final rows = await (db.select(db.transactions)
           ..where((t) =>
               t.ledgerId.equals(ledgerId) &
-              t.type.equals(type) &
+              _typeWhere(t, type) &
               t.happenedAt.isBetweenValues(start, end) &
               t.excludeFromStats.equals(false)))
         .get();
     final map = <int, double>{};
     for (final t in rows) {
       final dt = t.happenedAt.toLocal();
-      map.update(dt.month, (v) => v + t.amount, ifAbsent: () => t.amount);
+      final signed = _signedAmount(t, type);
+      map.update(dt.month, (v) => v + signed, ifAbsent: () => signed);
     }
     final result = <({DateTime month, double total})>[];
     for (int m = 1; m <= 12; m++) {
@@ -174,7 +191,7 @@ class LocalStatisticsRepository implements StatisticsRepository {
     required String type,
   }) async {
     final rows = await (db.select(db.transactions)
-          ..where((t) => t.ledgerId.equals(ledgerId) & t.type.equals(type) & t.excludeFromStats.equals(false)))
+          ..where((t) => t.ledgerId.equals(ledgerId) & _typeWhere(t, type) & t.excludeFromStats.equals(false)))
         .get();
     if (rows.isEmpty) return const [];
     final map = <int, double>{};
@@ -183,7 +200,8 @@ class LocalStatisticsRepository implements StatisticsRepository {
       final y = t.happenedAt.toLocal().year;
       if (y < minYear) minYear = y;
       if (y > maxYear) maxYear = y;
-      map.update(y, (v) => v + t.amount, ifAbsent: () => t.amount);
+      final signed = _signedAmount(t, type);
+      map.update(y, (v) => v + signed, ifAbsent: () => signed);
     }
     final out = <({int year, double total})>[];
     for (int y = minYear; y <= maxYear; y++) {
@@ -203,7 +221,10 @@ class LocalStatisticsRepository implements StatisticsRepository {
       '''
       SELECT
         COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS income,
-        COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) AS expense
+        COALESCE(SUM(CASE
+          WHEN type = 'expense' THEN amount
+          WHEN type IN ('refund', 'reimburse') THEN -amount
+          ELSE 0 END), 0) AS expense
       FROM transactions
       WHERE ledger_id = ?1 AND happened_at >= ?2 AND happened_at < ?3 AND exclude_from_stats = 0
       ''',
@@ -233,7 +254,10 @@ class LocalStatisticsRepository implements StatisticsRepository {
       '''
       SELECT
         COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS income,
-        COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) AS expense
+        COALESCE(SUM(CASE
+          WHEN type = 'expense' THEN amount
+          WHEN type IN ('refund', 'reimburse') THEN -amount
+          ELSE 0 END), 0) AS expense
       FROM transactions
       WHERE ledger_id = ?1 AND happened_at >= ?2 AND happened_at < ?3 AND exclude_from_stats = 0
       ''',
@@ -263,7 +287,10 @@ class LocalStatisticsRepository implements StatisticsRepository {
       '''
       SELECT
         COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS income,
-        COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) AS expense
+        COALESCE(SUM(CASE
+          WHEN type = 'expense' THEN amount
+          WHEN type IN ('refund', 'reimburse') THEN -amount
+          ELSE 0 END), 0) AS expense
       FROM transactions
       WHERE ledger_id = ?1 AND happened_at >= ?2 AND happened_at < ?3 AND exclude_from_stats = 0
       ''',

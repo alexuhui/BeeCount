@@ -399,9 +399,7 @@ class TransactionListState extends ConsumerState<TransactionList> {
               if (it.t.type == 'income') {
                 dayIncome += it.t.amount;
               }
-              if (it.t.type == 'expense') {
-                dayExpense += it.t.amount;
-              }
+              dayExpense += RefundTx.expenseDelta(it.t.type, it.t.amount);
             }
             final isFirst = index == 0;
 

@@ -380,6 +380,8 @@ class LocalAccountRepository implements AccountRepository {
     for (final t in normalTxs) {
       if (t.type == 'expense') {
         expense += t.amount;
+      } else if (t.type == 'refund' || t.type == 'reimburse') {
+        expense -= t.amount;
       } else if (t.type == 'transfer') {
         // 作为转出账户
         expense += t.amount;
@@ -517,6 +519,8 @@ class LocalAccountRepository implements AccountRepository {
           totalIncome += t.amount;
         } else if (t.type == 'expense') {
           totalExpense += t.amount;
+        } else if (t.type == 'refund' || t.type == 'reimburse') {
+          totalExpense -= t.amount;
         }
         // 转账类型不计入总收入/支出
       }

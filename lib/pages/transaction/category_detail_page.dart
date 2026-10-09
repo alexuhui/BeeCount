@@ -13,6 +13,7 @@ import '../../utils/transaction_edit_utils.dart';
 import '../../services/billing/post_processor.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/category_utils.dart';
+import '../../utils/refund_tx.dart';
 
 enum SortType { timeAsc, timeDesc, amountAsc, amountDesc }
 
@@ -331,9 +332,14 @@ class _CategoryDetailPageState extends ConsumerState<CategoryDetailPage> {
       for (final transaction in transactions) {
         final dateKey = DateFormat('yyyy-MM-dd').format(transaction.happenedAt.toLocal());
         final current = dateStats[dateKey] ?? (expense: 0.0, income: 0.0);
-        dateStats[dateKey] = transaction.type == 'expense'
-          ? (expense: current.expense + transaction.amount, income: current.income)
-          : (expense: current.expense, income: current.income + transaction.amount);
+        final expenseDelta =
+            RefundTx.expenseDelta(transaction.type, transaction.amount);
+        dateStats[dateKey] = transaction.type == 'income'
+            ? (expense: current.expense, income: current.income + transaction.amount)
+            : (
+                expense: current.expense + expenseDelta,
+                income: current.income,
+              );
       }
 
       // 预构建显示项列表
@@ -436,9 +442,10 @@ class _CategoryDetailPageState extends ConsumerState<CategoryDetailPage> {
           children: [
             DaySectionHeader(
               dateText: dateKey,
-              expense: dayTransactions
-                  .where((t) => t.type == 'expense')
-                  .fold(0.0, (sum, t) => sum + t.amount),
+              expense: dayTransactions.fold(
+                0.0,
+                (sum, t) => sum + RefundTx.expenseDelta(t.type, t.amount),
+              ),
               income: dayTransactions
                   .where((t) => t.type == 'income')
                   .fold(0.0, (sum, t) => sum + t.amount),

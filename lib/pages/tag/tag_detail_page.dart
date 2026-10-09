@@ -10,6 +10,7 @@ import '../../styles/tokens.dart';
 import '../../utils/transaction_edit_utils.dart';
 import '../../services/billing/post_processor.dart';
 import '../../utils/category_utils.dart';
+import '../../utils/refund_tx.dart';
 import '../../l10n/app_localizations.dart';
 import 'tag_edit_page.dart';
 
@@ -290,9 +291,10 @@ class _TagDetailPageState extends ConsumerState<TagDetailPage> {
           children: [
             DaySectionHeader(
               dateText: dateKey,
-              expense: dayTransactions
-                  .where((t) => t.type == 'expense')
-                  .fold(0.0, (sum, t) => sum + t.amount),
+              expense: dayTransactions.fold(
+                0.0,
+                (sum, t) => sum + RefundTx.expenseDelta(t.type, t.amount),
+              ),
               income: dayTransactions
                   .where((t) => t.type == 'income')
                   .fold(0.0, (sum, t) => sum + t.amount),

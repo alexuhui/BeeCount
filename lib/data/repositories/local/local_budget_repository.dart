@@ -169,11 +169,13 @@ class LocalBudgetRepository implements BudgetRepository {
     // 分类预算：统计该分类支出（包含子分类）
     final result = await db.customSelect(
       '''
-      SELECT COALESCE(SUM(t.amount), 0) as total
+      SELECT COALESCE(SUM(CASE
+        WHEN t.type IN ('refund', 'reimburse') THEN -t.amount
+        ELSE t.amount END), 0) as total
       FROM transactions t
       LEFT JOIN categories c ON t.category_id = c.id
       WHERE t.ledger_id = ?
-        AND t.type = 'expense'
+        AND t.type IN ('expense', 'refund', 'reimburse')
         AND t.happened_at >= ?
         AND t.happened_at < ?
         AND (t.category_id = ? OR c.parent_id = ?)
@@ -347,10 +349,12 @@ class LocalBudgetRepository implements BudgetRepository {
       '''
     SELECT 
       t.category_id AS category_id,
-      COALESCE(SUM(t.amount), 0) AS total_expense
+      COALESCE(SUM(CASE
+        WHEN t.type IN ('refund', 'reimburse') THEN -t.amount
+        ELSE t.amount END), 0) AS total_expense
     FROM transactions t
     WHERE t.ledger_id = ?
-      AND t.type = 'expense'
+      AND t.type IN ('expense', 'refund', 'reimburse')
       AND t.happened_at >= ?
       AND t.happened_at < ?
       AND t.category_id IS NOT NULL  -- 排除未分类的交易
@@ -474,10 +478,12 @@ class LocalBudgetRepository implements BudgetRepository {
       '''
     SELECT 
       t.category_id AS category_id,
-      COALESCE(SUM(t.amount), 0) AS total_expense
+      COALESCE(SUM(CASE
+        WHEN t.type IN ('refund', 'reimburse') THEN -t.amount
+        ELSE t.amount END), 0) AS total_expense
     FROM transactions t
     WHERE t.ledger_id = ?
-      AND t.type = 'expense'
+      AND t.type IN ('expense', 'refund', 'reimburse')
       AND t.happened_at >= ?
       AND t.happened_at < ?
       AND t.category_id IS NOT NULL

@@ -251,7 +251,10 @@ class LocalTagRepository implements TagRepository {
       '''
       SELECT
         COUNT(*) as count,
-        COALESCE(SUM(CASE WHEN tx.type = 'expense' THEN tx.amount ELSE 0 END), 0) as expense,
+        COALESCE(SUM(CASE
+          WHEN tx.type = 'expense' THEN tx.amount
+          WHEN tx.type IN ('refund', 'reimburse') THEN -tx.amount
+          ELSE 0 END), 0) as expense,
         COALESCE(SUM(CASE WHEN tx.type = 'income' THEN tx.amount ELSE 0 END), 0) as income
       FROM transaction_tags tt
       INNER JOIN transactions tx ON tt.transaction_id = tx.id

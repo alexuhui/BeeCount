@@ -4506,6 +4506,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountTotalBalance => 'Net Assets';
 
   @override
+  String get accountHistoryMonthEnd => 'Month end';
+
+  @override
+  String get accountHistoryCurrentValue => 'Current value';
+
+  @override
+  String get accountHistoryDifference => 'Change';
+
+  @override
   String get accountAvailableFunds => 'Available Funds';
 
   @override

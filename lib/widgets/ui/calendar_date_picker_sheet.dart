@@ -28,6 +28,7 @@ const _dateRowHeight = 44.0;
 /// 左右箭头切换月份；点年份或月份后，在当前页弹出滚轮。
 
 enum _WheelTarget { year, month }
+
 Future<DateTime?> showCalendarDatePicker(
   BuildContext context, {
   DateTime? initial,
@@ -262,7 +263,8 @@ class _CalendarDatePickerSheetState extends State<CalendarDatePickerSheet> {
                 shadowColor: Colors.black26,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: BeeTokens.borderStrong(overlayContext)),
+                  side:
+                      BorderSide(color: BeeTokens.borderStrong(overlayContext)),
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: CupertinoPicker(
@@ -395,7 +397,9 @@ class _CalendarDatePickerSheetState extends State<CalendarDatePickerSheet> {
                 _headerChip(
                   context,
                   key: _yearKey,
-                  label: _isZh(context) ? '${_selected.year}年' : '${_selected.year}',
+                  label: _isZh(context)
+                      ? '${_selected.year}年'
+                      : '${_selected.year}',
                   active: _openTarget == _WheelTarget.year,
                   primary: primary,
                   onTap: () => _openWheel(_WheelTarget.year),
@@ -551,8 +555,11 @@ class _CalendarDatePickerSheetState extends State<CalendarDatePickerSheet> {
           child: InkWell(
             customBorder: const CircleBorder(),
             onTap: enabled
-                ? () => setState(
-                    () => _selected = DateTime(day.year, day.month, day.day))
+                ? () {
+                    setState(() =>
+                        _selected = DateTime(day.year, day.month, day.day));
+                    Navigator.pop(context, _selected);
+                  }
                 : null,
             child: Container(
               width: 36,

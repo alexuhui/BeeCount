@@ -8168,6 +8168,24 @@ abstract class AppLocalizations {
   /// **'Net Assets'**
   String get accountTotalBalance;
 
+  /// No description provided for @accountHistoryMonthEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Month end'**
+  String get accountHistoryMonthEnd;
+
+  /// No description provided for @accountHistoryCurrentValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Current value'**
+  String get accountHistoryCurrentValue;
+
+  /// No description provided for @accountHistoryDifference.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get accountHistoryDifference;
+
   /// No description provided for @accountAvailableFunds.
   ///
   /// In en, this message translates to:

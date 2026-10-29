@@ -158,4 +158,35 @@ void main() {
 
     expect(result, DateTime(2026, 10, 23));
   });
+
+  testWidgets('tapping a valid day confirms and closes the picker',
+      (tester) async {
+    DateTime? result;
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('zh'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Builder(
+          builder: (context) => Scaffold(
+                body: TextButton(
+                  onPressed: () async {
+                    result = await showCalendarDatePicker(
+                      context,
+                      initial: DateTime(2026, 10, 23),
+                      maxDate: DateTime(2026, 10, 23),
+                    );
+                  },
+                  child: const Text('open'),
+                ),
+              )),
+    ));
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('22'));
+    await tester.pumpAndSettle();
+
+    expect(result, DateTime(2026, 10, 22));
+    expect(find.text('选择日期'), findsNothing);
+  });
 }

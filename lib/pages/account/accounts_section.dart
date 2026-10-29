@@ -12,6 +12,7 @@ import '../../utils/ui_scale_extensions.dart';
 import '../../widgets/biz/amount_text.dart';
 import 'account_detail_page.dart';
 import 'account_edit_page.dart';
+import 'account_stats_history_page.dart';
 
 IconData accountIconForType(String type) {
   switch (type) {
@@ -149,6 +150,7 @@ List<MapEntry<String, List<db.Account>>> groupAccountsByType(
     });
   return [for (final k in keys) MapEntry(k, map[k]!)];
 }
+
 class AccountsBody extends ConsumerStatefulWidget {
   const AccountsBody({super.key});
 
@@ -207,8 +209,7 @@ class _AccountsBodyState extends ConsumerState<AccountsBody> {
                     account: account,
                     primaryColor: primaryColor,
                     stats: allStats?[account.id],
-                    onCollapse: () =>
-                        setState(() => _expandedAccountId = null),
+                    onCollapse: () => setState(() => _expandedAccountId = null),
                     onEdit: () => openEditAccount(context, ref, account),
                   )
                 : _CompactAccountBar(
@@ -258,7 +259,8 @@ class _AccountsBodyState extends ConsumerState<AccountsBody> {
                 final items = <({
                   String label,
                   double value,
-                  Color color
+                  Color color,
+                  AccountHistoryMetric metric,
                 })>[
                   (
                     label: l10n.accountTotalBalance,
@@ -266,6 +268,7 @@ class _AccountsBodyState extends ConsumerState<AccountsBody> {
                     color: stats.totalBalance >= 0
                         ? BeeTokens.textPrimary(context)
                         : Colors.red,
+                    metric: AccountHistoryMetric.netAssets,
                   ),
                   (
                     label: l10n.accountAvailableFunds,
@@ -273,22 +276,26 @@ class _AccountsBodyState extends ConsumerState<AccountsBody> {
                     color: stats.availableFunds >= 0
                         ? BeeTokens.textPrimary(context)
                         : Colors.red,
+                    metric: AccountHistoryMetric.availableFunds,
                   ),
                   (
                     label: l10n.accountTotalIncome,
                     value: stats.totalIncome,
                     color: BeeTokens.incomeColor(context, ref),
+                    metric: AccountHistoryMetric.income,
                   ),
                   (
                     label: l10n.accountTotalExpense,
                     value: stats.totalExpense,
                     color: BeeTokens.expenseColor(context, ref),
+                    metric: AccountHistoryMetric.expense,
                   ),
                   if (investSum != null) ...[
                     (
                       label: l10n.investSummaryTitle,
                       value: investSum.marketValue,
                       color: BeeTokens.textPrimary(context),
+                      metric: AccountHistoryMetric.investments,
                     ),
                     (
                       label: l10n.investTotalPnl,
@@ -296,6 +303,7 @@ class _AccountsBodyState extends ConsumerState<AccountsBody> {
                       color: investSum.totalPnl >= 0
                           ? BeeTokens.incomeColor(context, ref)
                           : BeeTokens.expenseColor(context, ref),
+                      metric: AccountHistoryMetric.investmentPnl,
                     ),
                   ],
                 ];
@@ -343,8 +351,7 @@ class _AccountsBodyState extends ConsumerState<AccountsBody> {
                       },
                     ),
                   ),
-                  if (expanded)
-                    ..._accountTiles(group, allStats, primaryColor),
+                  if (expanded) ..._accountTiles(group, allStats, primaryColor),
                 ];
               })
             else
@@ -371,7 +378,13 @@ class _AccountsBodyState extends ConsumerState<AccountsBody> {
 }
 
 class _StatsGrid extends ConsumerWidget {
-  final List<({String label, double value, Color color})> items;
+  final List<
+      ({
+        String label,
+        double value,
+        Color color,
+        AccountHistoryMetric metric
+      })> items;
 
   const _StatsGrid({required this.items});
 
@@ -395,6 +408,7 @@ class _StatsGrid extends ConsumerWidget {
                             label: items[i + j].label,
                             value: items[i + j].value,
                             color: items[i + j].color,
+                            metric: items[i + j].metric,
                           ),
                         )
                       : const SizedBox.shrink(),
@@ -526,39 +540,47 @@ class _StatCell extends ConsumerWidget {
   final String label;
   final double value;
   final Color color;
+  final AccountHistoryMetric metric;
 
   const _StatCell({
     required this.label,
     required this.value,
     required this.color,
+    required this.metric,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AmountText(
-          value: value,
-          signed: false,
-          showCurrency: false,
-          useCompactFormat: ref.watch(compactAmountProvider),
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: color,
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => AccountStatsHistoryPage(metric: metric),
+      )),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AmountText(
+            value: value,
+            signed: false,
+            showCurrency: false,
+            useCompactFormat: ref.watch(compactAmountProvider),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
-        ),
-        SizedBox(height: 4.0.scaled(context, ref)),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: BeeTokens.textSecondary(context),
+          SizedBox(height: 4.0.scaled(context, ref)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: BeeTokens.textSecondary(context),
+            ),
+            textAlign: TextAlign.left,
           ),
-          textAlign: TextAlign.left,
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -591,8 +613,8 @@ class _CompactAccountBar extends ConsumerWidget {
             label: '待收', value: stats.pending),
         loading: () => _bar(context, ref, typeColor, useCompact,
             label: '待收', value: 0, isLoading: true),
-        error: (_, __) => _bar(context, ref, typeColor, useCompact,
-            label: '待收', value: 0),
+        error: (_, __) =>
+            _bar(context, ref, typeColor, useCompact, label: '待收', value: 0),
       );
     }
 
@@ -603,8 +625,8 @@ class _CompactAccountBar extends ConsumerWidget {
             label: '待付', value: stats.pending),
         loading: () => _bar(context, ref, typeColor, useCompact,
             label: '待付', value: 0, isLoading: true),
-        error: (_, __) => _bar(context, ref, typeColor, useCompact,
-            label: '待付', value: 0),
+        error: (_, __) =>
+            _bar(context, ref, typeColor, useCompact, label: '待付', value: 0),
       );
     }
 
@@ -745,8 +767,9 @@ class _ExpandedAccountCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final typeColor = accountColorForType(account.type, primaryColor);
-    final receivableStatsAsync =
-        isReceivableAccount ? ref.watch(receivableStatsProvider(account.id)) : null;
+    final receivableStatsAsync = isReceivableAccount
+        ? ref.watch(receivableStatsProvider(account.id))
+        : null;
     final payableStatsAsync =
         isPayableAccount ? ref.watch(payableStatsProvider(account.id)) : null;
     final now = DateTime.now();
@@ -952,8 +975,8 @@ class _ExpandedAccountCard extends ConsumerWidget {
                           children: [
                             Expanded(
                               child: _CardStatItem(
-                                label: AppLocalizations.of(context)
-                                    .accountBalance,
+                                label:
+                                    AppLocalizations.of(context).accountBalance,
                                 value: stats!.balance,
                                 currencyCode: account.currency,
                               ),
@@ -1115,7 +1138,8 @@ class _CardStatItem extends ConsumerWidget {
 
 class _ReceivableStatsRow extends ConsumerWidget {
   final db.Account account;
-  final AsyncValue<({double pending, double total, double received})>? statsAsync;
+  final AsyncValue<({double pending, double total, double received})>?
+      statsAsync;
 
   const _ReceivableStatsRow({
     required this.account,

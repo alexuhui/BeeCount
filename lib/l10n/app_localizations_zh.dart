@@ -4328,6 +4328,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountTotalBalance => '净资产';
 
   @override
+  String get accountHistoryMonthEnd => '月末值';
+
+  @override
+  String get accountHistoryCurrentValue => '当前值';
+
+  @override
+  String get accountHistoryDifference => '差额';
+
+  @override
   String get accountAvailableFunds => '可用资金';
 
   @override
@@ -10239,6 +10248,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get accountTotalBalance => '淨資產';
+
+  @override
+  String get accountHistoryMonthEnd => '月末值';
+
+  @override
+  String get accountHistoryCurrentValue => '目前值';
+
+  @override
+  String get accountHistoryDifference => '差額';
 
   @override
   String get accountAvailableFunds => '可用資金';

@@ -22,14 +22,13 @@ class UpdateResult {
 
   UpdateResult._({
     required this.success,
-    this.hasUpdate = false,
     this.message,
     this.filePath,
-    this.version,
-    this.downloadUrl,
-    this.releaseNotes,
     required this.type,
-  });
+  })  : hasUpdate = false,
+        version = null,
+        downloadUrl = null,
+        releaseNotes = null;
 
   factory UpdateResult.downloadSuccess(String filePath) => UpdateResult._(
         success: true,

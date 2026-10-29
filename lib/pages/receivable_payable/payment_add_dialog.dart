@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/db.dart' as db;
 import '../../providers.dart';
-import '../../providers/theme_providers.dart';
-import '../../widgets/ui/ui.dart';
 import '../../widgets/biz/account_picker.dart';
-import '../../styles/tokens.dart';
-import '../../utils/ui_scale_extensions.dart';
 
 class PaymentAddDialog extends ConsumerStatefulWidget {
   final int? receivableId;

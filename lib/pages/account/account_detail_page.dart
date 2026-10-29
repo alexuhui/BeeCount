@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/db.dart' as db;
 import '../../providers.dart';
-import '../../providers/theme_providers.dart';
 import '../../widgets/ui/ui.dart';
 import '../../widgets/biz/biz.dart';
 import '../../styles/tokens.dart';
@@ -13,7 +12,6 @@ import '../../utils/transaction_edit_utils.dart';
 import '../../utils/invest_tx.dart';
 import '../../utils/linked_credit_totals.dart';
 import '../../services/billing/post_processor.dart';
-import '../../services/data/category_service.dart';
 import '../../widgets/category_icon.dart';
 import '../receivable_payable/receivable_edit_page.dart';
 import '../receivable_payable/payable_edit_page.dart';
@@ -407,7 +405,6 @@ class AccountDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
     final primaryColor = ref.watch(primaryColorProvider);
 
     return BeeScaffold(
@@ -1402,7 +1399,7 @@ class _ReceivableAccountContent extends ConsumerStatefulWidget {
 class _ReceivableAccountContentState
     extends ConsumerState<_ReceivableAccountContent> {
   String _filter = 'all'; // all, received, pending
-  Map<String, bool> _expandedBorrowers = {}; // 借款人展开状态
+  final Map<String, bool> _expandedBorrowers = {}; // 借款人展开状态
   _RpGroupSort _sort = _RpGroupSort.pendingFirst;
 
   @override
@@ -1464,10 +1461,12 @@ class _ReceivableAccountContentState
                 final filteredReceivables = receivables.where((r) {
                   if (_filter == 'all') return true;
                   final o = outstandingMap[r.id] ?? 0;
-                  if (_filter == 'received')
+                  if (_filter == 'received') {
                     return o <= _kReceivablePayableOutstandingEps;
-                  if (_filter == 'pending')
+                  }
+                  if (_filter == 'pending') {
                     return o > _kReceivablePayableOutstandingEps;
+                  }
                   return true;
                 }).toList();
 
@@ -1709,7 +1708,6 @@ class _ReceivableAccountContentState
                                   .asMap()
                                   .entries
                                   .map((receivableEntry) {
-                                final receivableIndex = receivableEntry.key;
                                 final r = receivableEntry.value;
 
                                 return Column(
@@ -1849,7 +1847,7 @@ class _PayableAccountContent extends ConsumerStatefulWidget {
 class _PayableAccountContentState
     extends ConsumerState<_PayableAccountContent> {
   String _filter = 'all'; // all, paid, pending
-  Map<String, bool> _expandedPayees = {}; // 收款人展开状态
+  final Map<String, bool> _expandedPayees = {}; // 收款人展开状态
   _RpGroupSort _sort = _RpGroupSort.pendingFirst;
 
   @override
@@ -1910,10 +1908,12 @@ class _PayableAccountContentState
                 final filteredPayables = payables.where((p) {
                   if (_filter == 'all') return true;
                   final o = outstandingMap[p.id] ?? 0;
-                  if (_filter == 'paid')
+                  if (_filter == 'paid') {
                     return o <= _kReceivablePayableOutstandingEps;
-                  if (_filter == 'pending')
+                  }
+                  if (_filter == 'pending') {
                     return o > _kReceivablePayableOutstandingEps;
+                  }
                   return true;
                 }).toList();
 
@@ -2152,7 +2152,6 @@ class _PayableAccountContentState
                                   .asMap()
                                   .entries
                                   .map((payableEntry) {
-                                final payableIndex = payableEntry.key;
                                 final p = payableEntry.value;
 
                                 return Column(

@@ -1,8 +1,8 @@
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:crypto/crypto.dart';
-import 'dart:convert';
 
 import 'model_info.dart';
 
@@ -98,7 +98,7 @@ class ModelManager {
       int downloadedBytes = 0;
       if (File(tempPath).existsSync()) {
         downloadedBytes = await File(tempPath).length();
-        print('📥 [ModelManager] 恢复下载，已下载: ${downloadedBytes}字节');
+        developer.log('恢复下载，已下载: $downloadedBytes字节', name: 'ModelManager');
       }
 
       // 下载
@@ -118,7 +118,7 @@ class ModelManager {
 
       // 验证SHA256
       if (validateChecksum && modelInfo.sha256 != 'skip') {
-        print('🔍 [ModelManager] 验证文件完整性...');
+        developer.log('验证文件完整性...', name: 'ModelManager');
         final hash = await _calculateSHA256(File(tempPath));
 
         if (hash != modelInfo.sha256) {
@@ -126,24 +126,24 @@ class ModelManager {
           throw Exception('SHA256校验失败\n期望: ${modelInfo.sha256}\n实际: $hash');
         }
 
-        print('✅ [ModelManager] 文件校验通过');
+        developer.log('文件校验通过', name: 'ModelManager');
       } else if (modelInfo.sha256 == 'skip') {
-        print('⚠️ [ModelManager] 跳过SHA256校验');
+        developer.log('跳过SHA256校验', name: 'ModelManager');
       }
 
       // 重命名为正式文件
       await File(tempPath).rename(modelPath);
-      print('✅ [ModelManager] 模型下载完成: ${modelInfo.name}');
+      developer.log('模型下载完成: ${modelInfo.name}', name: 'ModelManager');
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel) {
-        print('⏸️ [ModelManager] 下载已取消');
+        developer.log('下载已取消', name: 'ModelManager');
         rethrow;
       } else {
-        print('❌ [ModelManager] 下载失败: $e');
+        developer.log('下载失败', name: 'ModelManager', error: e);
         rethrow;
       }
     } catch (e) {
-      print('❌ [ModelManager] 下载失败: $e');
+      developer.log('下载失败', name: 'ModelManager', error: e);
       rethrow;
     } finally {
       _cancelTokens.remove(modelInfo.id);
@@ -169,7 +169,7 @@ class ModelManager {
     // 删除模型文件
     if (File(modelPath).existsSync()) {
       await File(modelPath).delete();
-      print('🗑️ [ModelManager] 已删除模型: $modelId');
+      developer.log('已删除模型: $modelId', name: 'ModelManager');
     }
 
     // 删除临时文件
@@ -222,7 +222,7 @@ class ModelManager {
 
     if (await modelsDir.exists()) {
       await modelsDir.delete(recursive: true);
-      print('🗑️ [ModelManager] 已清空所有模型');
+      developer.log('已清空所有模型', name: 'ModelManager');
     }
   }
 }

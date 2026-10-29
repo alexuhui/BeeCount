@@ -1,6 +1,5 @@
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -29,7 +28,6 @@ class AboutPage extends ConsumerStatefulWidget {
 }
 
 class _AboutPageState extends ConsumerState<AboutPage> {
-  String _version = '';
   String _versionDisplay = '';
 
   @override
@@ -43,8 +41,8 @@ class _AboutPageState extends ConsumerState<AboutPage> {
     final versionText = info.version.startsWith('dev-')
         ? '${info.version} (${info.buildNumber})'
         : info.version;
+    if (!mounted) return;
     setState(() {
-      _version = info.version;
       _versionDisplay = versionText;
     });
   }

@@ -26,7 +26,7 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
   String _type = 'expense'; // expense | income | balance
   String _displayMode = 'list'; // list | pie
   bool _chartSwiped = false; // 吸收图表区域横滑，避免父级切换收入/支出
-  bool _localHeaderDismissed = false; // 本地快速隐藏，实际持久化在 provider 中
+  final bool _localHeaderDismissed = false; // 本地快速隐藏，实际持久化在 provider 中
   bool _localChartDismissed = false;
 
   // 显示周期选择器
@@ -155,30 +155,6 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
     }
   }
 
-  // 循环切换类型（用于滑动）：expense -> income -> balance -> expense
-  void _cycleTypeForward() {
-    setState(() {
-      if (_type == 'expense') {
-        _type = 'income';
-      } else if (_type == 'income') {
-        _type = 'balance';
-      } else {
-        _type = 'expense';
-      }
-    });
-  }
-
-  void _cycleTypeBackward() {
-    setState(() {
-      if (_type == 'expense') {
-        _type = 'balance';
-      } else if (_type == 'balance') {
-        _type = 'income';
-      } else {
-        _type = 'expense';
-      }
-    });
-  }
 
   // 根据scope切换周期（用于图表滑动）
   void _onChartSwipeLeft() {
@@ -716,12 +692,7 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> {
                 }
 
                 // 提示是否已被持久化关闭
-                final headerDismissed = (ref
-                            .watch(analyticsHeaderHintDismissedProvider)
-                            .asData
-                            ?.value ??
-                        false) ||
-                    _localHeaderDismissed;
+                ref.watch(analyticsHeaderHintDismissedProvider);
                 final chartDismissed = (ref
                             .watch(analyticsChartHintDismissedProvider)
                             .asData

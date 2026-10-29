@@ -19,7 +19,6 @@ class CategoryImportPage extends ConsumerStatefulWidget {
 class _CategoryImportPageState extends ConsumerState<CategoryImportPage> {
   final _codeController = TextEditingController();
   String _code = '';
-  bool _isLoading = false;
   bool _isImporting = false;
   CategoryImportResult? _result;
 

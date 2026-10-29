@@ -7,7 +7,6 @@ import '../../styles/tokens.dart';
 import '../transaction/recurring_transaction_page.dart';
 import '../settings/reminder_settings_page.dart';
 import '../../l10n/app_localizations.dart';
-import '../../utils/ui_scale_extensions.dart';
 
 /// 自动化功能二级页面
 class AutomationPage extends ConsumerWidget {

@@ -7,7 +7,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../providers.dart';
-import '../../providers/beecount_server_providers.dart';
 import '../../widgets/ui/ui.dart';
 import '../../data/db.dart' as db;
 import '../../services/category_package_service.dart';
@@ -214,12 +213,14 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
 
   Future<void> _handleImport() async {
     final session = await ref.read(beecountSessionProvider.future);
+    if (!mounted) return;
     if (session != null) {
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => const CategoryImportPage(),
         ),
       );
+      if (!mounted) return;
       ref.invalidate(categoriesProvider);
       ref.invalidate(categoriesWithCountProvider);
     } else {
@@ -229,6 +230,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage> with Ti
 
   Future<void> _handleShare() async {
     final session = await ref.read(beecountSessionProvider.future);
+    if (!mounted) return;
     if (session != null) {
       await Navigator.of(context).push(
         MaterialPageRoute(
@@ -859,18 +861,15 @@ class _CategoryItem {
   final int transactionCount;
   final bool isDefault;
   final bool isSubCategory;
-  final db.Category? parent;
   final bool hasSubCategories;
-  final bool isActionButtons; // 是否为操作按钮项
+  final bool isActionButtons = false; // 是否为操作按钮项
 
   _CategoryItem({
     required this.category,
     required this.transactionCount,
     required this.isDefault,
     required this.isSubCategory,
-    this.parent,
     this.hasSubCategories = false,
-    this.isActionButtons = false,
   });
 }
 

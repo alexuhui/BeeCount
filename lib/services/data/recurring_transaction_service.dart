@@ -1,5 +1,4 @@
-import 'package:drift/drift.dart';
-import 'package:collection/collection.dart';
+import 'dart:developer' as developer;
 import '../../data/db.dart';
 
 /// 重复交易频率枚举
@@ -43,29 +42,29 @@ class RecurringTransactionService {
   }) async {
     try {
       if (verbose) {
-        print('🔄 [RecurringTransaction] 开始生成待处理的重复交易...');
-        print('🔧 [RecurringTransaction] Repository类型: ${repository.runtimeType}');
+        developer.log('🔄 [RecurringTransaction] 开始生成待处理的重复交易...');
+        developer.log('🔧 [RecurringTransaction] Repository类型: ${repository.runtimeType}');
       }
 
       final service = RecurringTransactionService(repository);
       final generatedTransactions = await service.generatePendingTransactions();
 
       if (generatedTransactions.isNotEmpty) {
-        print('✅ [RecurringTransaction] 成功生成 ${generatedTransactions.length} 条重复交易记录');
+        developer.log('✅ [RecurringTransaction] 成功生成 ${generatedTransactions.length} 条重复交易记录');
         // 收集生成了交易的账本ID
         final ledgerIds = generatedTransactions.map((t) => t.ledgerId).toSet();
         return ledgerIds;
       } else {
         if (verbose) {
-          print('ℹ️  [RecurringTransaction] 没有待生成的重复交易');
+          developer.log('ℹ️  [RecurringTransaction] 没有待生成的重复交易');
         }
         return {};
       }
     } catch (e, stackTrace) {
-      print('❌ [RecurringTransaction] 生成重复交易失败: $e');
+      developer.log('❌ [RecurringTransaction] 生成重复交易失败: $e');
       if (verbose) {
-        print('📍 [RecurringTransaction] 错误堆栈:');
-        print(stackTrace.toString());
+        developer.log('📍 [RecurringTransaction] 错误堆栈:');
+        developer.log(stackTrace.toString());
       }
       // 不抛出异常，避免影响应用启动
       return {};
@@ -145,29 +144,29 @@ class RecurringTransactionService {
 
   /// 生成待处理的交易记录
   Future<List<Transaction>> generatePendingTransactions() async {
-    print('🔧 [RecurringTransactionService] 开始生成待处理的交易记录');
+    developer.log('🔧 [RecurringTransactionService] 开始生成待处理的交易记录');
 
-    print('🔧 [RecurringTransactionService] 正在获取所有账本...');
+    developer.log('🔧 [RecurringTransactionService] 正在获取所有账本...');
     final ledgers = await repository.getAllLedgers();
-    print('✅ [RecurringTransactionService] 获取到 ${ledgers.length} 个账本');
+    developer.log('✅ [RecurringTransactionService] 获取到 ${ledgers.length} 个账本');
 
     final generatedTransactions = <Transaction>[];
 
     for (final ledger in ledgers) {
-      print('🔧 [RecurringTransactionService] 处理账本: ${ledger.name} (id=${ledger.id})');
+      developer.log('🔧 [RecurringTransactionService] 处理账本: ${ledger.name} (id=${ledger.id})');
 
       // 获取所有启用的周期交易
-      print('🔧 [RecurringTransactionService] 正在获取周期交易...');
+      developer.log('🔧 [RecurringTransactionService] 正在获取周期交易...');
       final allRecurring = await repository.getAllRecurringTransactions();
-      print('✅ [RecurringTransactionService] 获取到 ${allRecurring.length} 个周期交易');
+      developer.log('✅ [RecurringTransactionService] 获取到 ${allRecurring.length} 个周期交易');
 
       final recurringList = allRecurring
           .where((r) => r.ledgerId == ledger.id && r.enabled)
           .toList();
-      print('📋 [RecurringTransactionService] 账本 ${ledger.name} 中有 ${recurringList.length} 个启用的周期交易');
+      developer.log('📋 [RecurringTransactionService] 账本 ${ledger.name} 中有 ${recurringList.length} 个启用的周期交易');
 
       for (final recurring in recurringList) {
-        print('🔧 [RecurringTransactionService] 处理周期交易: id=${recurring.id}');
+        developer.log('🔧 [RecurringTransactionService] 处理周期交易: id=${recurring.id}');
         // 循环生成所有缺失的交易记录
         var currentRecurring = recurring;
         while (true) {

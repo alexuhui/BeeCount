@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widget/home_widget_view.dart';
-import '../../widgets/ui/primary_header.dart';
 import '../../providers.dart';
 import '../../widgets/ui/ui.dart';
 
@@ -13,7 +12,7 @@ class WidgetManagementPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final primaryColor = ref.watch(primaryColorProvider);
 

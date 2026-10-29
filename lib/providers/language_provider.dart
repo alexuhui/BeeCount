@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../services/user_settings/user_setting_keys.dart';
-import '../services/user_settings/user_settings_store.dart';
 import 'database_providers.dart';
 
 final languageProvider = StateNotifierProvider<LanguageNotifier, Locale?>((ref) {

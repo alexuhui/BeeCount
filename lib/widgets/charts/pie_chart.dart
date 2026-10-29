@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../styles/tokens.dart';
 import '../../l10n/app_localizations.dart';
-import 'dart:math' as math;
 
 class PieChartWidget extends StatelessWidget {
   final List<({Color? color, String name, double percent, double value})> data;
@@ -90,7 +89,7 @@ class PieChartWidget extends StatelessWidget {
                             size: 14, color: BeeTokens.textSecondary(context)),
                         const SizedBox(width: 4),
                         Text(
-                          hintText ?? AppLocalizations.of(context)!.analyticsSwipeHint,
+                          hintText ?? AppLocalizations.of(context).analyticsSwipeHint,
                           style: Theme.of(context)
                               .textTheme
                               .labelSmall

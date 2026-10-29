@@ -869,6 +869,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         allCategories[sub.id] = sub;
       }
     }
+    if (!mounted) return [];
 
     final incomeByCategory = <String, double>{};
     final expenseByCategory = <String, double>{};
@@ -908,6 +909,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       }
     }
 
+    if (!mounted) return [];
     final dateRangeStr =
         '${start.year}.${start.month.toString().padLeft(2, '0')}.${start.day.toString().padLeft(2, '0')}-${end.year}.${end.month.toString().padLeft(2, '0')}.${end.day.toString().padLeft(2, '0')}';
     final rows = <List<dynamic>>[

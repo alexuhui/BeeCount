@@ -118,7 +118,7 @@ class _CategorySharePageState extends ConsumerState<CategorySharePage> {
           TextButton.icon(
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: code.code));
-              if (mounted) {
+              if (context.mounted) {
                 showToast(context, l10n.categoryShareCodeCopied);
               }
             },

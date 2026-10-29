@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:io';
 
@@ -140,6 +139,7 @@ class SharePosterService {
         ledgerId: ledgerId,
         year: year,
       );
+      if (!context.mounted) return null;
 
       return await _generatePosterFromWidgetStatic(
         context,
@@ -169,6 +169,7 @@ class SharePosterService {
         year: year,
         month: month,
       );
+      if (!context.mounted) return null;
 
       return await _generatePosterFromWidgetStatic(
         context,
@@ -194,6 +195,7 @@ class SharePosterService {
       final data = await dataService.calculateLedgerSummary(
         ledgerId: ledgerId,
       );
+      if (!context.mounted) return null;
 
       return await _generatePosterFromWidgetStatic(
         context,

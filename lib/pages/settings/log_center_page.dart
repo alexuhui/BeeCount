@@ -165,7 +165,7 @@ class _LogCenterPageState extends ConsumerState<LogCenterPage> {
                       return FilterChip(
                         label: Text(level.displayName),
                         selected: isSelected,
-                        selectedColor: primaryColor.withOpacity(0.2),
+                        selectedColor: primaryColor.withValues(alpha: 0.2),
                         onSelected: (selected) {
                           setState(() {
                             if (selected) {
@@ -206,7 +206,7 @@ class _LogCenterPageState extends ConsumerState<LogCenterPage> {
                       return FilterChip(
                         label: Text(platform.displayName),
                         selected: isSelected,
-                        selectedColor: primaryColor.withOpacity(0.2),
+                        selectedColor: primaryColor.withValues(alpha: 0.2),
                         onSelected: (selected) {
                           setState(() {
                             if (selected) {
@@ -340,7 +340,6 @@ class _LogEntryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
 
     // 根据日志级别选择颜色
     final levelColor = switch (log.level) {
@@ -370,7 +369,7 @@ class _LogEntryCard extends ConsumerWidget {
                       vertical: 2.0.scaled(context, ref),
                     ),
                     decoration: BoxDecoration(
-                      color: levelColor.withOpacity(0.1),
+                      color: levelColor.withValues(alpha: 0.1),
                       borderRadius:
                           BorderRadius.circular(4.0.scaled(context, ref)),
                       border: Border.all(color: levelColor, width: 1),

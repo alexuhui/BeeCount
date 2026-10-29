@@ -176,7 +176,7 @@ class BeeCountAuthController {
         token: session.token,
       );
       await api.generateRecurring();
-    } catch (e, st) {
+    } catch (e) {
       logger.warning('BeeCountAuth', '周期记账生成失败: $e');
     }
   }

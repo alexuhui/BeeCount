@@ -326,7 +326,7 @@ class _AccountEditPageState extends ConsumerState<AccountEditPage> {
                           final repo = ref.read(repositoryProvider);
                           final hasTransactions = await repo.hasTransactions(widget.account!.id);
                           if (hasTransactions) {
-                            if (!mounted) return;
+                            if (!context.mounted) return;
                             await AppDialog.info(
                               context,
                               title: l10n.commonNotice,
@@ -336,9 +336,9 @@ class _AccountEditPageState extends ConsumerState<AccountEditPage> {
                           }
                         }
 
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         final picked = await _showCurrencyPicker(context, initial: _selectedCurrency);
-                        if (picked != null) {
+                        if (picked != null && mounted) {
                           setState(() => _selectedCurrency = picked);
                         }
                       },

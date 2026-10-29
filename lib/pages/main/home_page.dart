@@ -8,7 +8,6 @@ import 'dart:async';
 import '../../providers.dart';
 import '../../providers/home_transaction_providers.dart';
 import '../settings/personalize_page.dart' show headerStyleProvider;
-import '../../data/db.dart';
 import '../../widgets/ui/ui.dart';
 import '../../widgets/biz/biz.dart';
 import '../../widgets/biz/bee_icon.dart';
@@ -524,7 +523,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         children: [
           Consumer(builder: (context, ref, _) {
             ref.watch(headerStyleProvider);
-            final hide = ref.watch(hideAmountsProvider);
             return PrimaryHeader(
               title: '',
               showTitleSection: false,
@@ -718,7 +716,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                             .textTheme
                                             .bodyMedium
                                             ?.color
-                                            ?.withOpacity(0.6), // ⭐ 自适应次要文字颜色
+                                            ?.withValues(alpha: 0.6), // ⭐ 自适应次要文字颜色
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500)),
                             const SizedBox(height: 2),
@@ -760,7 +758,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                             .textTheme
                                             .bodyMedium
                                             ?.color
-                                            ?.withOpacity(0.6), // ⭐ 自适应次要颜色
+                                            ?.withValues(alpha: 0.6), // ⭐ 自适应次要颜色
                                       ),
                               ],
                             ),

@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:ui' show Locale;
 
@@ -479,13 +480,13 @@ class BeeDatabase extends _$BeeDatabase {
                 'UPDATE categories SET level = 1 WHERE level IS NULL OR level = 0;');
           }
           if (from < 7) {
-            print('[DB Migration] 开始迁移到 v7: 周期账单支持转账');
+            developer.log('[DB Migration] 开始迁移到 v7: 周期账单支持转账');
             // v7: 周期账单支持转账
             // 需要将 category_id 改为可空，并添加 to_account_id 字段
             // SQLite 不支持修改列约束，所以需要重建表
 
             // 1. 创建新表
-            print('[DB Migration] 步骤1: 创建新表');
+            developer.log('[DB Migration] 步骤1: 创建新表');
             await customStatement('''
               CREATE TABLE IF NOT EXISTS recurring_transactions_new (
                 id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -511,7 +512,7 @@ class BeeDatabase extends _$BeeDatabase {
             ''');
 
             // 2. 复制数据
-            print('[DB Migration] 步骤2: 复制数据');
+            developer.log('[DB Migration] 步骤2: 复制数据');
             await customStatement('''
               INSERT INTO recurring_transactions_new
               (id, ledger_id, type, amount, category_id, account_id, to_account_id, note,
@@ -525,25 +526,25 @@ class BeeDatabase extends _$BeeDatabase {
             ''');
 
             // 3. 删除旧表
-            print('[DB Migration] 步骤3: 删除旧表');
+            developer.log('[DB Migration] 步骤3: 删除旧表');
             await customStatement('DROP TABLE recurring_transactions;');
 
             // 4. 重命名新表
-            print('[DB Migration] 步骤4: 重命名新表');
+            developer.log('[DB Migration] 步骤4: 重命名新表');
             await customStatement('ALTER TABLE recurring_transactions_new RENAME TO recurring_transactions;');
-            print('[DB Migration] v7 迁移完成');
+            developer.log('[DB Migration] v7 迁移完成');
           }
           if (from < 8) {
             // v8: AI 对话助手
-            print('[DB Migration] 开始迁移到 v8: AI 对话助手');
+            developer.log('[DB Migration] 开始迁移到 v8: AI 对话助手');
             await migrator.createTable(conversations);
             await migrator.createTable(messages);
             logger.info('DB', 'v8 迁移完成: AI Chat tables created');
-            print('[DB Migration] v8 迁移完成');
+            developer.log('[DB Migration] v8 迁移完成');
           }
           if (from < 9) {
             // v9: 为 ledgers 表添加 type 字段（支持家庭账本）
-            print('[DB Migration] 开始迁移到 v9: 添加 ledgers.type 字段');
+            developer.log('[DB Migration] 开始迁移到 v9: 添加 ledgers.type 字段');
 
             // 检查字段是否已存在，避免重复添加
             final tableInfo =
@@ -559,11 +560,11 @@ class BeeDatabase extends _$BeeDatabase {
               logger.info('DB', 'v9 迁移跳过: ledgers.type 字段已存在');
             }
 
-            print('[DB Migration] v9 迁移完成');
+            developer.log('[DB Migration] v9 迁移完成');
           }
           if (from < 10) {
             // v10: 添加标签功能
-            print('[DB Migration] 开始迁移到 v10: 添加标签功能');
+            developer.log('[DB Migration] 开始迁移到 v10: 添加标签功能');
 
             // 创建 tags 表
             await migrator.createTable(tags);
@@ -580,11 +581,11 @@ class BeeDatabase extends _$BeeDatabase {
                 'CREATE INDEX IF NOT EXISTS idx_transaction_tags_tag ON transaction_tags(tag_id)');
             logger.info('DB', 'v10: 索引已创建');
 
-            print('[DB Migration] v10 迁移完成');
+            developer.log('[DB Migration] v10 迁移完成');
           }
           if (from < 11) {
             // v11: 添加预算功能
-            print('[DB Migration] 开始迁移到 v11: 添加预算功能');
+            developer.log('[DB Migration] 开始迁移到 v11: 添加预算功能');
 
             // 创建 budgets 表
             await migrator.createTable(budgets);
@@ -599,11 +600,11 @@ class BeeDatabase extends _$BeeDatabase {
                 'CREATE INDEX IF NOT EXISTS idx_budgets_ledger_type ON budgets(ledger_id, type)');
             logger.info('DB', 'v11: 预算索引已创建');
 
-            print('[DB Migration] v11 迁移完成');
+            developer.log('[DB Migration] v11 迁移完成');
           }
           if (from < 12) {
             // v12: 添加交易附件功能
-            print('[DB Migration] 开始迁移到 v12: 添加交易附件功能');
+            developer.log('[DB Migration] 开始迁移到 v12: 添加交易附件功能');
 
             // 创建 transaction_attachments 表
             await migrator.createTable(transactionAttachments);
@@ -614,11 +615,11 @@ class BeeDatabase extends _$BeeDatabase {
                 'CREATE INDEX IF NOT EXISTS idx_attachments_transaction ON transaction_attachments(transaction_id)');
             logger.info('DB', 'v12: 附件索引已创建');
 
-            print('[DB Migration] v12 迁移完成');
+            developer.log('[DB Migration] v12 迁移完成');
           }
           if (from < 13) {
             // v13: 分类自定义图标支持
-            print('[DB Migration] 开始迁移到 v13: 分类自定义图标支持');
+            developer.log('[DB Migration] 开始迁移到 v13: 分类自定义图标支持');
 
             // 检查字段是否已存在，避免重复添加
             final tableInfo =
@@ -648,19 +649,19 @@ class BeeDatabase extends _$BeeDatabase {
               logger.info('DB', 'v13: community_icon_id 字段已添加');
             }
 
-            print('[DB Migration] v13 迁移完成');
+            developer.log('[DB Migration] v13 迁移完成');
           }
           if (from < 14) {
             // v14: 迁移转账记录到虚拟转账分类
-            print('[DB Migration] 开始迁移到 v14: 迁移转账记录到虚拟转账分类');
+            developer.log('[DB Migration] 开始迁移到 v14: 迁移转账记录到虚拟转账分类');
             await SeedService.migrateTransferTransactions(this);
             logger.info('DB', 'v14 迁移完成: 转账记录已关联到虚拟转账分类');
-            print('[DB Migration] v14 迁移完成');
+            developer.log('[DB Migration] v14 迁移完成');
           }
 
           if (from < 15) {
             // v15: 更新（新增/删除）预算表字段
-            print('[DB Migration] 开始迁移到 v15: 更新（新增/删除）预算表字段');
+            developer.log('[DB Migration] 开始迁移到 v15: 更新（新增/删除）预算表字段');
 
             // 删除旧字段
             // await customStatement('ALTER TABLE budgets DROP COLUMN IF EXISTS type;');
@@ -705,7 +706,7 @@ class BeeDatabase extends _$BeeDatabase {
               logger.info('DB', 'v15: 添加新字段 ignored');
             }
 
-            print('[DB Migration] v15 迁移完成');
+            developer.log('[DB Migration] v15 迁移完成');
           }
           if (from < 16) {
             await customStatement('''
@@ -733,15 +734,15 @@ class BeeDatabase extends _$BeeDatabase {
           }
           if (from < 17) {
             // v17: 添加应收款/应付款表
-            print('[DB Migration] 开始迁移到 v17: 添加应收款/应付款表');
+            developer.log('[DB Migration] 开始迁移到 v17: 添加应收款/应付款表');
             await migrator.createTable(receivables);
             await migrator.createTable(payables);
             logger.info('DB', 'v17: receivables 和 payables 表已创建');
-            print('[DB Migration] v17 迁移完成');
+            developer.log('[DB Migration] v17 迁移完成');
           }
           if (from < 18) {
             // v18: 添加 Transactions.exclude_from_stats 字段
-            print('[DB Migration] 开始迁移到 v18: 添加 Transactions.exclude_from_stats 等字段');
+            developer.log('[DB Migration] 开始迁移到 v18: 添加 Transactions.exclude_from_stats 等字段');
             final tableInfo = await customSelect('PRAGMA table_info(transactions)').get();
             final hasExcludeFromStats = tableInfo.any((row) => row.data['name'] == 'exclude_from_stats');
             if (!hasExcludeFromStats) {
@@ -759,7 +760,7 @@ class BeeDatabase extends _$BeeDatabase {
           }
           if (from < 19) {
             // v19: 添加应收应付的分次还款记录
-            print('[DB Migration] 开始迁移到 v19: 添加 ReceivablePayments 和 PayablePayments 表');
+            developer.log('[DB Migration] 开始迁移到 v19: 添加 ReceivablePayments 和 PayablePayments 表');
             await migrator.createTable(receivablePayments);
             await migrator.createTable(payablePayments);
             
@@ -787,7 +788,7 @@ class BeeDatabase extends _$BeeDatabase {
           }
           if (from < 21) {
             // v21: 应收/应付的借款账户、入账账户可为空（不强制关联现金流账户）
-            print('[DB Migration] 开始迁移到 v21: receivables.from_account_id / payables.to_account_id 可空');
+            developer.log('[DB Migration] 开始迁移到 v21: receivables.from_account_id / payables.to_account_id 可空');
             await customStatement('''
               CREATE TABLE receivables_new (
                 id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -832,7 +833,7 @@ class BeeDatabase extends _$BeeDatabase {
             await customStatement(
                 'ALTER TABLE payables_new RENAME TO payables;');
             logger.info('DB', 'v21: receivables/payables 可空字段迁移完成');
-            print('[DB Migration] v21 迁移完成');
+            developer.log('[DB Migration] v21 迁移完成');
           }
           if (from < 22) {
             await customStatement(

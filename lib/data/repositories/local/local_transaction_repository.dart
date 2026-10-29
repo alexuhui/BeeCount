@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:drift/drift.dart' as d;
@@ -466,7 +467,7 @@ class LocalTransactionRepository implements TransactionRepository {
     final startDate = DateTime(month.year, month.month, 1);
     final endDate = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
 
-    print('🔍 Repository查询: ledgerId=$ledgerId, 日期范围: $startDate ~ $endDate');
+    developer.log('🔍 Repository查询: ledgerId=$ledgerId, 日期范围: $startDate ~ $endDate');
 
     // 先查询该月份有多少条交易
     final countQuery = '''
@@ -488,7 +489,7 @@ class LocalTransactionRepository implements TransactionRepository {
     ).getSingle();
 
     final totalCount = countResult.read<int>('count');
-    print('🔍 该月份总交易数: $totalCount');
+    developer.log('🔍 该月份总交易数: $totalCount');
 
     // 查看一条交易的 happened_at 值
     if (totalCount > 0) {
@@ -499,12 +500,12 @@ class LocalTransactionRepository implements TransactionRepository {
         variables: [d.Variable.withInt(ledgerId)],
       ).getSingle();
       final happenedAtValue = sample.read<int>('happened_at');
-      print('🔍 样例 happened_at 值(int): $happenedAtValue');
+      developer.log('🔍 样例 happened_at 值(int): $happenedAtValue');
 
       // 尝试转换为 DateTime 看看
       final asDateTime =
           DateTime.fromMillisecondsSinceEpoch(happenedAtValue * 1000);
-      print('🔍 转换为 DateTime (假设是秒): $asDateTime');
+      developer.log('🔍 转换为 DateTime (假设是秒): $asDateTime');
     }
 
     // SQL 聚合查询
@@ -540,19 +541,19 @@ class LocalTransactionRepository implements TransactionRepository {
       ],
     ).get();
 
-    print('🔍 SQL聚合查询结果: ${results.length} 条');
+    developer.log('🔍 SQL聚合查询结果: ${results.length} 条');
 
     final map = <String, (double, double)>{};
     for (final row in results) {
       final date = row.read<String?>('date');
       if (date == null) continue; // 跳过null日期
-      final income = row.read<double>('income') ?? 0.0;
-      final expense = row.read<double>('expense') ?? 0.0;
+      final income = row.read<double>('income');
+      final expense = row.read<double>('expense');
       map[date] = (income, expense);
-      print('  $date: 收入=$income, 支出=$expense');
+      developer.log('  $date: 收入=$income, 支出=$expense');
     }
 
-    print('🔍 最终返回 Map: ${map.length} 条');
+    developer.log('🔍 最终返回 Map: ${map.length} 条');
     return map;
   }
 

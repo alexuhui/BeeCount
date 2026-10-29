@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/all_providers.dart';
-import '../../providers/beecount_server_providers.dart';
 import '../../services/system/logger_service.dart';
 import '../../utils/local_storage_utils.dart';
 import '../../widgets/ui/ui.dart';
@@ -72,7 +71,7 @@ class _BeeCountServerPageState extends ConsumerState<BeeCountServerPage> {
       await LocalStorageUtils.setAppStatus(LocalStorageUtils.appStatusNone);
 
       Future.microtask(() {
-        if (!mounted) return;
+        if (!context.mounted) return;
         ref.invalidate(beecountSessionProvider);
         ref.invalidate(loginCheckProvider);
         ref.invalidate(appInitStateProvider);

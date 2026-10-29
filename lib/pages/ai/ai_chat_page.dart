@@ -183,10 +183,10 @@ class _AIChatPageState extends ConsumerState<AIChatPage>
               ),
               padding: EdgeInsets.all(12.0.scaled(context, ref)),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8.0.scaled(context, ref)),
                 border: Border.all(
-                  color: Colors.red.withOpacity(0.3),
+                  color: Colors.red.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -276,7 +276,7 @@ class _AIChatPageState extends ConsumerState<AIChatPage>
                       borderRadius:
                           BorderRadius.circular(24.0.scaled(context, ref)),
                       elevation: 8,
-                      shadowColor: Colors.black.withOpacity(0.4),
+                      shadowColor: Colors.black.withValues(alpha: 0.4),
                       child: InkWell(
                         onTap: _scrollToBottomWithAnimation,
                         borderRadius:
@@ -407,12 +407,12 @@ class _AIChatPageState extends ConsumerState<AIChatPage>
                 ),
                 decoration: BoxDecoration(
                   color: isUser
-                      ? ref.watch(primaryColorProvider).withOpacity(0.1)
+                      ? ref.watch(primaryColorProvider).withValues(alpha: 0.1)
                       : BeeTokens.surface(context),
                   borderRadius: BorderRadius.circular(12.0.scaled(context, ref)),
                   border: Border.all(
                     color: isUser
-                        ? ref.watch(primaryColorProvider).withOpacity(0.3)
+                        ? ref.watch(primaryColorProvider).withValues(alpha: 0.3)
                         : BeeTokens.border(context),
                   ),
                 ),
@@ -462,10 +462,10 @@ class _AIChatPageState extends ConsumerState<AIChatPage>
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: ref.watch(primaryColorProvider).withOpacity(0.3),
+          color: ref.watch(primaryColorProvider).withValues(alpha: 0.3),
           width: 1.5,
         ),
-        color: ref.watch(primaryColorProvider).withOpacity(0.1),
+        color: ref.watch(primaryColorProvider).withValues(alpha: 0.1),
       ),
       child: Center(
         child: BeeIcon(
@@ -651,6 +651,7 @@ class _AIChatPageState extends ConsumerState<AIChatPage>
       final repository = repo;
       final expenseCategories = await repository.getUsableCategories('expense');
       final incomeCategories = await repository.getUsableCategories('income');
+      if (!mounted) return;
 
       // 调用 AI 服务
       final chatService = ref.read(aiChatServiceProvider);

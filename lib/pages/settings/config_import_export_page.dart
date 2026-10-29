@@ -156,12 +156,12 @@ class _ConfigImportExportPageState
       final l10n = AppLocalizations.of(context);
 
       await showDialog(
-        context: dialogContext,
+        context: context,
         builder: (context) => _ConfigContentDialog(
           content: content,
           onCopy: () async {
             await Clipboard.setData(ClipboardData(text: content));
-            if (!mounted) return;
+            if (!context.mounted || !dialogContext.mounted) return;
             Navigator.pop(context);
             showToast(dialogContext, l10n.configExportContentCopied);
           },

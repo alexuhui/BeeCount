@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/db.dart' as db;
 import '../../providers.dart';
-import '../../providers/theme_providers.dart';
 import '../../widgets/ui/ui.dart';
 import '../../widgets/biz/amount_text.dart';
 import '../../widgets/biz/section_card.dart';
 import '../../styles/tokens.dart';
 import '../../utils/ui_scale_extensions.dart';
-import '../account/account_detail_page.dart' show receivablePaymentsProvider, accountByIdProvider, allAccountStatsProvider, allAccountsTotalStatsProvider;
+import '../account/account_detail_page.dart' show receivablePaymentsProvider;
 import 'receivable_edit_page.dart';
 import 'payment_add_dialog.dart';
 
@@ -178,7 +177,7 @@ class ReceivableRecordDetailPage extends ConsumerWidget {
         ),
       );
       // 返回后刷新
-      Navigator.pop(context);
+      if (context.mounted) Navigator.pop(context);
     }
   }
 

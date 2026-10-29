@@ -49,8 +49,8 @@ class SmartBillingPage extends ConsumerWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: requiresAI
-                    ? Colors.orange.withOpacity(0.1)
-                    : Colors.blue.withOpacity(0.1),
+                    ? Colors.orange.withValues(alpha: 0.1)
+                    : Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: requiresAI ? Colors.orange : Colors.blue,
@@ -81,7 +81,7 @@ class SmartBillingPage extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -263,7 +263,7 @@ class SmartBillingPage extends ConsumerWidget {
                         subtitle: l10n.smartBillingAutoTagsDesc,
                         trailing: Switch.adaptive(
                           value: ref.watch(smartBillingAutoTagsProvider),
-                          activeColor: ref.watch(primaryColorProvider),
+                           activeThumbColor: ref.watch(primaryColorProvider),
                           onChanged: (value) {
                             ref.read(smartBillingAutoTagsProvider.notifier).state = value;
                           },
@@ -277,7 +277,7 @@ class SmartBillingPage extends ConsumerWidget {
                         subtitle: l10n.smartBillingAutoAttachmentDesc,
                         trailing: Switch.adaptive(
                           value: ref.watch(smartBillingAutoAttachmentProvider),
-                          activeColor: ref.watch(primaryColorProvider),
+                           activeThumbColor: ref.watch(primaryColorProvider),
                           onChanged: (value) {
                             ref.read(smartBillingAutoAttachmentProvider.notifier).state = value;
                           },

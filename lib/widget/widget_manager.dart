@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
@@ -88,9 +89,9 @@ class WidgetManager {
           ? const Size(364, 169)  // iOS systemMedium
           : const Size(364, 182); // Android 2:1 ratio (364/2=182)
 
-      print('📱 Widget rendering - Platform: ${Platform.isIOS ? "iOS" : "Android"}, Size: ${widgetSize.width}x${widgetSize.height}, Ratio: ${(widgetSize.width / widgetSize.height).toStringAsFixed(2)}:1');
+      developer.log('📱 Widget rendering - Platform: ${Platform.isIOS ? "iOS" : "Android"}, Size: ${widgetSize.width}x${widgetSize.height}, Ratio: ${(widgetSize.width / widgetSize.height).toStringAsFixed(2)}:1');
 
-      print('🎨 开始渲染小组件...');
+      developer.log('🎨 开始渲染小组件...');
       await HomeWidget.renderFlutterWidget(
         HomeWidgetView(
           todayExpense: _currencyFormat.format(todayExpenseTotal),
@@ -111,21 +112,21 @@ class WidgetManager {
         logicalSize: widgetSize,
         pixelRatio: 4.0, // @4x for high resolution
       );
-      print('✅ 小组件渲染完成');
+      developer.log('✅ 小组件渲染完成');
 
       // 获取保存的图片路径用于调试
       final savedPath = await HomeWidget.getWidgetData<String>('widgetImage');
-      print('📁 图片保存路径: $savedPath');
+      developer.log('📁 图片保存路径: $savedPath');
 
       // Update the widget
-      print('📲 触发小组件更新...');
+      developer.log('📲 触发小组件更新...');
       await HomeWidget.updateWidget(
         qualifiedAndroidName: 'com.tntlikely.beecount.BeeCountWidgetProvider',
         iOSName: 'BeeCountWidget',
       );
-      print('✅ 小组件更新命令已发送');
+      developer.log('✅ 小组件更新命令已发送');
     } catch (e) {
-      print('[Widget] 更新失败: $e');
+      developer.log('[Widget] 更新失败: $e');
     }
   }
 

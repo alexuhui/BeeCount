@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import 'database_scopes.dart';
 
 /// 多 scope 数据库文件路径与复制（需在关闭相关 [BeeDatabase] 连接后调用）。
 abstract class DatabaseFileUtils {

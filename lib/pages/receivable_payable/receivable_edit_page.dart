@@ -9,7 +9,6 @@ import '../../widgets/biz/biz.dart';
 import '../../styles/tokens.dart';
 import '../../utils/ui_scale_extensions.dart';
 import '../account/account_detail_page.dart' show receivableStatsProvider, receivableBalanceProvider;
-import '../../providers/statistics_providers.dart';
 
 /// 应收款记录编辑页面（收款请使用详情页「记录收款」）
 class ReceivableEditPage extends ConsumerStatefulWidget {

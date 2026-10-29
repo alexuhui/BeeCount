@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme.dart';
 import '../widget/widget_manager.dart';
 import '../services/user_settings/user_setting_keys.dart';
-import '../services/user_settings/user_settings_store.dart';
 import 'database_providers.dart';
 
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);

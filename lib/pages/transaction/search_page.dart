@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:drift/drift.dart' as d;
 import '../../config/page_sizes.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
@@ -41,7 +40,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   double? _maxAmount;
   DateTime? _startDate;
   DateTime? _endDate;
-  bool _hasScheduledSearch = false; // 防止重复调度搜索
 
   // 批量操作相关
   bool _isBatchMode = false;
@@ -89,7 +87,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         _searchPage = 0;
         _searchTotal = 0;
         _isSearching = false;
-        _hasScheduledSearch = false;
       });
       return;
     }
@@ -104,7 +101,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     } else {
       setState(() {
         _isSearching = true;
-        _hasScheduledSearch = false;
       });
     }
 

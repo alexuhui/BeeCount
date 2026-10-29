@@ -80,21 +80,26 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                             title: AppLocalizations.of(context).mineImport,
                             onTap: () async {
                               await Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const ImportPage()),
+                                MaterialPageRoute(
+                                    builder: (_) => const ImportPage()),
                               );
                             },
                           );
                         }
                         if (p.running) {
-                          final percent =
-                              p.total == 0 ? null : (p.done / p.total).clamp(0.0, 1.0);
+                          final percent = p.total == 0
+                              ? null
+                              : (p.done / p.total).clamp(0.0, 1.0);
                           return AppListTile(
                             leading: Icons.upload_outlined,
-                            title: AppLocalizations.of(context).mineImportProgressTitle,
+                            title: AppLocalizations.of(context)
+                                .mineImportProgressTitle,
                             subtitle: AppLocalizations.of(context)
-                                .mineImportProgressSubtitle(p.done, p.fail, p.ok, p.total),
+                                .mineImportProgressSubtitle(
+                                    p.done, p.fail, p.ok, p.total),
                             trailing: SizedBox(
-                                width: 72, child: LinearProgressIndicator(value: percent)),
+                                width: 72,
+                                child: LinearProgressIndicator(value: percent)),
                             onTap: null,
                           );
                         }
@@ -102,7 +107,8 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                         if (allOk) return const _ImportSuccessTile();
                         return AppListTile(
                           leading: Icons.info_outline,
-                          title: AppLocalizations.of(context).mineImportCompleteTitle,
+                          title: AppLocalizations.of(context)
+                              .mineImportCompleteTitle,
                           subtitle:
                               '${AppLocalizations.of(context).commonSuccess} ${p.ok}，${AppLocalizations.of(context).commonFailed} ${p.fail}',
                           onTap: null,
@@ -115,7 +121,8 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                         title: AppLocalizations.of(context).mineExport,
                         onTap: () async {
                           await Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const ExportPage()),
+                            MaterialPageRoute(
+                                builder: (_) => const ExportPage()),
                           );
                         },
                       ),
@@ -134,11 +141,14 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                       // 分类管理
                       AppListTile(
                         leading: Icons.category_outlined,
-                        title: AppLocalizations.of(context).mineCategoryManagement,
-                        subtitle: AppLocalizations.of(context).mineCategoryManagementSubtitle,
+                        title:
+                            AppLocalizations.of(context).mineCategoryManagement,
+                        subtitle: AppLocalizations.of(context)
+                            .mineCategoryManagementSubtitle,
                         onTap: () async {
                           await Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const CategoryManagePage()),
+                            MaterialPageRoute(
+                                builder: (_) => const CategoryManagePage()),
                           );
                         },
                       ),
@@ -146,11 +156,14 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                       // 分类迁移
                       AppListTile(
                         leading: Icons.swap_horiz,
-                        title: AppLocalizations.of(context).mineCategoryMigration,
-                        subtitle: AppLocalizations.of(context).mineCategoryMigrationSubtitle,
+                        title:
+                            AppLocalizations.of(context).mineCategoryMigration,
+                        subtitle: AppLocalizations.of(context)
+                            .mineCategoryMigrationSubtitle,
                         onTap: () async {
                           await Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const CategoryMigrationPage()),
+                            MaterialPageRoute(
+                                builder: (_) => const CategoryMigrationPage()),
                           );
                         },
                       ),
@@ -167,7 +180,8 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                     subtitle: AppLocalizations.of(context).tagManageSubtitle,
                     onTap: () async {
                       await Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const TagManagePage()),
+                        MaterialPageRoute(
+                            builder: (_) => const TagManagePage()),
                       );
                     },
                   ),
@@ -181,11 +195,14 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                       // 配置导入导出
                       AppListTile(
                         leading: Icons.settings_backup_restore,
-                        title: AppLocalizations.of(context).configImportExportTitle,
-                        subtitle: AppLocalizations.of(context).configImportExportSubtitle,
+                        title: AppLocalizations.of(context)
+                            .configImportExportTitle,
+                        subtitle: AppLocalizations.of(context)
+                            .configImportExportSubtitle,
                         onTap: () async {
                           await Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const ConfigImportExportPage()),
+                            MaterialPageRoute(
+                                builder: (_) => const ConfigImportExportPage()),
                           );
                         },
                       ),
@@ -193,11 +210,14 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                       // 存储空间管理
                       AppListTile(
                         leading: Icons.storage_outlined,
-                        title: AppLocalizations.of(context).storageManagementTitle,
-                        subtitle: AppLocalizations.of(context).storageManagementSubtitle,
+                        title:
+                            AppLocalizations.of(context).storageManagementTitle,
+                        subtitle: AppLocalizations.of(context)
+                            .storageManagementSubtitle,
                         onTap: () async {
                           await Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const StorageManagementPage()),
+                            MaterialPageRoute(
+                                builder: (_) => const StorageManagementPage()),
                           );
                         },
                       ),
@@ -266,7 +286,8 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                             _exportProgress,
                             _exportTotal,
                           )
-                        : l10n.attachmentExportProgress(_exportProgress, _exportTotal),
+                        : l10n.attachmentExportProgress(
+                            _exportProgress, _exportTotal),
                     style: TextStyle(
                       fontSize: 12,
                       color: BeeTokens.textSecondary(context),
@@ -307,7 +328,8 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    l10n.attachmentImportProgress(_importProgress, _importTotal),
+                    l10n.attachmentImportProgress(
+                        _importProgress, _importTotal),
                     style: TextStyle(
                       fontSize: 12,
                       color: BeeTokens.textSecondary(context),
@@ -468,104 +490,103 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
           builder: (ctx, setDialogState) {
             return AlertDialog(
               title: Text(l10n.attachmentImportTitle),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 文件名
-                  Row(
-                    children: [
-                      Icon(Icons.archive, size: 20, color: primary),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          filePath.split('/').last,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // 归档信息
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.attachmentArchiveInfo(
-                          info.count,
-                          info.exportedAt != null
-                              ? DateFormat('yyyy-MM-dd HH:mm').format(info.exportedAt!)
-                              : '-',
-                        ),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: BeeTokens.textSecondary(ctx),
-                        ),
-                      ),
-                      if (info.customIconCount > 0)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
+              content: RadioGroup<String>(
+                groupValue: conflictStrategy,
+                onChanged: (value) {
+                  if (value != null) {
+                    setDialogState(() => conflictStrategy = value);
+                  }
+                },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 文件名
+                    Row(
+                      children: [
+                        Icon(Icons.archive, size: 20, color: primary),
+                        const SizedBox(width: 8),
+                        Expanded(
                           child: Text(
-                            '自定义图标: ${info.customIconCount} 个',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: BeeTokens.textSecondary(ctx),
-                            ),
+                            filePath.split('/').last,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      if (info.hasAvatar)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            '包含头像',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: BeeTokens.textSecondary(ctx),
-                            ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // 归档信息
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.attachmentArchiveInfo(
+                            info.count,
+                            info.exportedAt != null
+                                ? DateFormat('yyyy-MM-dd HH:mm')
+                                    .format(info.exportedAt!)
+                                : '-',
+                          ),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: BeeTokens.textSecondary(ctx),
                           ),
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // 冲突策略
-                  Text(
-                    l10n.attachmentImportConflictStrategy,
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 8),
-                  // 跳过选项
-                  RadioListTile<String>(
-                    title: Text(l10n.attachmentImportConflictSkip, style: const TextStyle(fontSize: 14)),
-                    value: AttachmentExportImportService.conflictSkip,
-                    groupValue: conflictStrategy,
-                    onChanged: (v) {
-                      if (v != null) {
-                        setDialogState(() => conflictStrategy = v);
-                      }
-                    },
-                    activeColor: primary,
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  // 覆盖选项
-                  RadioListTile<String>(
-                    title: Text(l10n.attachmentImportConflictOverwrite, style: const TextStyle(fontSize: 14)),
-                    value: AttachmentExportImportService.conflictOverwrite,
-                    groupValue: conflictStrategy,
-                    onChanged: (v) {
-                      if (v != null) {
-                        setDialogState(() => conflictStrategy = v);
-                      }
-                    },
-                    activeColor: primary,
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ],
+                        if (info.customIconCount > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              '自定义图标: ${info.customIconCount} 个',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: BeeTokens.textSecondary(ctx),
+                              ),
+                            ),
+                          ),
+                        if (info.hasAvatar)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              '包含头像',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: BeeTokens.textSecondary(ctx),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // 冲突策略
+                    Text(
+                      l10n.attachmentImportConflictStrategy,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 8),
+                    // 跳过选项
+                    RadioListTile<String>(
+                      title: Text(l10n.attachmentImportConflictSkip,
+                          style: const TextStyle(fontSize: 14)),
+                      value: AttachmentExportImportService.conflictSkip,
+                      activeColor: primary,
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    // 覆盖选项
+                    RadioListTile<String>(
+                      title: Text(l10n.attachmentImportConflictOverwrite,
+                          style: const TextStyle(fontSize: 14)),
+                      value: AttachmentExportImportService.conflictOverwrite,
+                      activeColor: primary,
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -636,7 +657,10 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       final parts = <String>[];
 
       // 交易附件结果
-      if (result.imported > 0 || result.skipped > 0 || result.overwritten > 0 || result.failed > 0) {
+      if (result.imported > 0 ||
+          result.skipped > 0 ||
+          result.overwritten > 0 ||
+          result.failed > 0) {
         parts.add(l10n.attachmentImportResult(
           result.imported,
           result.skipped,
@@ -652,11 +676,14 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
 
       // 自定义图标导入结果
       if (result.customIconsImported > 0 || result.customIconsSkipped > 0) {
-        parts.add('自定义图标：导入${result.customIconsImported}个${result.customIconsSkipped > 0 ? '，跳过${result.customIconsSkipped}个' : ''}');
+        parts.add(
+            '自定义图标：导入${result.customIconsImported}个${result.customIconsSkipped > 0 ? '，跳过${result.customIconsSkipped}个' : ''}');
       }
 
       // 如果没有任何导入结果，显示提示
-      if (parts.isEmpty && !result.avatarImported && result.customIconsImported == 0) {
+      if (parts.isEmpty &&
+          !result.avatarImported &&
+          result.customIconsImported == 0) {
         parts.add('未导入任何内容');
       }
 

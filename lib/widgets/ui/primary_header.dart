@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:math' as Math;
+import 'dart:math' as math;
 import '../../providers.dart';
 import '../../providers/theme_providers.dart';
 import '../../styles/tokens.dart';
-import '../../theme.dart'; // ⭐ 导入 BeeTheme
+// ⭐ 导入 BeeTheme
 
 class PrimaryHeader extends ConsumerWidget {
   final String title;
@@ -358,7 +358,7 @@ class _ParticlePatternPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final random = Math.Random(42); // 固定种子，保持一致性
+    final random = math.Random(42); // 固定种子，保持一致性
 
     // 绘制30-40个随机分布的粒子
     for (int i = 0; i < 35; i++) {
@@ -409,13 +409,13 @@ class _ParticlePatternPainter extends CustomPainter {
   Path _createStarPath(double centerX, double centerY, double outerRadius, double innerRadius) {
     final path = Path();
     const points = 5;
-    const angle = Math.pi / points;
+    const angle = math.pi / points;
 
     for (int i = 0; i < points * 2; i++) {
       final radius = i.isEven ? outerRadius : innerRadius;
-      final currentAngle = angle * i - Math.pi / 2; // 从顶部开始
-      final x = centerX + radius * Math.cos(currentAngle);
-      final y = centerY + radius * Math.sin(currentAngle);
+      final currentAngle = angle * i - math.pi / 2; // 从顶部开始
+      final x = centerX + radius * math.cos(currentAngle);
+      final y = centerY + radius * math.sin(currentAngle);
 
       if (i == 0) {
         path.moveTo(x, y);
@@ -429,63 +429,6 @@ class _ParticlePatternPainter extends CustomPainter {
   }
 }
 
-/// 对角线条纹绘制器（方案7）
-class _DiagonalStripesPatternPainter extends CustomPainter {
-  final Color color;
-
-  _DiagonalStripesPatternPainter(this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint1 = Paint()
-      ..color = color.withValues(alpha: 0.12)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-
-    final paint2 = Paint()
-      ..color = color.withValues(alpha: 0.08)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-
-    final paint3 = Paint()
-      ..color = color.withValues(alpha: 0.05)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-
-    const spacing = 30.0; // 条纹间距
-
-    // 绘制从左上到右下的对角线
-    // 第一组：较粗较明显
-    for (double i = -size.height; i < size.width + size.height; i += spacing * 3) {
-      canvas.drawLine(
-        Offset(i, 0),
-        Offset(i + size.height, size.height),
-        paint1,
-      );
-    }
-
-    // 第二组：中等粗细
-    for (double i = -size.height + spacing; i < size.width + size.height; i += spacing * 3) {
-      canvas.drawLine(
-        Offset(i, 0),
-        Offset(i + size.height, size.height),
-        paint2,
-      );
-    }
-
-    // 第三组：较细较淡
-    for (double i = -size.height + spacing * 2; i < size.width + size.height; i += spacing * 3) {
-      canvas.drawLine(
-        Offset(i, 0),
-        Offset(i + size.height, size.height),
-        paint3,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
 
 /// 蜂巢六边形图案绘制器（方案8）
 class _HoneycombPatternPainter extends CustomPainter {
@@ -501,7 +444,7 @@ class _HoneycombPatternPainter extends CustomPainter {
       ..strokeWidth = 1.5;
 
     const hexSize = 30.0; // 六边形尺寸
-    final hexHeight = hexSize * Math.sqrt(3);
+    final hexHeight = hexSize * math.sqrt(3);
     final hexWidth = hexSize * 2;
 
     // 计算需要绘制的行列数
@@ -515,7 +458,7 @@ class _HoneycombPatternPainter extends CustomPainter {
         final y = row * hexHeight + (col.isOdd ? hexHeight / 2 : 0);
 
         // 只绘制部分六边形（随机效果）
-        final random = Math.Random((row * 1000 + col).hashCode);
+        final random = math.Random((row * 1000 + col).hashCode);
         if (random.nextDouble() > 0.3) { // 70% 显示
           _drawHexagon(canvas, Offset(x, y), hexSize, paint);
         }
@@ -527,9 +470,9 @@ class _HoneycombPatternPainter extends CustomPainter {
   void _drawHexagon(Canvas canvas, Offset center, double size, Paint paint) {
     final path = Path();
     for (int i = 0; i < 6; i++) {
-      final angle = (Math.pi / 3) * i;
-      final x = center.dx + size * Math.cos(angle);
-      final y = center.dy + size * Math.sin(angle);
+      final angle = (math.pi / 3) * i;
+      final x = center.dx + size * math.cos(angle);
+      final y = center.dy + size * math.sin(angle);
 
       if (i == 0) {
         path.moveTo(x, y);

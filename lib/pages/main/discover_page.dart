@@ -1,25 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/repositories/budget_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers.dart';
 import '../../providers/budget_providers.dart';
 import '../../services/data/category_service.dart';
-import '../../services/system/logger_service.dart';
 import '../../styles/tokens.dart';
 import '../../utils/ui_scale_extensions.dart';
-import '../../utils/website_urls.dart';
 import '../../widgets/biz/ledger_picker_sheet.dart';
 import '../../widgets/biz/section_card.dart';
 import '../../widgets/ui/ui.dart';
 import '../account/accounts_section.dart';
 import '../account/account_settings_page.dart';
-import '../ai/ai_settings_page.dart';
 import '../budget/budget_page.dart';
-import '../settings/config_import_export_page.dart';
-import '../automation/auto_billing_settings_page.dart';
 
 enum _DiscoverSection { accounts, budget }
 
@@ -882,134 +876,6 @@ class _AccountsIcon extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _QuickActionsCard extends ConsumerWidget {
-  final Color primaryColor;
-
-  const _QuickActionsCard({required this.primaryColor});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-
-    return SectionCard(
-      margin: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 常用功能标题
-          Text(
-            l10n.discoverCommonFeatures,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: BeeTokens.textPrimary(context),
-            ),
-          ),
-          SizedBox(height: 12.0.scaled(context, ref)),
-          // 常用功能：AI设置、使用帮助、配置管理、自动记账
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  ref,
-                  icon: Icons.psychology_outlined,
-                  label: l10n.discoverAISettings,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AISettingsPage()),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  ref,
-                  icon: Icons.help_outline,
-                  label: l10n.discoverHelp,
-                  onTap: () async {
-                    final locale = Localizations.localeOf(context);
-                    final uri = Uri.parse(WebsiteUrls.docs(locale));
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri,
-                          mode: LaunchMode.externalApplication);
-                    }
-                  },
-                ),
-              ),
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  ref,
-                  icon: Icons.settings_backup_restore,
-                  label: l10n.discoverConfigManagement,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const ConfigImportExportPage()),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  ref,
-                  icon: Icons.auto_fix_high,
-                  label: l10n.discoverAutoBilling,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const AutoBillingSettingsPage()),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton(
-    BuildContext context,
-    WidgetRef ref, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 48.0.scaled(context, ref),
-            height: 48.0.scaled(context, ref),
-            decoration: BoxDecoration(
-              color: primaryColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              icon,
-              size: 24.0.scaled(context, ref),
-              color: primaryColor,
-            ),
-          ),
-          SizedBox(height: 6.0.scaled(context, ref)),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: BeeTokens.textSecondary(context),
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
     );
   }
 }

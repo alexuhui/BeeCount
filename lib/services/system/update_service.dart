@@ -14,7 +14,7 @@ import '../update/update_installer.dart';
 import '../update/update_cache.dart';
 
 /// 本地化UpdateResult消息的辅助函数
-String _localizeUpdateMessage(BuildContext context, String? message) {
+String _localizeUpdateMessage(AppLocalizations l10n, String? message) {
   if (message == null) return '';
 
   // 处理带参数的消息（格式："__KEY__:param"）
@@ -25,17 +25,17 @@ String _localizeUpdateMessage(BuildContext context, String? message) {
 
     switch (key) {
       case '__UPDATE_ALREADY_LATEST__':
-        return '${AppLocalizations.of(context).updateAlreadyLatest} $param';
+        return '${l10n.updateAlreadyLatest} $param';
       case '__UPDATE_DOWNLOAD_FAILED__':
-        return '${AppLocalizations.of(context).updateDownloadFailed}: $param';
+        return '${l10n.updateDownloadFailed}: $param';
       case '__UPDATE_INSTALL_FAILED__':
-        return '${AppLocalizations.of(context).updateInstallFailed}: $param';
+        return '${l10n.updateInstallFailed}: $param';
       case '__UPDATE_CHECK_FAILED__':
-        return '${AppLocalizations.of(context).updateCheckFailed}: $param';
+        return '${l10n.updateCheckFailed}: $param';
       case '__UPDATE_CHECK_HTTP_FAILED__':
-        return '${AppLocalizations.of(context).updateCheckFailed}: HTTP $param';
+        return '${l10n.updateCheckFailed}: HTTP $param';
       case '__UPDATE_CHECK_EXCEPTION__':
-        return '${AppLocalizations.of(context).updateCheckFailed}: $param';
+        return '${l10n.updateCheckFailed}: $param';
       default:
         return message;
     }
@@ -44,13 +44,13 @@ String _localizeUpdateMessage(BuildContext context, String? message) {
   // 处理不带参数的消息
   switch (message) {
     case '__UPDATE_USER_CANCELLED__':
-      return AppLocalizations.of(context).updateUserCancelled;
+      return l10n.updateUserCancelled;
     case '__UPDATE_PERMISSION_DENIED__':
-      return AppLocalizations.of(context).updatePermissionDenied;
+      return l10n.updatePermissionDenied;
     case '__UPDATE_NO_APK_FOUND__':
-      return AppLocalizations.of(context).updateNoApkFound;
+      return l10n.updateNoApkFound;
     case '__UPDATE_ALREADY_LATEST_SIMPLE__':
-      return AppLocalizations.of(context).updateAlreadyLatest;
+      return l10n.updateAlreadyLatest;
     default:
       return message;
   }
@@ -70,14 +70,15 @@ class UpdateService {
     String downloadUrl, {
     Function(double progress, String status)? onProgress,
   }) async {
+    final l10n = AppLocalizations.of(context);
     try {
       // 检查权限
-      onProgress?.call(0.0, AppLocalizations.of(context).updateCheckingPermissions);
+      onProgress?.call(0.0, l10n.updateCheckingPermissions);
       final hasPermission = await UpdatePermissions.checkAndRequestPermissions();
       if (!hasPermission) {
         return UpdateResult(
           hasUpdate: false,
-          message: AppLocalizations.of(context).updatePermissionDenied,
+          message: l10n.updatePermissionDenied,
         );
       }
 
@@ -88,7 +89,7 @@ class UpdateService {
       }
 
       // 从URL中提取版本信息用于文件命名和缓存检查
-      onProgress?.call(0.0, AppLocalizations.of(context).updateCheckingCache);
+      onProgress?.call(0.0, l10n.updateCheckingCache);
       final uri = Uri.parse(downloadUrl);
       final originalFileName = uri.pathSegments.last;
       String? version;
@@ -114,8 +115,8 @@ class UpdateService {
           if (context.mounted) {
             final shouldRedownload = await AppDialog.confirm<bool>(
               context,
-              title: AppLocalizations.of(context).updateCorruptedFileTitle,
-              message: AppLocalizations.of(context).updateCorruptedFileMessage,
+              title: l10n.updateCorruptedFileTitle,
+              message: l10n.updateCorruptedFileMessage,
             );
 
             if (shouldRedownload == true) {
@@ -133,8 +134,8 @@ class UpdateService {
           if (context.mounted) {
             final shouldInstall = await AppDialog.confirm<bool>(
               context,
-              title: AppLocalizations.of(context).updateCachedVersionTitle,
-              message: AppLocalizations.of(context).updateCachedVersionMessage,
+              title: l10n.updateCachedVersionTitle,
+              message: l10n.updateCachedVersionMessage,
             );
 
             if (shouldInstall == true) {
@@ -143,7 +144,7 @@ class UpdateService {
               return UpdateResult(
                 hasUpdate: true,
                 success: true,
-                message: AppLocalizations.of(context).updateInstallingCachedApk,
+                message: l10n.updateInstallingCachedApk,
                 filePath: cachedApkPath,
               );
             } else {
@@ -155,11 +156,11 @@ class UpdateService {
       }
 
       // 开始下载
-      onProgress?.call(0.0, AppLocalizations.of(context).updatePreparingDownload);
+      onProgress?.call(0.0, l10n.updatePreparingDownload);
       if (!context.mounted) {
         return UpdateResult(
           hasUpdate: false,
-          message: AppLocalizations.of(context).updateUserCancelledDownload,
+          message: l10n.updateUserCancelledDownload,
         );
       }
 
@@ -206,7 +207,7 @@ class UpdateService {
               logger.info('UpdateService', 'UPDATE_CRASH: 🚀 用户确认安装，开始启动安装程序');
               logger.info('UpdateService', 'UPDATE_CRASH: 当前构建模式: ${const bool.fromEnvironment('dart.vm.product') ? "生产模式" : "开发模式"}');
               logger.info('UpdateService', 'UPDATE_CRASH: 当前flavor: ${const String.fromEnvironment('flavor', defaultValue: 'unknown')}');
-              onProgress?.call(0.95, AppLocalizations.of(context).updateStartingInstaller);
+              onProgress?.call(0.95, l10n.updateStartingInstaller);
 
               // 确保在启动安装器之前，界面状态是正确的
               await Future.delayed(const Duration(milliseconds: 300));
@@ -235,71 +236,72 @@ class UpdateService {
               }
 
               if (installed) {
-                onProgress?.call(1.0, AppLocalizations.of(context).updateInstallerStarted);
+                onProgress?.call(1.0, l10n.updateInstallerStarted);
                 return UpdateResult(
                   hasUpdate: true,
                   success: true,
-                  message: AppLocalizations.of(context).updateInstallStarted,
+                  message: l10n.updateInstallStarted,
                   filePath: downloadResult.filePath,
                 );
               } else {
-                onProgress?.call(1.0, AppLocalizations.of(context).updateInstallationFailed);
+                onProgress?.call(1.0, l10n.updateInstallationFailed);
                 return UpdateResult(
                   hasUpdate: true,
                   success: false,
-                  message: AppLocalizations.of(context).updateInstallFailed,
+                  message: l10n.updateInstallFailed,
                   filePath: downloadResult.filePath,
                 );
               }
             } else {
               // 用户选择稍后安装或弹窗被取消
               logger.info('UpdateService', '用户选择稍后安装或操作被取消');
-              onProgress?.call(1.0, AppLocalizations.of(context).updateDownloadCompleted);
+              onProgress?.call(1.0, l10n.updateDownloadCompleted);
               return UpdateResult(
                 hasUpdate: true,
                 success: true,
-                message: AppLocalizations.of(context).updateDownloadCompletedManual,
+                message: l10n.updateDownloadCompletedManual,
                 filePath: downloadResult.filePath,
               );
             }
           } catch (e) {
             logger.error('UpdateService', '显示安装确认弹窗过程中发生异常', e);
-            onProgress?.call(1.0, AppLocalizations.of(context).updateDownloadCompleted);
+            onProgress?.call(1.0, l10n.updateDownloadCompleted);
             return UpdateResult(
               hasUpdate: true,
               success: true,
-              message: AppLocalizations.of(context).updateDownloadCompletedDialog,
+              message: l10n.updateDownloadCompletedDialog,
               filePath: downloadResult.filePath,
             );
           }
         } else {
           // context未挂载，无法显示对话框
           logger.warning('UpdateService', 'Context未挂载，无法显示安装确认弹窗');
-          onProgress?.call(1.0, AppLocalizations.of(context).updateDownloadCompleted);
+          onProgress?.call(1.0, l10n.updateDownloadCompleted);
           return UpdateResult(
             hasUpdate: true,
             success: true,
-            message: AppLocalizations.of(context).updateDownloadCompletedContext,
+            message: l10n.updateDownloadCompletedContext,
             filePath: downloadResult.filePath,
           );
         }
       } else {
-        onProgress?.call(1.0, AppLocalizations.of(context).updateDownloadFailedGeneric);
+        onProgress?.call(1.0, l10n.updateDownloadFailedGeneric);
+        final localizedMessage = _localizeUpdateMessage(l10n, downloadResult.message);
         return UpdateResult(
           hasUpdate: false,
           success: false,
-          message: _localizeUpdateMessage(context, downloadResult.message).isNotEmpty ?
-              _localizeUpdateMessage(context, downloadResult.message) :
-              AppLocalizations.of(context).updateDownloadFailedGeneric,
+          message: localizedMessage.isNotEmpty ?
+              localizedMessage :
+              l10n.updateDownloadFailedGeneric,
         );
       }
     } catch (e) {
       logger.error('UpdateService', '下载更新失败', e);
-      onProgress?.call(1.0, AppLocalizations.of(context).updateDownloadFailedGeneric);
+      onProgress?.call(1.0, l10n.updateDownloadFailedGeneric);
       return UpdateResult(
         hasUpdate: false,
         success: false,
-        message: AppLocalizations.of(context).updateCheckingUpdateError('$e'),
+        message: l10n.updateCheckingUpdateError('$e'),
       );
     }
   }
@@ -323,7 +325,7 @@ class UpdateService {
 
         if (!checkResult.hasUpdate) {
           // 检查是否是网络错误或API错误，提供兜底方案
-          final localizedMessage = _localizeUpdateMessage(context, checkResult.message);
+          final localizedMessage = _localizeUpdateMessage(AppLocalizations.of(context), checkResult.message);
           final message = localizedMessage.isEmpty ? AppLocalizations.of(context).updateCurrentLatestVersion : localizedMessage;
           final isNetworkError = message.contains(AppLocalizations.of(context).updateCheckFailedGeneric) ||
               message.contains('HTTP') ||
@@ -389,7 +391,7 @@ class UpdateService {
 
           // 显示下载错误信息，并提供GitHub fallback
           logger.warning('UpdateService', 'UPDATE_CRASH: 🚨 即将显示下载失败弹窗');
-          final localizedError = _localizeUpdateMessage(context, downloadResult.message!);
+          final localizedError = _localizeUpdateMessage(AppLocalizations.of(context), downloadResult.message!);
           await UpdateDialogs.showDownloadErrorWithFallback(
               context, localizedError.isNotEmpty ? localizedError : downloadResult.message!);
         } else if (downloadResult.success) {

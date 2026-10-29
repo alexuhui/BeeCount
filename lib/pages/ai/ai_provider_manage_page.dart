@@ -319,7 +319,7 @@ class _AIProviderManagePageState extends ConsumerState<AIProviderManagePage> {
       final success = await AIProviderManager.deleteProvider(provider.id);
       if (success) {
         ref.read(aiProviderListRefreshProvider.notifier).state++;
-        if (mounted) {
+        if (context.mounted) {
           showToast(context, deletedMessage);
         }
       }

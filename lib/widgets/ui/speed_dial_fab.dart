@@ -45,7 +45,6 @@ class _SpeedDialFABState extends State<SpeedDialFAB>
   late Animation<double> _expandAnimation;
   bool _isOpen = false;
   int? _hoveredIndex; // 当前悬停的按钮索引
-  Offset? _dragPosition; // 当前拖动位置
 
   @override
   void initState() {
@@ -69,14 +68,12 @@ class _SpeedDialFABState extends State<SpeedDialFAB>
   void _onLongPressStart(LongPressStartDetails details) {
     setState(() {
       _isOpen = true;
-      _dragPosition = details.localPosition;
       _controller.forward();
     });
   }
 
   void _onLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
     setState(() {
-      _dragPosition = details.localPosition;
       _updateHoveredIndex(details.localPosition);
     });
   }
@@ -94,7 +91,6 @@ class _SpeedDialFABState extends State<SpeedDialFAB>
     setState(() {
       _isOpen = false;
       _hoveredIndex = null;
-      _dragPosition = null;
       _controller.reverse();
     });
   }
@@ -109,8 +105,6 @@ class _SpeedDialFABState extends State<SpeedDialFAB>
     // - FAB位于bottom=0，尺寸80x80
     // - FAB底部在y=250，顶部在y=170，中心在y=210
     // - FAB水平居中，left=85，中心x=125
-    const fabCenterXIn250 = 125.0;
-    const fabCenterYIn250 = 210.0; // 从顶部算：250 - 40(FAB半高)
 
     // GestureDetector的top-left在(85, 170)
     const fabLeft = 85.0;

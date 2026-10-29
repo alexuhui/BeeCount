@@ -1,10 +1,8 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../../widgets/ui/primary_header.dart';
-import '../../widgets/ui/toast.dart';
 import '../../providers.dart';
 import '../../services/platform/screenshot_monitor_service.dart';
 import '../../l10n/app_localizations.dart';
@@ -78,7 +76,7 @@ class _AndroidAutoBillingPageState extends ConsumerState<AndroidAutoBillingPage>
       final batteryInfo = await androidUtil.getBatteryOptimizationInfo();
       batteryOptimizationIgnored = batteryInfo['isIgnoring'] == true;
     } catch (e) {
-      print('检查电池优化状态失败: $e');
+      developer.log('检查电池优化状态失败: $e');
     }
 
     setState(() {
@@ -93,23 +91,23 @@ class _AndroidAutoBillingPageState extends ConsumerState<AndroidAutoBillingPage>
 
     if (value) {
       // 请求存储权限（适用于所有Android设备包括华为）
-      print('📸 [AutoBilling] 准备请求存储权限');
+      developer.log('📸 [AutoBilling] 准备请求存储权限');
       PermissionStatus status;
 
       // Android 13+ 使用 photos，Android 13以下使用 storage
       if (await Permission.photos.isRestricted || await Permission.photos.isPermanentlyDenied) {
         // 如果photos权限受限，尝试使用storage
         status = await Permission.storage.request();
-        print('📸 [AutoBilling] 存储权限请求结果: $status');
+        developer.log('📸 [AutoBilling] 存储权限请求结果: $status');
       } else {
         // 尝试photos权限
         status = await Permission.photos.request();
-        print('📸 [AutoBilling] 照片权限请求结果: $status');
+        developer.log('📸 [AutoBilling] 照片权限请求结果: $status');
 
         // 如果photos被拒绝，尝试storage
         if (!status.isGranted) {
           status = await Permission.storage.request();
-          print('📸 [AutoBilling] 存储权限请求结果: $status');
+          developer.log('📸 [AutoBilling] 存储权限请求结果: $status');
         }
       }
 
@@ -121,9 +119,9 @@ class _AndroidAutoBillingPageState extends ConsumerState<AndroidAutoBillingPage>
       }
 
       try {
-        print('📸 [AutoBilling] 开始启用截图监听');
+        developer.log('📸 [AutoBilling] 开始启用截图监听');
         await _screenshotMonitor.enable();
-        print('📸 [AutoBilling] 截图监听启用完成');
+        developer.log('📸 [AutoBilling] 截图监听启用完成');
         setState(() {
           _isMonitorEnabled = true;
         });
@@ -474,47 +472,4 @@ class _AndroidAutoBillingPageState extends ConsumerState<AndroidAutoBillingPage>
     );
   }
 
-  Widget _buildSupportCard(
-    BuildContext context,
-    Color primaryColor,
-    AppLocalizations l10n, {
-    required IconData icon,
-    required String title,
-    required List<String> items,
-  }) {
-    final theme = Theme.of(context);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: primaryColor, size: 24),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ...items.map((item) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                item,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-            )),
-          ],
-        ),
-      ),
-    );
-  }
 }

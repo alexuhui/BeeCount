@@ -123,7 +123,7 @@ class AppearanceSettingsPage extends ConsumerWidget {
                           onChanged: (value) {
                             ref.read(showTransactionTimeProvider.notifier).state = value;
                           },
-                          activeColor: ref.watch(primaryColorProvider),
+                           activeThumbColor: ref.watch(primaryColorProvider),
                         ),
                         onTap: () {
                           final current = ref.read(showTransactionTimeProvider);

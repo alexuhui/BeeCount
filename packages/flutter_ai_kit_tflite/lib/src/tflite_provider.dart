@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:flutter_ai_kit/flutter_ai_kit.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
@@ -115,13 +116,13 @@ abstract class TFLiteProvider<TInput, TOutput>
   /// 加载模型
   Future<void> _loadModel() async {
     final modelPath = await _modelManager.getModelPath(modelId);
-    print('📦 [TFLiteProvider] 加载模型: $modelPath');
+    developer.log('📦 [TFLiteProvider] 加载模型: $modelPath');
 
-    _interpreter = await Interpreter.fromFile(File(modelPath));
+    _interpreter = Interpreter.fromFile(File(modelPath));
 
-    print('✅ [TFLiteProvider] 模型已加载');
-    print('   输入形状: ${_interpreter!.getInputTensors().map((t) => t.shape)}');
-    print('   输出形状: ${_interpreter!.getOutputTensors().map((t) => t.shape)}');
+    developer.log('✅ [TFLiteProvider] 模型已加载');
+    developer.log('   输入形状: ${_interpreter!.getInputTensors().map((t) => t.shape)}');
+    developer.log('   输出形状: ${_interpreter!.getOutputTensors().map((t) => t.shape)}');
   }
 
   /// 运行推理
@@ -136,7 +137,6 @@ abstract class TFLiteProvider<TInput, TOutput>
 
     for (int i = 0; i < outputTensors.length; i++) {
       final shape = outputTensors[i].shape;
-      final type = outputTensors[i].type;
 
       // 根据类型创建输出缓冲区
       // 简化处理：直接创建空列表，让推理引擎填充

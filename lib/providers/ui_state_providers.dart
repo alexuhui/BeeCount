@@ -259,10 +259,6 @@ final appSplashInitProvider = FutureProvider<void>((ref) async {
           ledgerId: ledgerId, limit: preloadLimit);
     }
 
-    if (monthlyResult == null) {
-      monthlyResult = (0.0, 0.0);
-    }
-
     ref.read(lastMonthlyTotalsProvider(monthlyParams).notifier).state =
         monthlyResult;
     // 不再预加载完整列表，让 Stream 自己加载

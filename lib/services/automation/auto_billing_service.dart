@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -95,12 +96,12 @@ class AutoBillingService {
     bool showNotification = true,
   }) async {
     final totalStartTime = DateTime.now().millisecondsSinceEpoch;
-    print('📸 [AutoBilling] 开始处理截图: $imagePath');
+    developer.log('📸 [AutoBilling] 开始处理截图: $imagePath');
     logger.info('AutoBilling', '开始处理截图', imagePath);
 
     // 防重复处理: 已处理过的跳过
     if (_isProcessed(imagePath)) {
-      print('⚠️ [AutoBilling] 截图已处理过，跳过');
+      developer.log('⚠️ [AutoBilling] 截图已处理过，跳过');
       logger.warning('AutoBilling', '截图已处理过，跳过', imagePath);
       return null;
     }
@@ -110,7 +111,7 @@ class AutoBillingService {
     if (_lastProcessedPath == imagePath &&
         (now - _lastProcessedTime) < AutoBillingConfig.duplicateCheckWindow) {
       final timeDiff = now - _lastProcessedTime;
-      print('⚠️ [AutoBilling] 重复截图，跳过处理 (${timeDiff}ms前已处理)');
+      developer.log('⚠️ [AutoBilling] 重复截图，跳过处理 (${timeDiff}ms前已处理)');
       logger.warning('AutoBilling', '重复截图，跳过处理', '${timeDiff}ms前已处理');
       return null;
     }
@@ -127,7 +128,7 @@ class AutoBillingService {
       // 如果文件不存在,可能需要短暂等待
       // (无障碍服务直接截图时文件已就绪,ContentObserver 可能需要等待)
       if (!await file.exists()) {
-        print('⏳ 文件尚未就绪,等待最多${AutoBillingConfig.fileWaitTimeout}ms...');
+        developer.log('⏳ 文件尚未就绪,等待最多${AutoBillingConfig.fileWaitTimeout}ms...');
         logger.info('AutoBilling', '文件尚未就绪，开始等待',
             '路径=$imagePath, 超时=${AutoBillingConfig.fileWaitTimeout}ms');
 
@@ -145,7 +146,7 @@ class AutoBillingService {
 
         while (waitTime < maxWait) {
           if (await file.exists() && await file.length() > 0) {
-            print('✅ 文件已就绪，等待时间=${waitTime}ms');
+            developer.log('✅ 文件已就绪，等待时间=${waitTime}ms');
             logger.info('AutoBilling', '文件就绪', '等待时间=${waitTime}ms');
             break;
           }
@@ -154,7 +155,7 @@ class AutoBillingService {
         }
 
         if (!await file.exists() || await file.length() == 0) {
-          print('❌ 截图文件等待超时 (${waitTime}ms)');
+          developer.log('❌ 截图文件等待超时 (${waitTime}ms)');
           logger.error('AutoBilling', '截图文件等待超时',
               '路径=$imagePath, 等待时间=${waitTime}ms, 文件存在=${await file.exists()}');
           if (showNotification) {
@@ -167,7 +168,7 @@ class AutoBillingService {
           return null;
         }
       } else {
-        print('✅ 文件已就绪,无需等待');
+        developer.log('✅ 文件已就绪,无需等待');
         logger.debug('AutoBilling', '文件已就绪，无需等待');
       }
 
@@ -182,7 +183,7 @@ class AutoBillingService {
 
       // OCR 识别
       final ocrStartTime = DateTime.now().millisecondsSinceEpoch;
-      print('⏱️ [性能] 开始OCR识别');
+      developer.log('⏱️ [性能] 开始OCR识别');
       logger.info('AutoBilling', '开始OCR识别');
 
       // 获取Repository实例用于账户识别
@@ -190,15 +191,15 @@ class AutoBillingService {
       final result = await _ocrService.recognizePaymentImage(file, repo: repo);
 
       final ocrElapsed = DateTime.now().millisecondsSinceEpoch - ocrStartTime;
-      print('⏱️ [性能] OCR识别完成, 耗时=${ocrElapsed}ms');
+      developer.log('⏱️ [性能] OCR识别完成, 耗时=${ocrElapsed}ms');
       logger.info('AutoBilling', 'OCR识别完成', '耗时=${ocrElapsed}ms');
 
       // 打印识别结果用于调试
-      print('📋 OCR识别原始文本: ${result.rawText}');
-      print('💰 识别到的金额: ${result.amount}');
-      print('📝 识别到的备注: ${result.note}');
-      print('⏰ 识别到的时间: ${result.time}');
-      print('🔢 所有数字: ${result.allNumbers}');
+      developer.log('📋 OCR识别原始文本: ${result.rawText}');
+      developer.log('💰 识别到的金额: ${result.amount}');
+      developer.log('📝 识别到的备注: ${result.note}');
+      developer.log('⏰ 识别到的时间: ${result.time}');
+      developer.log('🔢 所有数字: ${result.allNumbers}');
       logger.info('AutoBilling', 'OCR识别结果', {
         'rawText': result.rawText,
         'amount': result.amount,
@@ -213,11 +214,11 @@ class AutoBillingService {
       // 根据识别结果处理
       if (result.amount != null && result.amount!.abs() > 0) {
         // 识别成功，自动创建记账记录（支持负数金额）
-        print('✅ OCR识别成功: 金额=${result.amount}, 备注=${result.note}');
+        developer.log('✅ OCR识别成功: 金额=${result.amount}, 备注=${result.note}');
 
         try {
           final dbStartTime = DateTime.now().millisecondsSinceEpoch;
-          print('⏱️ [性能] 开始创建交易记录');
+          developer.log('⏱️ [性能] 开始创建交易记录');
           // 读取智能记账设置
           final autoAddTags = _container.read(smartBillingAutoTagsProvider);
           final autoAddAttachment = _container.read(smartBillingAutoAttachmentProvider);
@@ -233,7 +234,7 @@ class AutoBillingService {
             autoAddTags: autoAddTags,
           );
           final dbElapsed = DateTime.now().millisecondsSinceEpoch - dbStartTime;
-          print('⏱️ [性能] 交易记录创建完成, 耗时=${dbElapsed}ms');
+          developer.log('⏱️ [性能] 交易记录创建完成, 耗时=${dbElapsed}ms');
 
           if (transactionId != null) {
             // 记账成功
@@ -266,7 +267,7 @@ class AutoBillingService {
                     : '已自动创建支出记录',
               );
             }
-            print('✅ 自动记账成功: ID=$transactionId');
+            developer.log('✅ 自动记账成功: ID=$transactionId');
             logger.info('AutoBilling', '自动记账成功', 'ID=$transactionId, 金额=${result.amount}');
             return transactionId;
           } else {
@@ -278,12 +279,12 @@ class AutoBillingService {
                 body: '识别成功但创建记录失败，请手动记账',
               );
             }
-            print('❌ 自动记账失败: 创建交易记录返回null');
+            developer.log('❌ 自动记账失败: 创建交易记录返回null');
             logger.error('AutoBilling', '自动记账失败：创建交易记录返回null');
             return null;
           }
         } catch (e, stackTrace) {
-          print('❌ 自动记账失败: $e');
+          developer.log('❌ 自动记账失败: $e');
           logger.error('AutoBilling', '自动记账失败', {
             'path': imagePath,
             'amount': result.amount,
@@ -308,7 +309,7 @@ class AutoBillingService {
             body: '可能的金额: ${result.allNumbers.join(", ")} | 请手动确认',
           );
         }
-        print('⚠️ 识别到数字但未确定金额: ${result.allNumbers}');
+        developer.log('⚠️ 识别到数字但未确定金额: ${result.allNumbers}');
         logger.warning('AutoBilling', '识别到数字但未确定金额', result.allNumbers.toString());
         return null;
       } else {
@@ -320,12 +321,12 @@ class AutoBillingService {
             body: '可能不是支付截图,或图片质量较差',
           );
         }
-        print('⚠️ 未识别到任何有效金额');
+        developer.log('⚠️ 未识别到任何有效金额');
         logger.warning('AutoBilling', '未识别到任何有效金额');
         return null;
       }
     } catch (e, stackTrace) {
-      print('❌ 处理截图失败: $e');
+      developer.log('❌ 处理截图失败: $e');
       logger.error('AutoBilling', '处理截图失败', {
         'path': imagePath,
         'error': e.toString(),
@@ -335,7 +336,7 @@ class AutoBillingService {
     } finally {
       final totalElapsed =
           DateTime.now().millisecondsSinceEpoch - totalStartTime;
-      print('⏱️ [性能] 整个流程完成, 总耗时=${totalElapsed}ms');
+      developer.log('⏱️ [性能] 整个流程完成, 总耗时=${totalElapsed}ms');
     }
   }
 
@@ -348,7 +349,7 @@ class AutoBillingService {
     bool showNotification = true,
   }) async {
     final totalStartTime = DateTime.now().millisecondsSinceEpoch;
-    print('📝 [AutoBilling] 开始处理文本: $text');
+    developer.log('📝 [AutoBilling] 开始处理文本: $text');
 
     try {
       const notificationId = 1002;
@@ -366,7 +367,7 @@ class AutoBillingService {
       final ocrResult = _ocrService.parsePaymentText(text);
 
       if (ocrResult.amount == null) {
-        print('❌ 未能识别出金额');
+        developer.log('❌ 未能识别出金额');
         if (showNotification) {
           await _showNotification(
             id: notificationId,
@@ -377,7 +378,7 @@ class AutoBillingService {
         return null;
       }
 
-      print('✅ 识别成功: 金额=${ocrResult.amount}, 备注=${ocrResult.note}');
+      developer.log('✅ 识别成功: 金额=${ocrResult.amount}, 备注=${ocrResult.note}');
 
       // 更新通知状态
       if (showNotification) {
@@ -423,7 +424,7 @@ class AutoBillingService {
       if (txId != null) {
         // 刷新统计信息
         _container.read(statsRefreshProvider.notifier).state++;
-        print('✅ 交易创建成功: id=$txId');
+        developer.log('✅ 交易创建成功: id=$txId');
         if (showNotification) {
           await _showNotification(
             id: notificationId,
@@ -433,7 +434,7 @@ class AutoBillingService {
         }
         return txId;
       } else {
-        print('❌ 交易创建失败');
+        developer.log('❌ 交易创建失败');
         if (showNotification) {
           await _showNotification(
             id: notificationId,
@@ -444,7 +445,7 @@ class AutoBillingService {
         return null;
       }
     } catch (e) {
-      print('❌ [AutoBilling] 文本处理失败: $e');
+      developer.log('❌ [AutoBilling] 文本处理失败: $e');
       if (showNotification) {
         await _showNotification(
           id: 1002,
@@ -456,7 +457,7 @@ class AutoBillingService {
     } finally {
       final totalElapsed =
           DateTime.now().millisecondsSinceEpoch - totalStartTime;
-      print('⏱️ [性能] 文本处理完成, 总耗时=${totalElapsed}ms');
+      developer.log('⏱️ [性能] 文本处理完成, 总耗时=${totalElapsed}ms');
     }
   }
 
@@ -475,9 +476,9 @@ class AutoBillingService {
       // 方案1: 尝试从Provider读取
       try {
         ledgerId = _container.read(currentLedgerIdProvider);
-        print('✅ 从Provider获取账本ID: $ledgerId');
+        developer.log('✅ 从Provider获取账本ID: $ledgerId');
       } catch (e) {
-        print('⚠️ 从Provider获取账本ID失败: $e');
+        developer.log('⚠️ 从Provider获取账本ID失败: $e');
       }
 
       // 方案2: 如果Provider失败，从SharedPreferences读取
@@ -485,30 +486,30 @@ class AutoBillingService {
         final prefs = await SharedPreferences.getInstance();
         ledgerId = prefs.getInt(_ledgerIdKey);
         if (ledgerId != null) {
-          print('✅ 从SharedPreferences获取账本ID: $ledgerId');
+          developer.log('✅ 从SharedPreferences获取账本ID: $ledgerId');
         }
       }
 
       // 方案3: 如果都失败，从数据库获取第一个账本
       if (ledgerId == null) {
-        print('⚠️ 无法从缓存获取账本ID，尝试从数据库获取默认账本');
+        developer.log('⚠️ 无法从缓存获取账本ID，尝试从数据库获取默认账本');
         final repo = _container.read(repositoryProvider);
         final ledgers = await repo.getAllLedgers();
         if (ledgers.isNotEmpty) {
           ledgerId = ledgers.first.id;
-          print('✅ 从数据库获取默认账本ID: $ledgerId');
+          developer.log('✅ 从数据库获取默认账本ID: $ledgerId');
           // 保存到SharedPreferences供下次使用
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setInt(_ledgerIdKey, ledgerId!);
+          await prefs.setInt(_ledgerIdKey, ledgerId);
         }
       }
 
       if (ledgerId == null) {
-        print('❌ 无法获取任何账本ID，请先创建账本');
+        developer.log('❌ 无法获取任何账本ID，请先创建账本');
         return null;
       }
 
-      print('📝 准备创建交易: ledgerId=$ledgerId');
+      developer.log('📝 准备创建交易: ledgerId=$ledgerId');
 
       // 使用共享的BillCreationService创建交易
       final repo = _container.read(repositoryProvider);
@@ -543,8 +544,8 @@ class AutoBillingService {
 
       return transactionId;
     } catch (e) {
-      print('❌ 创建交易记录失败: $e');
-      print('❌ 错误堆栈: ${StackTrace.current}');
+      developer.log('❌ 创建交易记录失败: $e');
+      developer.log('❌ 错误堆栈: ${StackTrace.current}');
       rethrow;
     }
   }

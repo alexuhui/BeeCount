@@ -754,10 +754,11 @@ class _CategoryEditPageState extends ConsumerState<CategoryEditPage> {
       );
 
       if (image == null) {
-        setState(() => _isPickingImage = false);
+        if (mounted) setState(() => _isPickingImage = false);
         return;
       }
 
+      if (!mounted) return;
       // 在异步调用前提取需要的值
       final l10n = AppLocalizations.of(context);
       final primaryColor = ref.read(primaryColorProvider);

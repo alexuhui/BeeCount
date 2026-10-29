@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -23,13 +24,13 @@ class RecurringTransactionPage extends ConsumerWidget {
       body: Column(
         children: [
           PrimaryHeader(
-            title: AppLocalizations.of(context)!.recurringTransactionTitle,
+            title: AppLocalizations.of(context).recurringTransactionTitle,
             showBack: true,
             actions: [
               IconButton(
                 onPressed: () => _addRecurringTransaction(context, ref),
                 icon: const Icon(Icons.add),
-                tooltip: AppLocalizations.of(context)!.recurringTransactionAdd,
+                tooltip: AppLocalizations.of(context).recurringTransactionAdd,
               ),
             ],
           ),
@@ -52,14 +53,14 @@ class RecurringTransactionPage extends ConsumerWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          AppLocalizations.of(context)!.recurringTransactionEmpty,
+                          AppLocalizations.of(context).recurringTransactionEmpty,
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: BeeTokens.textSecondary(context),
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          AppLocalizations.of(context)!.recurringTransactionEmptyHint,
+                          AppLocalizations.of(context).recurringTransactionEmptyHint,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: BeeTokens.textTertiary(context),
                           ),
@@ -180,7 +181,7 @@ class _RecurringTransactionCard extends ConsumerWidget {
                       // 第一行：分类名称
                       recurring.type == 'transfer'
                           ? Text(
-                              AppLocalizations.of(context)!.transferTitle,
+                              AppLocalizations.of(context).transferTitle,
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -313,24 +314,24 @@ class _RecurringTransactionCard extends ConsumerWidget {
                       child: Switch(
                         value: recurring.enabled,
                         onChanged: (value) async {
-                          print('🔧 [周期记账] 开关点击: id=${recurring.id}, newValue=$value, repo类型=${repo.runtimeType}');
+                          developer.log('🔧 [周期记账] 开关点击: id=${recurring.id}, newValue=$value, repo类型=${repo.runtimeType}');
 
                           try {
                             await repo.toggleRecurringTransaction(
                                 recurring.id, value);
-                            print('✅ [周期记账] toggleRecurringTransaction 完成');
+                            developer.log('✅ [周期记账] toggleRecurringTransaction 完成');
 
                             // 给Realtime一点时间触发更新
                             await Future.delayed(const Duration(milliseconds: 100));
 
                             ref.invalidate(allRecurringTransactionsProvider);
-                            print('✅ [周期记账] Provider已invalidate');
+                            developer.log('✅ [周期记账] Provider已invalidate');
                           } catch (e, stackTrace) {
-                            print('❌ [周期记账] 切换失败: $e');
-                            print('堆栈: $stackTrace');
+                            developer.log('❌ [周期记账] 切换失败: $e');
+                            developer.log('堆栈: $stackTrace');
                           }
                         },
-                        activeColor: primaryColor,
+                        activeThumbColor: primaryColor,
                       ),
                     ),
                   ],
@@ -344,7 +345,7 @@ class _RecurringTransactionCard extends ConsumerWidget {
   }
 
   String _getFrequencyDescription(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     final frequency = RecurringFrequency.fromString(recurring.frequency);
     final interval = recurring.interval;
 
@@ -389,7 +390,7 @@ class _RecurringTransactionCard extends ConsumerWidget {
 class _UsageGuideCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     final primaryColor = ref.watch(primaryColorProvider);
 
     return SectionCard(

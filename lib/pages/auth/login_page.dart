@@ -1,4 +1,4 @@
-﻿import 'package:beecount/app.dart';
+import 'package:beecount/app.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -141,7 +141,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         children: [
                           if (kDebugMode) ...[
                             DropdownButtonFormField<int>(
-                              value: _selectedServerIndex,
+                              initialValue: _selectedServerIndex,
                               isExpanded: true,
                               style: const TextStyle(color: Colors.white),
                               decoration: InputDecoration(
@@ -375,10 +375,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
       if (!mounted) return;
       await _saveCredentials(username, password);
+      if (!context.mounted) return;
       await _finishLogin(context);
     } catch (e, st) {
       logger.error('Login', '登录/注册失败', e, st);
-      if (!mounted) return;
+      if (!context.mounted) return;
       await AppDialog.error(context,
           title: l10n.commonError, message: e.toString());
     } finally {
@@ -397,7 +398,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
       ref.read(shouldShowLoginProvider.notifier).state = false;
       ref.read(appInitStateProvider.notifier).state = AppInitState.ready;
-      if (mounted) {
+      if (context.mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const BeeApp()),
           (route) => false,
@@ -405,7 +406,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
     } catch (e, st) {
       logger.error('Login', '完成登录失败', e, st);
-      if (!mounted) return;
+      if (!context.mounted) return;
       await AppDialog.error(context,
           title: AppLocalizations.of(context).commonError, message: e.toString());
     }

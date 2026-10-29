@@ -41,7 +41,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
     ref.listen<ImportProgress>(importProgressProvider, (previous, next) {
       // 检测到导入完成（从运行中变为完成状态）
       if (previous?.running == true && next.isJustCompleted && next.ledgerId != null) {
-        print('🟢 [LedgersPage] 检测到导入完成: ledgerId=${next.ledgerId}');
+        logger.info('LedgersPage', '检测到导入完成: ledgerId=${next.ledgerId}');
         // 触发同步状态刷新和账本列表刷新
         PostProcessor.sync(ref, ledgerId: next.ledgerId!);
       }
@@ -207,75 +207,6 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
     );
   }
 
-  /// 构建账本列表（旧版，保留用于兼容）
-  Widget _buildLedgerList(
-    BuildContext context,
-    WidgetRef ref,
-    List<LedgerDisplayItem> ledgers,
-    int? currentId, {
-    bool showLoadingOverlay = false,
-  }) {
-    // 分组：本地账本 vs 远程账本
-    final localLedgers = ledgers.where((l) => !l.isRemoteOnly).toList();
-    final remoteLedgers = ledgers.where((l) => l.isRemoteOnly).toList();
-
-    return Stack(
-      children: [
-        ListView(
-          padding: EdgeInsets.symmetric(
-            vertical: 8.0.scaled(context, ref),
-          ),
-          children: [
-                    // 账本区域
-                    if (localLedgers.isNotEmpty) ...[
-                      _SectionHeader(
-                        title: AppLocalizations.of(context).ledgersLocal,
-                        trailing: localLedgers.length.toString(),
-                      ),
-                      ...localLedgers.map((ledger) => LedgerCard(
-                            ledger: ledger,
-                            selected: !ledger.isRemoteOnly && ledger.id == currentId,
-                            onTap: () => _handleLocalLedgerTap(ledger),
-                            onLongPress: () => _showLocalLedgerActions(context, ledger),
-                          )),
-                    ],
-
-                    // 远程账本区域
-                    if (remoteLedgers.isNotEmpty) ...[
-                      SizedBox(height: 16.0.scaled(context, ref)),
-                      _SectionHeader(
-                        title: AppLocalizations.of(context).ledgersRemote,
-                        trailing: remoteLedgers.length.toString(),
-                        action: TextButton.icon(
-                          icon: const Icon(Icons.cloud_download, size: 18),
-                          label: Text(AppLocalizations.of(context).ledgersRestoreAll),
-                          onPressed: _isRestoring ? null : () => _handleBatchRestore(context),
-                        ),
-                      ),
-                      ...remoteLedgers.map((ledger) => LedgerCard(
-                            ledger: ledger,
-                            onTap: () => _handleRemoteLedgerTap(context, ledger),
-                            onLongPress: () => _showRemoteLedgerActions(context, ledger),
-                          )),
-                    ],
-
-            SizedBox(height: 60.0.scaled(context, ref)),
-          ],
-        ),
-
-        // 加载蒙层：刷新时显示
-        if (showLoadingOverlay)
-          Positioned.fill(
-            child: Container(
-              color: BeeTokens.surfaceElevated(context).withValues(alpha: 0.7),
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
 
   /// 处理本地账本点击 - 切换账本或显示冲突对话框
   Future<void> _handleLocalLedgerTap(LedgerDisplayItem ledger) async {
@@ -305,23 +236,14 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       message: AppLocalizations.of(context).ledgersDownloadMessage(translateLedgerName(context, ledger.name)),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !context.mounted) return;
 
     try {
       showToast(context, AppLocalizations.of(context).ledgersDownloading);
 
       throw Exception('Cloud backup is not available');
-
-      if (!mounted) return;
-
-      // 刷新列表和同步状态
-      ref.read(ledgerListRefreshProvider.notifier).state++;
-      ref.read(statsRefreshProvider.notifier).state++;
-      ref.read(syncStatusRefreshProvider.notifier).state++;
-
-      showToast(context, AppLocalizations.of(context).ledgersDownloadSuccess(translateLedgerName(context, ledger.name)));
     } catch (e) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       await AppDialog.error(
         context,
         title: AppLocalizations.of(context).commonFailed,
@@ -385,7 +307,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       },
     );
 
-    if (!mounted) return;
+    if (!context.mounted) return;
 
     if (action == 'edit') {
       await _handleEditLedger(context, ledger);
@@ -433,7 +355,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       },
     );
 
-    if (!mounted) return;
+    if (!context.mounted) return;
 
     if (action == 'download') {
       await _handleRemoteLedgerTap(context, ledger);
@@ -447,7 +369,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
     final repo = ref.read(repositoryProvider);
     final ledgerData = await repo.getLedgerById(ledger.id);
 
-    if (ledgerData == null || !mounted) return;
+    if (ledgerData == null || !context.mounted) return;
 
     final result = await _showLedgerEditorDialog(
       context,
@@ -456,7 +378,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       initialCurrency: ledgerData.currency,
     );
 
-    if (result == null || !mounted) return;
+    if (result == null || !context.mounted) return;
 
     await repo.updateLedger(
       id: ledger.id,
@@ -479,7 +401,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       message: l10n.ledgersClearMessage(translateLedgerName(context, ledger.name)),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !context.mounted) return;
 
     try {
       final repo = ref.read(repositoryProvider);
@@ -487,20 +409,21 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       // 删除该账本的所有账单
       await repo.clearLedgerTransactions(ledger.id);
 
-      if (!mounted) return;
+      if (!context.mounted) return;
 
       // 清空缓存的交易数据（避免首页使用旧缓存）
       ref.read(cachedTransactionsProvider.notifier).state = null;
 
       // 触发同步状态刷新
       await PostProcessor.sync(ref, ledgerId: ledger.id);
+      if (!context.mounted) return;
 
       ref.read(ledgerListRefreshProvider.notifier).state++;
       ref.read(statsRefreshProvider.notifier).state++;
 
       showToast(context, l10n.ledgersClearSuccess);
     } catch (e) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       await AppDialog.error(
         context,
         title: l10n.commonFailed,
@@ -516,8 +439,8 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
     // 检查是否只剩一个账本
     final repo = ref.read(repositoryProvider);
     final allLedgers = await repo.getAllLedgers();
+    if (!context.mounted) return;
     if (allLedgers.length <= 1) {
-      if (!mounted) return;
       showToast(context, l10n.ledgersCannotDeleteLastOne);
       return;
     }
@@ -528,7 +451,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       message: l10n.ledgersDeleteLocalMessage(translateLedgerName(context, ledger.name)),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !context.mounted) return;
 
     try {
       final current = ref.read(currentLedgerIdProvider);
@@ -544,14 +467,14 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       // 只删除本地账本，不删除云端备份
       await repo.deleteLedger(ledger.id);
 
-      if (!mounted) return;
+      if (!context.mounted) return;
 
       ref.read(ledgerListRefreshProvider.notifier).state++;
       ref.read(statsRefreshProvider.notifier).state++;
 
       showToast(context, l10n.ledgersDeleteLocalSuccess);
     } catch (e) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       await AppDialog.error(
         context,
         title: l10n.commonFailed,
@@ -567,8 +490,8 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
     // 检查是否只剩一个账本
     final repo = ref.read(repositoryProvider);
     final allLedgers = await repo.getAllLedgers();
+    if (!context.mounted) return;
     if (allLedgers.length <= 1) {
-      if (!mounted) return;
       showToast(context, l10n.ledgersCannotDeleteLastOne);
       return;
     }
@@ -579,7 +502,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       message: l10n.ledgersDeleteMessage,
     );
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !context.mounted) return;
 
     try {
       final sync = ref.read(syncServiceProvider);
@@ -603,14 +526,14 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
         logger.warning('ledger', '删除云端备份失败（忽略）：$e');
       }
 
-      if (!mounted) return;
+      if (!context.mounted) return;
 
       ref.read(ledgerListRefreshProvider.notifier).state++;
       ref.read(statsRefreshProvider.notifier).state++;
 
       showToast(context, AppLocalizations.of(context).ledgersDeleted);
     } catch (e) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       await AppDialog.error(
         context,
         title: AppLocalizations.of(context).ledgersDeleteFailed,
@@ -627,20 +550,14 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       message: AppLocalizations.of(context).ledgersDeleteRemoteMessage(translateLedgerName(context, ledger.name)),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !context.mounted) return;
 
     try {
       showToast(context, AppLocalizations.of(context).ledgersDeleting);
 
       throw Exception('Cloud backup is not available');
-
-      if (!mounted) return;
-
-      ref.read(ledgerListRefreshProvider.notifier).state++;
-
-      showToast(context, AppLocalizations.of(context).ledgersDeleteRemoteSuccess);
     } catch (e) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       await AppDialog.error(
         context,
         title: AppLocalizations.of(context).commonFailed,
@@ -661,7 +578,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       message: AppLocalizations.of(context).ledgersRestoreAllMessage(remoteLedgers.length),
     );
 
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !context.mounted) return;
 
     setState(() => _isRestoring = true);
 
@@ -669,9 +586,8 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       showToast(context, AppLocalizations.of(context).ledgersRestoring);
       throw Exception('Cloud backup is not available');
     } catch (e) {
+      if (!context.mounted) return;
       setState(() => _isRestoring = false);
-
-      if (!mounted) return;
 
       await AppDialog.error(
         context,
@@ -688,7 +604,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       title: AppLocalizations.of(context).ledgersNew,
     );
 
-    if (result == null || !mounted) return;
+    if (result == null || !context.mounted) return;
 
     try {
       final repo = ref.read(repositoryProvider);
@@ -700,10 +616,10 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
 
       ref.read(ledgerListRefreshProvider.notifier).state++;
 
-      if (!mounted) return;
+      if (!context.mounted) return;
       showToast(context, '账本创建成功');
     } catch (e) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       showToast(context, '创建失败: ${e.toString()}');
     }
   }
@@ -883,7 +799,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
     // 获取同步状态详情
     final syncStatus = await syncService.getStatus(ledgerId: ledger.id);
 
-    if (!mounted) return;
+    if (!context.mounted) return;
 
     final DateFormat dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
@@ -891,10 +807,9 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
+        bool isProcessing = false;
         return StatefulBuilder(
           builder: (stateContext, setState) {
-            bool isProcessing = false;
-
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: Row(
@@ -1005,10 +920,11 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
                           Navigator.pop(dialogContext);
                         }
 
-                        if (!mounted) return;
+                        if (!context.mounted) return;
 
                         // 下载完成后，触发刷新状态和账本列表
                         await PostProcessor.sync(ref, ledgerId: ledger.id);
+                        if (!context.mounted) return;
 
                         // 刷新统计
                         ref.read(statsRefreshProvider.notifier).state++;
@@ -1048,7 +964,7 @@ class _LedgersPageNewState extends ConsumerState<LedgersPageNew> {
                           Navigator.pop(dialogContext);
                         }
 
-                        if (!mounted) return;
+                        if (!context.mounted) return;
 
                         // 刷新列表和同步状态
                         ref.read(ledgerListRefreshProvider.notifier).state++;

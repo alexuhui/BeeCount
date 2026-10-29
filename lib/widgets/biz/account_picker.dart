@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers.dart';
 import '../../data/db.dart';
 import '../../l10n/app_localizations.dart';
-import '../ui/ui.dart';
 
 /// 账户选择结果。取消为 null；选「不选择账户」时 [accountId] 为 null。
 class AccountPick {

@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/notification_factory.dart';
 import '../services/user_settings/user_setting_keys.dart';
-import '../services/user_settings/user_settings_store.dart';
 import 'database_providers.dart';
 
 /// 记账提醒设置

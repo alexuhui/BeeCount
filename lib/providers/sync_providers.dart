@@ -26,13 +26,12 @@ final autoSyncValueProvider = FutureProvider.autoDispose<bool>((ref) async {
 });
 
 class AutoSyncSetter {
-  AutoSyncSetter(this._ref);
-  final Ref _ref;
+  AutoSyncSetter();
   Future<void> set(bool v) async {}
 }
 
 final autoSyncSetterProvider = Provider<AutoSyncSetter>((ref) {
-  return AutoSyncSetter(ref);
+  return AutoSyncSetter();
 });
 
 final syncServiceProvider = Provider<SyncService>((ref) {

@@ -1,8 +1,8 @@
+import 'dart:developer' as developer;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'pages/main/home_page.dart';
 import 'pages/main/analytics_page.dart';
@@ -16,7 +16,6 @@ import 'widgets/ui/ui.dart';
 import 'widgets/ui/speed_dial_fab.dart';
 import 'utils/voice_billing_helper.dart';
 import 'utils/image_billing_helper.dart';
-import 'services/ai/ai_constants.dart';
 import 'pages/ai/ai_chat_page.dart';
 import 'services/platform/app_link_service.dart';
 import 'services/platform/quick_actions_service.dart';
@@ -228,19 +227,6 @@ class _BeeAppState extends ConsumerState<BeeApp>
     }
   }
 
-  /// 检查语音识别是否可用（AI 已开启，且有用户 Key 或内置 Key）
-  Future<bool> _checkGlmApiKeyConfigured() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final aiEnabled = prefs.getBool(AIConstants.keyAiBillExtractionEnabled) ??
-          AIConstants.hasBuiltinGlmKey;
-      final apiKey = prefs.getString(AIConstants.keyGlmApiKey) ?? '';
-      return aiEnabled &&
-          (apiKey.isNotEmpty || AIConstants.hasBuiltinGlmKey);
-    } catch (e) {
-      return false;
-    }
-  }
 
   @override
   void dispose() {
@@ -451,9 +437,9 @@ class _BeeAppState extends ConsumerState<BeeApp>
 
       final widgetManager = WidgetManager();
       await widgetManager.updateWidget(repository, ledgerId, primaryColor);
-      print('✅ App恢复前台，小组件数据已更新');
+      developer.log('✅ App恢复前台，小组件数据已更新');
     } catch (e) {
-      print('❌ 更新小组件失败: $e');
+      developer.log('❌ 更新小组件失败: $e');
     }
   }
 

@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart' as d;
 
-import '../../../services/system/logger_service.dart';
 import '../../db.dart';
 import '../budget_repository.dart';
 
@@ -241,7 +240,7 @@ class LocalBudgetRepository implements BudgetRepository {
     final daysRemaining = endDate.difference(startDate).inDays;
 
     // 计算日均可用
-    final remaining = totalUsage?.remaining ?? 0;
+    final remaining = totalUsage.remaining;
     final dailyAvailable = daysRemaining > 0 ? remaining / daysRemaining : 0.0;
 
     return BudgetOverview(
@@ -278,7 +277,7 @@ class LocalBudgetRepository implements BudgetRepository {
     DateTime endDate = DateTime(year + 1);
     final daysRemaining = endDate.difference(startDate).inDays;
 
-    final remaining = totalUsage?.remaining ?? 0;
+    final remaining = totalUsage.remaining;
     final dailyAvailable = daysRemaining > 0 ? remaining / daysRemaining : 0.0;
 
     return BudgetOverview(

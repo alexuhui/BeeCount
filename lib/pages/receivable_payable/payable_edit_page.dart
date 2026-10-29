@@ -9,7 +9,6 @@ import '../../widgets/biz/biz.dart';
 import '../../styles/tokens.dart';
 import '../../utils/ui_scale_extensions.dart';
 import '../account/account_detail_page.dart' show payableStatsProvider, payableBalanceProvider;
-import '../../providers/statistics_providers.dart';
 
 /// 应付款记录编辑页面（还款请使用详情页「记录还款」）
 class PayableEditPage extends ConsumerStatefulWidget {

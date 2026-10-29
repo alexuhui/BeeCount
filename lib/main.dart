@@ -8,25 +8,14 @@ import 'app.dart';
 import 'theme.dart';
 import 'providers.dart';
 import 'providers/font_scale_provider.dart';
-import 'providers/ui_state_providers.dart';
-import 'utils/local_storage_utils.dart';
 import 'utils/notification_factory.dart';
 import 'pages/auth/splash_page.dart';
 import 'pages/auth/login_page.dart';
 import 'services/system/reminder_monitor_service.dart';
-import 'services/platform/screenshot_monitor_service.dart';
-import 'services/platform/image_share_handler_service.dart';
-import 'services/platform/app_link_service.dart';
 import 'services/system/logger_service.dart';
-import 'services/data/migration_service.dart';
-import 'services/data/seed_service.dart';
 import 'services/database/database_bootstrap.dart';
-import 'data/db.dart';
 import 'l10n/app_localizations.dart';
 import 'widget/widget_manager.dart';
-import 'package:home_widget/home_widget.dart';
-import 'package:app_links/app_links.dart';
-import 'dart:io';
 
 /// 根 [Navigator]，供 `MaterialApp.builder` 内蒙层在 signOut 后仍能可靠 [pushAndRemoveUntil] 到登录页
 ///（仅用 `Navigator.of(context)` 时，蒙层消失重建后 context 往往拿不到正确 Navigator）。
@@ -39,13 +28,13 @@ Future<void> main() async {
 
   // 初始化日志系统（确保原生日志桥接就绪）
   logger.info('App', '应用启动，日志系统已初始化');
-  print('📱 LoggerService 已初始化');
+  logger.info('App', 'LoggerService 已初始化');
 
   // 初始化时区（必须在通知服务之前，修复iOS通知问题）
   try {
     NotificationFactory.initializeTimeZone();
   } catch (e) {
-    print('⚠️  时区初始化失败（可能在不支持的平台上运行）: $e');
+    logger.warning('App', '时区初始化失败（可能在不支持的平台上运行）', e);
   }
 
   // 配置iOS App Group（widget和主app共享数据必需）
@@ -62,7 +51,7 @@ Future<void> main() async {
     final notificationUtil = NotificationFactory.getInstance();
     await notificationUtil.initialize();
   } catch (e) {
-    print('⚠️  通知服务初始化失败（可能在不支持的平台上运行）: $e');
+    logger.warning('App', '通知服务初始化失败（可能在不支持的平台上运行）', e);
   }
 
   // 记账提醒在 BeeApp 首帧根据当前账号 UserSettings 恢复（见 app.dart）
@@ -71,11 +60,13 @@ Future<void> main() async {
   try {
     ReminderMonitorService().startMonitoring();
   } catch (e) {
-    print('⚠️  提醒监控服务启动失败（可能在不支持的平台上运行）: $e');
+    logger.warning('App', '提醒监控服务启动失败（可能在不支持的平台上运行）', e);
   }
 
   // 创建全局ProviderContainer（需要在周期交易生成之前创建，因为需要使用 repositoryProvider）
-  final container = ProviderContainer();
+  final container = ProviderContainer(
+    observers: const [_WidgetUpdateObserver()],
+  );
 
   // 注意：不再在启动时生成重复交易
   // 周期交易生成已移至 appSplashInitProvider 中（等待数据库完全初始化后执行）
@@ -108,9 +99,8 @@ Future<void> main() async {
   // 启动 URL 监听（用于快捷指令/AppLink 自动记账）
   // _setupUrlListener(container);
 
-  runApp(ProviderScope(
-    parent: container,
-    observers: const [_WidgetUpdateObserver()],
+  runApp(UncontrolledProviderScope(
+    container: container,
     child: const MainApp(),
   ));
 }
@@ -140,9 +130,9 @@ class _WidgetUpdateObserver extends ProviderObserver {
       final widgetManager = WidgetManager();
       await widgetManager.updateWidget(repository, ledgerId, primaryColor);
 
-      print('✅ 小组件数据已更新');
+      logger.info('App', '小组件数据已更新');
     } catch (e) {
-      print('❌ 更新小组件失败（可能在不支持的平台上运行）: $e');
+      logger.error('App', '更新小组件失败（可能在不支持的平台上运行）', e);
     }
   }
 }
@@ -341,7 +331,7 @@ class MainApp extends ConsumerWidget {
       colorScheme: base.colorScheme.copyWith(primary: primary),
       primaryColor: primary,
       scaffoldBackgroundColor: Colors.white,
-      dividerColor: Colors.black.withOpacity(0.06),
+      dividerColor: Colors.black.withValues(alpha: 0.06),
       listTileTheme: ListTileThemeData(
         dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12),

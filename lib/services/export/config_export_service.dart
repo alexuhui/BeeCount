@@ -14,7 +14,7 @@ import '../../cloud/cloud_service_config.dart';
 // 导入 OrderingTerm
 typedef OrderingTerm = d.OrderingTerm;
 
-/// 递归转换 Map 为 Map<String, dynamic>
+/// 递归转换 Map 为 `Map<String, dynamic>`
 /// YAML 解析后的 Map 可能是 YamlMap，键可能不是 String 类型
 Map<String, dynamic> _convertToStringDynamicMap(Map map) {
   return map.map((key, value) {

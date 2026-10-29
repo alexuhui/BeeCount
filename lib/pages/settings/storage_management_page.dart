@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,7 +48,7 @@ class _StorageManagementPageState extends ConsumerState<StorageManagementPage> {
         await _scanAPKFiles();
       }
     } catch (e) {
-      print('扫描存储空间失败: $e');
+      developer.log('扫描存储空间失败: $e');
     }
 
     if (mounted) {
@@ -84,7 +85,7 @@ class _StorageManagementPageState extends ConsumerState<StorageManagementPage> {
         _aiModelsSize = 0;
       }
     } catch (e) {
-      print('扫描AI模型失败: $e');
+      developer.log('扫描AI模型失败: $e');
       _aiModelFiles = [];
       _aiModelsSize = 0;
     }
@@ -118,7 +119,7 @@ class _StorageManagementPageState extends ConsumerState<StorageManagementPage> {
       _apkFiles = files;
       _apkFilesSize = totalSize;
     } catch (e) {
-      print('扫描APK文件失败: $e');
+      developer.log('扫描APK文件失败: $e');
       _apkFiles = [];
       _apkFilesSize = 0;
     }
@@ -155,10 +156,11 @@ class _StorageManagementPageState extends ConsumerState<StorageManagementPage> {
         }
       }
 
+      if (!mounted) return;
       showToast(context, l10n.storageClearSuccess);
       await _scanStorage();
     } catch (e) {
-      showToast(context, '${l10n.commonError}: $e');
+      if (mounted) showToast(context, '${l10n.commonError}: $e');
     }
   }
 
@@ -180,10 +182,11 @@ class _StorageManagementPageState extends ConsumerState<StorageManagementPage> {
         }
       }
 
+      if (!mounted) return;
       showToast(context, l10n.storageClearSuccess);
       await _scanStorage();
     } catch (e) {
-      showToast(context, '${l10n.commonError}: $e');
+      if (mounted) showToast(context, '${l10n.commonError}: $e');
     }
   }
 

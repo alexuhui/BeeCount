@@ -6,10 +6,7 @@ import 'package:beecount/widgets/biz/bee_icon.dart';
 
 import '../data/import_page.dart';
 import '../data/export_page.dart';
-import '../settings/personalize_page.dart';
 import '../../providers.dart';
-import '../../providers/theme_providers.dart';
-import '../../providers/beecount_server_providers.dart';
 import '../../widgets/ui/ui.dart';
 import '../../widgets/biz/biz.dart';
 import '../../styles/tokens.dart';
@@ -18,15 +15,8 @@ import '../../services/ui/avatar_service.dart';
 import '../../services/export/share_poster_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../category/category_manage_page.dart';
-import '../category/category_migration_page.dart';
 import '../tag/tag_manage_page.dart';
-import '../transaction/recurring_transaction_page.dart';
-import '../settings/reminder_settings_page.dart';
-import '../settings/language_settings_page.dart';
 import '../account/accounts_page.dart';
-import '../settings/widget_management_page.dart';
-import '../automation/auto_billing_settings_page.dart';
-import '../ai/ai_settings_page.dart';
 import '../settings/beecount_server_page.dart';
 import '../../utils/website_urls.dart';
 import '../../providers/github_star_provider.dart';
@@ -36,10 +26,8 @@ import '../settings/smart_billing_page.dart';
 import '../settings/automation_page.dart';
 import '../settings/about_page.dart';
 import '../report/annual_report_page.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:in_app_review/in_app_review.dart';
-import '../../services/system/update_service.dart';
 import '../../utils/ui_scale_extensions.dart';
 import '../donation/donation_page.dart';
 
@@ -478,34 +466,6 @@ class _StatCell extends ConsumerWidget {
   }
 }
 
-// 导入完成后的短暂动画提示：线性进度条从 0 -> 100%
-class _ImportSuccessTile extends StatelessWidget {
-  const _ImportSuccessTile();
-
-  @override
-  Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 900),
-      curve: Curves.easeOutCubic,
-      builder: (ctx, v, child) {
-        return AppListTile(
-          leading: Icons.check_circle_outline,
-          title: AppLocalizations.of(ctx).mineImportCompleteTitle,
-          subtitle: AppLocalizations.of(ctx).mineImportCompleteAllSuccess,
-          trailing: SizedBox(
-            width: 72,
-            child: LinearProgressIndicator(
-              value: v,
-              valueColor: AlwaysStoppedAnimation(primary),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
 
 /// 尝试使用多种方式打开URL，提供更好的兼容性
 Future<bool> _tryOpenUrl(Uri url) async {
@@ -708,8 +668,6 @@ class _MinePageHeaderState extends ConsumerState<_MinePageHeader> {
   @override
   Widget build(BuildContext context) {
     // 头像功能不受云同步限制，任何时候都可以上传
-    final canEditAvatar = true;
-
     // 获取当前账本信息
     final currentLedgerId = ref.watch(currentLedgerIdProvider);
     final countsAsync = ref.watch(countsForLedgerProvider(currentLedgerId));
@@ -743,7 +701,7 @@ class _MinePageHeaderState extends ConsumerState<_MinePageHeader> {
             children: [
               // 头像/Logo
               GestureDetector(
-                onTap: canEditAvatar ? _showAvatarOptions : null,
+                onTap: _showAvatarOptions,
                 child: Stack(
                   children: [
                     Container(
@@ -796,8 +754,7 @@ class _MinePageHeaderState extends ConsumerState<_MinePageHeader> {
                                   )),
                       ),
                     ),
-                    if (canEditAvatar)
-                      Positioned(
+                    Positioned(
                         right: 0,
                         bottom: 0,
                         child: Container(

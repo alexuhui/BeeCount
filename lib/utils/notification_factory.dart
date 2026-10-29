@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io' show Platform;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -35,15 +36,15 @@ class NotificationFactory {
       // 尝试设置为 Asia/Shanghai
       try {
         tz.setLocalLocation(tz.getLocation('Asia/Shanghai'));
-        print('[Timezone] 设置为: Asia/Shanghai');
+        developer.log('[Timezone] 设置为: Asia/Shanghai');
       } catch (e) {
         // 降级到系统时区
-        print('[Timezone] 使用系统时区: ${tz.local.name}');
+        developer.log('[Timezone] 使用系统时区: ${tz.local.name}');
       }
 
-      print('[Timezone] ✅ 时区初始化完成');
+      developer.log('[Timezone] ✅ 时区初始化完成');
     } catch (e) {
-      print('[Timezone] ❌ 时区初始化失败: $e');
+      developer.log('[Timezone] ❌ 时区初始化失败: $e');
     }
   }
 

@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
-import '../../data/db.dart';
 import 'beecount_api_exception.dart';
 import 'api_json.dart';
 

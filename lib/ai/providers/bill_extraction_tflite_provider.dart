@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_ai_kit/flutter_ai_kit.dart';
 import 'package:flutter_ai_kit_tflite/flutter_ai_kit_tflite.dart';
 
@@ -12,13 +13,12 @@ import '../tasks/bill_extraction_task.dart';
 class BillExtractionTFLiteProvider extends TFLiteProvider<String, BillInfo> {
 
   BillExtractionTFLiteProvider({
-    ModelManager? modelManager,
+    super.modelManager,
   }) : super(
           modelId: PredefinedModels.billRecognition.id,
           supportedTaskType: 'bill_extraction',
           inputPreprocessor: _preprocessInput,
           outputParser: _parseOutput,
-          modelManager: modelManager,
         );
 
   @override
@@ -96,9 +96,9 @@ class BillExtractionTFLiteProvider extends TFLiteProvider<String, BillInfo> {
       );
     }
 
-    print('⚠️ [TFLiteProvider] 注意：当前模型为占位文件，未经训练');
-    print('   提取结果仅供测试流程使用，准确度为0');
-    print('   建议使用云端Provider（智谱GLM）获得实际效果');
+    developer.log('⚠️ [TFLiteProvider] 注意：当前模型为占位文件，未经训练');
+    developer.log('   提取结果仅供测试流程使用，准确度为0');
+    developer.log('   建议使用云端Provider（智谱GLM）获得实际效果');
 
     // 临时方案：返回空结果（让流程跑通，后续会被规则兜底）
     final startTime = DateTime.now();

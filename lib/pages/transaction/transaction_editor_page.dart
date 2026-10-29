@@ -117,16 +117,16 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
                               insets: const EdgeInsets.symmetric(horizontal: 0),
                             ),
                             tabs: [
-                              Tab(text: AppLocalizations.of(context)!.categoryExpense),
-                              Tab(text: AppLocalizations.of(context)!.categoryIncome),
-                              Tab(text: AppLocalizations.of(context)!.transferTitle),
+                              Tab(text: AppLocalizations.of(context).categoryExpense),
+                              Tab(text: AppLocalizations.of(context).categoryIncome),
+                              Tab(text: AppLocalizations.of(context).transferTitle),
                             ],
                           ),
                         ),
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: Text(AppLocalizations.of(context)!.commonCancel,
+                        child: Text(AppLocalizations.of(context).commonCancel,
                             style: TextStyle(color: BeeTokens.textPrimary(context))),
                       )
                     ],
@@ -211,6 +211,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
       // 新建模式：尝试获取默认账户
       initialAccountId = await _getDefaultAccountId(kind, ledgerId);
     }
+    if (!context.mounted) return;
 
     await showModalBottomSheet(
       context: context,
@@ -288,7 +289,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
           // 刷新：预算数据
           ref.read(budgetRefreshProvider.notifier).state++;
           // 更新小组件数据（后台执行，不阻塞UI）
-          if (mounted) {
+          if (context.mounted) {
             updateAppWidget(ref, context);
           }
           // 先关闭页面，再播放反馈

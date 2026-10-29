@@ -343,7 +343,6 @@ class _CategoryItem extends StatelessWidget {
   final VoidCallback onTap;
   final bool selected;
   final bool isSubCategory;
-  final Category? parent;
   final bool hasChildren;
   final bool expanded;
 
@@ -352,7 +351,6 @@ class _CategoryItem extends StatelessWidget {
     required this.onTap,
     this.selected = false,
     this.isSubCategory = false,
-    this.parent,
     this.hasChildren = false,
     this.expanded = false,
   });

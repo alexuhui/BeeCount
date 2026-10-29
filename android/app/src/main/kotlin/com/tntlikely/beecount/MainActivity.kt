@@ -188,18 +188,22 @@ class MainActivity: FlutterActivity() {
         // 通知相关的MethodChannel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                "scheduleNotification" -> {
+                "scheduleFallbackReminder" -> {
                     val title = call.argument<String>("title") ?: "记账提醒"
                     val body = call.argument<String>("body") ?: "别忘了记录今天的收支哦 💰"
-                    val scheduledTimeMillis = call.argument<Long>("scheduledTimeMillis") ?: 0
-                    val notificationId = call.argument<Int>("notificationId") ?: 1001
-                    
-                    scheduleNotification(title, body, scheduledTimeMillis, notificationId)
+                    val hour = call.argument<Int>("hour") ?: 21
+                    val minute = call.argument<Int>("minute") ?: 0
+                    val notificationId = call.argument<Int>("notificationId") ?: 1101
+                    result.success(scheduleFallbackReminder(title, body, hour, minute, notificationId))
+                }
+                "cancelFallbackReminder" -> {
+                    val notificationId = call.argument<Int>("notificationId") ?: 1101
+                    cancelFallbackReminder(notificationId)
                     result.success(true)
                 }
                 "cancelNotification" -> {
-                    val notificationId = call.argument<Int>("notificationId") ?: 1001
-                    cancelNotification(notificationId)
+                    val notificationId = call.argument<Int>("notificationId") ?: 1101
+                    cancelFallbackReminder(notificationId)
                     result.success(true)
                 }
                 "isIgnoringBatteryOptimizations" -> {
@@ -236,95 +240,83 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    private fun scheduleNotification(title: String, body: String, scheduledTimeMillis: Long, notificationId: Int) {
-        try {
-            android.util.Log.d("MainActivity", "开始调度通知: ID=$notificationId, 时间=$scheduledTimeMillis")
-            android.util.Log.d("MainActivity", "标题: $title")
-            android.util.Log.d("MainActivity", "内容: $body")
+    private fun fallbackPrefs() =
+        getSharedPreferences("beecount_reminder_fallback", Context.MODE_PRIVATE)
 
-            val intent = Intent(this, NotificationReceiver::class.java).apply {
-                putExtra("title", title)
-                putExtra("body", body)
-                putExtra("notificationId", notificationId)
-                // 使用动态包名构建action
-                action = "${packageName}.NOTIFICATION_ALARM"
-            }
-
-            val pendingIntent = PendingIntent.getBroadcast(
-                this,
-                notificationId,
-                intent,
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                } else {
-                    PendingIntent.FLAG_UPDATE_CURRENT
-                }
-            )
-
-            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
-            // 检查是否有精确闹钟权限
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (!alarmManager.canScheduleExactAlarms()) {
-                    android.util.Log.w("MainActivity", "⚠️ 没有精确闹钟权限，尝试请求权限")
-                    try {
-                        val intent = Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                        startActivity(intent)
-                    } catch (e: Exception) {
-                        android.util.Log.e("MainActivity", "无法打开精确闹钟权限设置: $e")
-                    }
-                    return
-                }
-            }
-
-            // 计算时间差用于调试
-            val currentTime = System.currentTimeMillis()
-            val timeDiff = scheduledTimeMillis - currentTime
-            android.util.Log.d("MainActivity", "当前时间: $currentTime")
-            android.util.Log.d("MainActivity", "调度时间: $scheduledTimeMillis")
-            android.util.Log.d("MainActivity", "时间差: ${timeDiff / 1000}秒")
-
-            if (timeDiff <= 0) {
-                android.util.Log.w("MainActivity", "⚠️ 调度时间已过期，立即发送通知")
-                // 如果时间已过，立即发送通知
-                val receiver = NotificationReceiver()
-                receiver.onReceive(this, intent)
-                return
-            }
-
-            // 使用setExactAndAllowWhileIdle确保在休眠模式下也能触发
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                android.util.Log.d("MainActivity", "使用 setExactAndAllowWhileIdle 调度通知")
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, scheduledTimeMillis, pendingIntent)
-            } else {
-                android.util.Log.d("MainActivity", "使用 setExact 调度通知")
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, scheduledTimeMillis, pendingIntent)
-            }
-
-            android.util.Log.d("MainActivity", "✅ AlarmManager 通知调度成功")
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "❌ AlarmManager 通知调度失败: $e")
+    private fun nextTriggerMillis(hour: Int, minute: Int): Long {
+        val calendar = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+            set(java.util.Calendar.HOUR_OF_DAY, hour)
+            set(java.util.Calendar.MINUTE, minute)
         }
+        if (calendar.timeInMillis <= System.currentTimeMillis()) {
+            calendar.add(java.util.Calendar.DAY_OF_YEAR, 1)
+        }
+        return calendar.timeInMillis
     }
 
-    private fun cancelNotification(notificationId: Int) {
-        android.util.Log.d("MainActivity", "取消通知: ID=$notificationId")
+    private fun fallbackPendingIntent(
+        title: String,
+        body: String,
+        hour: Int,
+        minute: Int,
+        notificationId: Int,
+    ): PendingIntent {
         val intent = Intent(this, NotificationReceiver::class.java).apply {
-            action = "${packageName}.NOTIFICATION_ALARM"
+            putExtra("title", title)
+            putExtra("body", body)
+            putExtra("hour", hour)
+            putExtra("minute", minute)
+            putExtra("notificationId", notificationId)
         }
-        val pendingIntent = PendingIntent.getBroadcast(
-            this,
-            notificationId,
-            intent,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            } else {
-                PendingIntent.FLAG_UPDATE_CURRENT
-            }
-        )
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        return PendingIntent.getBroadcast(this, notificationId, intent, flags)
+    }
 
+    private fun scheduleFallbackReminder(
+        title: String,
+        body: String,
+        hour: Int,
+        minute: Int,
+        notificationId: Int,
+    ): Boolean {
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        alarmManager.cancel(pendingIntent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            android.util.Log.w("MainActivity", "没有精确闹钟权限，备用提醒未登记")
+            return false
+        }
+
+        fallbackPrefs().edit()
+            .putBoolean("active", true)
+            .putInt("hour", hour)
+            .putInt("minute", minute)
+            .putString("title", title)
+            .putString("body", body)
+            .putInt("id", notificationId)
+            .apply()
+
+        val triggerAt = nextTriggerMillis(hour, minute)
+        val pendingIntent = fallbackPendingIntent(title, body, hour, minute, notificationId)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+        } else {
+            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+        }
+        android.util.Log.d("MainActivity", "备用提醒已登记: $triggerAt")
+        return true
+    }
+
+    private fun cancelFallbackReminder(notificationId: Int) {
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.cancel(fallbackPendingIntent("", "", 0, 0, notificationId))
+        // 旧版本的 PendingIntent 带了 action，filterEquals 对不上，需要单独取消。
+        val legacy = Intent(this, NotificationReceiver::class.java).apply {
+            action = "$packageName.NOTIFICATION_ALARM"
+        }
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        alarmManager.cancel(PendingIntent.getBroadcast(this, notificationId, legacy, flags))
+        fallbackPrefs().edit().clear().apply()
     }
 
     private fun isIgnoringBatteryOptimizations(): Boolean {

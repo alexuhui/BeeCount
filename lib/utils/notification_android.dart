@@ -1,7 +1,6 @@
 import 'dart:developer' as developer;
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/timezone.dart' as tz;
 import 'notification_util.dart' as util;
 
 /// Android 特定的通知实现
@@ -62,6 +61,8 @@ class AndroidNotificationUtil implements util.NotificationUtil {
   }) async {
     if (!_initialized) await initialize();
 
+    await _cancelReminderSet(id);
+
     final scheduledDate = util.calculateNextReminderTime(hour, minute);
     final tzScheduledDate = util.convertToTZDateTime(scheduledDate);
 
@@ -75,19 +76,15 @@ class AndroidNotificationUtil implements util.NotificationUtil {
       icon: '@mipmap/ic_launcher',
       enableVibration: true,
       playSound: true,
-      enableLights: true,
-      fullScreenIntent: true,
       category: AndroidNotificationCategory.reminder,
       visibility: NotificationVisibility.public,
-      autoCancel: false,
-      ongoing: false,
+      autoCancel: true,
       showWhen: true,
     );
 
     const notificationDetails = NotificationDetails(android: androidDetails);
 
     try {
-      // 使用 exactAllowWhileIdle 确保休眠时也能触发
       await _plugin.zonedSchedule(
         id,
         title,
@@ -97,24 +94,18 @@ class AndroidNotificationUtil implements util.NotificationUtil {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time, // 每天重复
+        matchDateTimeComponents: DateTimeComponents.time,
       );
-
-      developer.log('[Android] ✅ 每日提醒设置成功: $hour:$minute');
-      developer.log('[Android] ✅ 下次提醒时间: $scheduledDate');
-      developer.log('[Android] ✅ 使用调度模式: exactAllowWhileIdle');
-      developer.log('[Android] ✅ 每日重复: ${DateTimeComponents.time}');
-
-      // 设置7天备用提醒（防止系统清理定时任务）
-      developer.log('[Android] 🔄 开始设置7天备用提醒...');
-      await _scheduleBackupReminders(id, title, body, hour, minute);
-
-      // 设置 AlarmManager 备用
-      await _scheduleAlarmManagerBackup(id, title, body, scheduledDate);
+      developer.log('[Android] 每日提醒已登记: $hour:$minute 下次 $scheduledDate');
     } catch (e) {
-      developer.log('[Android] Flutter 通知设置失败: $e');
-      // 降级到 AlarmManager
-      await _scheduleAlarmManagerBackup(id, title, body, scheduledDate);
+      developer.log('[Android] 插件登记失败，改用备用闹钟: $e');
+      await _scheduleAlarmManagerBackup(
+        id: id,
+        title: title,
+        body: body,
+        hour: hour,
+        minute: minute,
+      );
     }
   }
 
@@ -164,30 +155,8 @@ class AndroidNotificationUtil implements util.NotificationUtil {
   @override
   Future<void> cancelNotification(int id) async {
     if (!_initialized) await initialize();
-
-    developer.log('[Android] 🗑️  开始取消所有提醒...');
-
-    // 取消主要提醒
-    await _plugin.cancel(id);
-    developer.log('[Android] 🗑️  取消主要提醒 (ID: $id)');
-
-    // 取消所有7天备用提醒
-    developer.log('[Android] 🗑️  取消备用提醒 (ID: ${id + 1} - ${id + 7})');
-    for (int i = 1; i <= 7; i++) {
-      await _plugin.cancel(id + i);
-    }
-
-    // 同时取消 AlarmManager 备用
-    try {
-      developer.log('[Android] 🗑️  取消AlarmManager备用提醒 (ID: ${id + 100})');
-      await _channel.invokeMethod('cancelNotification', {
-        'notificationId': id + 100,
-      });
-    } catch (e) {
-      developer.log('[Android] 取消 AlarmManager 备用失败: $e');
-    }
-
-    developer.log('[Android] ✅ 所有提醒已取消 (包括备用提醒)');
+    await _cancelReminderSet(id);
+    developer.log('[Android] 提醒已取消: $id');
   }
 
   @override
@@ -241,77 +210,39 @@ class AndroidNotificationUtil implements util.NotificationUtil {
     return enabled ?? false;
   }
 
-  /// 调度7天备用提醒（防止系统清理定时任务）
-  Future<void> _scheduleBackupReminders(
-    int id,
-    String title,
-    String body,
-    int hour,
-    int minute,
-  ) async {
+  Future<void> _cancelReminderSet(int id) async {
+    await _plugin.cancel(id);
+    for (var i = 1; i <= 7; i++) {
+      await _plugin.cancel(id + i);
+    }
     try {
-      final now = DateTime.now();
-
-      // 调度未来7天的单独提醒作为备用
-      for (int i = 1; i <= 7; i++) {
-        final backupDate = DateTime(now.year, now.month, now.day + i, hour, minute);
-        final tzBackupDate = tz.TZDateTime.from(backupDate, tz.local);
-        final backupId = id + i;
-
-        developer.log('[Android] 📅 设置备用提醒 $i/7 (ID: $backupId): $backupDate');
-
-        const androidDetails = AndroidNotificationDetails(
-          'accounting_reminder_backup',
-          '记账提醒备用',
-          channelDescription: '记账提醒备用通道',
-          importance: Importance.max,
-          priority: Priority.max,
-          ticker: '记账提醒',
-          icon: '@mipmap/ic_launcher',
-          enableVibration: true,
-          playSound: true,
-          enableLights: true,
-          category: AndroidNotificationCategory.reminder,
-          visibility: NotificationVisibility.public,
-        );
-
-        const notificationDetails = NotificationDetails(android: androidDetails);
-
-        await _plugin.zonedSchedule(
-          backupId,
-          title,
-          body,
-          tzBackupDate,
-          notificationDetails,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
-        );
-      }
-      developer.log('[Android] ✅ 所有备用提醒设置完成 (共7天)');
+      await _channel.invokeMethod('cancelFallbackReminder', {
+        'notificationId': id + 100,
+      });
     } catch (e) {
-      developer.log('[Android] ⚠️  设置备用提醒失败: $e');
+      developer.log('[Android] 取消备用提醒失败: $e');
     }
   }
 
-  /// 使用 AlarmManager 作为备用调度（Android 特有）
-  Future<void> _scheduleAlarmManagerBackup(
-    int id,
-    String title,
-    String body,
-    DateTime scheduledDate,
-  ) async {
+  /// 插件登记失败时，用原生精确闹钟登记下一次。
+  Future<void> _scheduleAlarmManagerBackup({
+    required int id,
+    required String title,
+    required String body,
+    required int hour,
+    required int minute,
+  }) async {
     try {
-      await _channel.invokeMethod('scheduleNotification', {
+      final scheduled = await _channel.invokeMethod<bool>('scheduleFallbackReminder', {
         'title': title,
         'body': body,
-        'scheduledTimeMillis': scheduledDate.millisecondsSinceEpoch,
-        'notificationId': id + 100, // 使用不同ID避免冲突
+        'hour': hour,
+        'minute': minute,
+        'notificationId': id + 100,
       });
-
-      developer.log('[Android] AlarmManager 备用设置成功');
+      developer.log('[Android] 备用提醒登记结果: $scheduled');
     } catch (e) {
-      developer.log('[Android] AlarmManager 备用设置失败: $e');
+      developer.log('[Android] 备用提醒登记失败: $e');
     }
   }
 

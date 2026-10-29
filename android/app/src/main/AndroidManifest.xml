@@ -95,18 +95,24 @@
             android:name="flutterEmbedding"
             android:value="2" />
         
-        <!-- 后台通知接收器 -->
+        <!-- 后台通知接收器。显式闹钟不依赖 action filter。 -->
         <receiver android:name=".NotificationReceiver"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
-                <action android:name="android.intent.action.PACKAGE_REPLACED" />
-                <data android:scheme="package" />
             </intent-filter>
+        </receiver>
+
+        <!-- flutter_local_notifications 16+ 起需要应用自行声明，进程不在时才能弹出定时通知。 -->
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
             <intent-filter>
-                <action android:name="${applicationId}.NOTIFICATION_ALARM" />
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
         </receiver>
 

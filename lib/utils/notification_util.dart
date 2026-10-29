@@ -78,15 +78,15 @@ class NotificationDetails {
   });
 }
 
-/// 计算下一次提醒时间
+/// 计算下一次提醒时间。
 ///
-/// 如果指定时间已过，返回明天的该时间
-DateTime calculateNextReminderTime(int hour, int minute) {
-  final now = DateTime.now();
-  var scheduledDate = DateTime(now.year, now.month, now.day, hour, minute);
+/// [now] 仅用于测试。省略时使用设备当前时间。
+/// 指定钟点早于 [now] 时返回下一天的同一钟点；相等时返回今天。
+DateTime calculateNextReminderTime(int hour, int minute, {DateTime? now}) {
+  final clock = now ?? DateTime.now();
+  var scheduledDate = DateTime(clock.year, clock.month, clock.day, hour, minute);
 
-  // 如果时间已过，则设置为明天
-  if (scheduledDate.isBefore(now)) {
+  if (scheduledDate.isBefore(clock)) {
     scheduledDate = scheduledDate.add(const Duration(days: 1));
   }
 

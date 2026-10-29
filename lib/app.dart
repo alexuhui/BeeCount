@@ -418,6 +418,7 @@ class _BeeAppState extends ConsumerState<BeeApp>
     if (state == AppLifecycleState.resumed) {
       _updateWidget();
       _resumeSyncVersionService();
+      _restoreDailyReminderFromUserSettings();
       return;
     }
 

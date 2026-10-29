@@ -11,7 +11,6 @@ import 'providers/font_scale_provider.dart';
 import 'utils/notification_factory.dart';
 import 'pages/auth/splash_page.dart';
 import 'pages/auth/login_page.dart';
-import 'services/system/reminder_monitor_service.dart';
 import 'services/system/logger_service.dart';
 import 'services/database/database_bootstrap.dart';
 import 'l10n/app_localizations.dart';
@@ -55,13 +54,6 @@ Future<void> main() async {
   }
 
   // 记账提醒在 BeeApp 首帧根据当前账号 UserSettings 恢复（见 app.dart）
-
-  // 启动提醒监控服务（监听应用生命周期，自动恢复丢失的提醒）
-  try {
-    ReminderMonitorService().startMonitoring();
-  } catch (e) {
-    logger.warning('App', '提醒监控服务启动失败（可能在不支持的平台上运行）', e);
-  }
 
   // 创建全局ProviderContainer（需要在周期交易生成之前创建，因为需要使用 repositoryProvider）
   final container = ProviderContainer(

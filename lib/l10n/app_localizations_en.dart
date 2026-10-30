@@ -4515,6 +4515,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountHistoryDifference => 'Change';
 
   @override
+  String get accountHistoryDetails => 'Change details';
+
+  @override
+  String get accountHistoryReceivable => 'Receivable';
+
+  @override
+  String get accountHistoryPayable => 'Payable';
+
+  @override
+  String get accountHistoryNoChanges => 'No changes this month';
+
+  @override
   String get accountAvailableFunds => 'Available Funds';
 
   @override

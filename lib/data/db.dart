@@ -354,6 +354,9 @@ class BeeDatabase extends _$BeeDatabase {
   /// [scopeKey] 决定本地 sqlite 文件名（如 offline、signed_out、user_123）。
   BeeDatabase({required String scopeKey}) : super(_openConnectionForScope(scopeKey));
 
+  /// 使用内存执行器验证仓储查询，不创建用户数据库文件。
+  BeeDatabase.forTesting(super.executor);
+
   @override
   int get schemaVersion => 23;
 

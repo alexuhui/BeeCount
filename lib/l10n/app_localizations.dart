@@ -8186,6 +8186,30 @@ abstract class AppLocalizations {
   /// **'Change'**
   String get accountHistoryDifference;
 
+  /// No description provided for @accountHistoryDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Change details'**
+  String get accountHistoryDetails;
+
+  /// No description provided for @accountHistoryReceivable.
+  ///
+  /// In en, this message translates to:
+  /// **'Receivable'**
+  String get accountHistoryReceivable;
+
+  /// No description provided for @accountHistoryPayable.
+  ///
+  /// In en, this message translates to:
+  /// **'Payable'**
+  String get accountHistoryPayable;
+
+  /// No description provided for @accountHistoryNoChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'No changes this month'**
+  String get accountHistoryNoChanges;
+
   /// No description provided for @accountAvailableFunds.
   ///
   /// In en, this message translates to:

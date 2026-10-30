@@ -4337,6 +4337,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountHistoryDifference => '差额';
 
   @override
+  String get accountHistoryDetails => '变化明细';
+
+  @override
+  String get accountHistoryReceivable => '应收款';
+
+  @override
+  String get accountHistoryPayable => '应付款';
+
+  @override
+  String get accountHistoryNoChanges => '本月没有变化';
+
+  @override
   String get accountAvailableFunds => '可用资金';
 
   @override
@@ -10257,6 +10269,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get accountHistoryDifference => '差額';
+
+  @override
+  String get accountHistoryDetails => '變化明細';
+
+  @override
+  String get accountHistoryReceivable => '應收款';
+
+  @override
+  String get accountHistoryPayable => '應付款';
+
+  @override
+  String get accountHistoryNoChanges => '本月沒有變化';
 
   @override
   String get accountAvailableFunds => '可用資金';

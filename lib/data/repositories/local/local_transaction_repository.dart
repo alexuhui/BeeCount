@@ -389,6 +389,10 @@ class LocalTransactionRepository implements TransactionRepository {
   }
 
   @override
+  Future<List<Transaction>> getAllTransactionsForAccountBalance() =>
+      db.select(db.transactions).get();
+
+  @override
   Future<List<Transaction>> getTransactionsByLedgerInRange({
     required int ledgerId,
     required DateTime start,
@@ -467,7 +471,8 @@ class LocalTransactionRepository implements TransactionRepository {
     final startDate = DateTime(month.year, month.month, 1);
     final endDate = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
 
-    developer.log('🔍 Repository查询: ledgerId=$ledgerId, 日期范围: $startDate ~ $endDate');
+    developer.log(
+        '🔍 Repository查询: ledgerId=$ledgerId, 日期范围: $startDate ~ $endDate');
 
     // 先查询该月份有多少条交易
     final countQuery = '''

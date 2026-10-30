@@ -230,10 +230,10 @@ class TransactionListItem extends ConsumerWidget {
                       .withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: CategoryIconWidget(
-                  category: category,
-                  size: 18,
-                ),
+                child: category == null
+                    ? Icon(icon,
+                        size: 18, color: Theme.of(context).colorScheme.primary)
+                    : CategoryIconWidget(category: category, size: 18),
               ),
             ),
           const SizedBox(width: 12),

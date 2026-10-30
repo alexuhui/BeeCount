@@ -140,6 +140,9 @@ abstract class TransactionRepository {
   /// 获取账本的所有交易记录
   Future<List<Transaction>> getTransactionsByLedger(int ledgerId);
 
+  /// 所有未删除的账户流水，包含隐藏流水与理财盈亏，用于账户余额历史。
+  Future<List<Transaction>> getAllTransactionsForAccountBalance();
+
   /// 获取账本在指定时间范围内的交易记录
   Future<List<Transaction>> getTransactionsByLedgerInRange({
     required int ledgerId,

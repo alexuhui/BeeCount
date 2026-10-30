@@ -831,6 +831,15 @@ class ApiRepository extends LocalRepository {
   }
 
   @override
+  Future<List<Transaction>> getAllTransactionsForAccountBalance() async {
+    final rows = await _allPages(
+      '/transactions',
+      _txQuery(includeInvestPnl: true, includeHidden: true),
+    );
+    return rows.map(txFromJson).toList();
+  }
+
+  @override
   Future<List<Transaction>> getTransactionsByLedgerInRange({
     required int ledgerId,
     required DateTime start,

@@ -330,6 +330,10 @@ class LocalRepository extends BaseRepository {
       _transactionRepo.getTransactionsByLedger(ledgerId);
 
   @override
+  Future<List<Transaction>> getAllTransactionsForAccountBalance() =>
+      _transactionRepo.getAllTransactionsForAccountBalance();
+
+  @override
   Future<List<Transaction>> getTransactionsByLedgerInRange({
     required int ledgerId,
     required DateTime start,

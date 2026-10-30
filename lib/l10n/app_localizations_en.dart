@@ -2256,6 +2256,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reminderOpenAppSettings => 'Open App Settings';
 
   @override
+  String get reminderAutoStartTitle => 'Allow background autostart';
+
+  @override
+  String get reminderAutoStartHint =>
+      'Some phones stop reminders when the app is cleared from Recents. Allow autostart for more reliable daily reminders.';
+
+  @override
+  String get reminderAutoStartAction => 'Open settings';
+
+  @override
   String get reminderAppSettingsMessage =>
       'Please allow notifications and disable battery optimization in settings';
 
@@ -2265,11 +2275,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reminderIOSInstructions =>
-      '🍎 iOS notification settings:\n• Settings > Notifications > Bee Accounting\n• Enable \"Allow Notifications\"\n• Set notification style: Banner or Alert\n• Enable sound and vibration\n\n⚠️ Important Note:\n• iOS local notifications depend on app process\n• Do not force quit app from task manager\n• Notifications work when app is in background or foreground\n• Force quitting will disable notifications\n\n💡 Usage Tips:\n• Simply press Home button to exit app\n• iOS will manage background apps automatically\n• Keep app in background to receive reminders';
+      'Allow Bee Accounting notifications in system settings, with banners and sound enabled. The system delivers scheduled local reminders after the app is closed.';
 
   @override
   String get reminderAndroidInstructions =>
-      'If notifications don\'t work properly, check:\n• App is allowed to send notifications\n• Disable battery optimization/power saving for app\n• Allow app to run in background and auto-start\n• Android 12+ needs exact alarm permission\n\n📱 Xiaomi phone special settings:\n• Settings > App Management > Bee Accounting > Notification Management\n• Tap \"Recording Reminder\" channel\n• Set importance to \"Urgent\" or \"High\"\n• Enable \"Banner notifications\", \"Sound\", \"Vibration\"\n• Security Center > App Management > Permissions > Auto-start\n\n🔒 Lock background methods:\n• Find Bee Accounting in recent tasks\n• Pull down app card to show lock icon\n• Tap lock icon to prevent cleanup';
+      'If notifications don\'t work properly, check:\n• App is allowed to send notifications\n• Disable battery optimization/power saving for app\n• Allow app to run in background and auto-start\n• On Android 12+, exact alarm access improves timing accuracy\n\n📱 Xiaomi phone special settings:\n• Settings > App Management > Bee Accounting > Notification Management\n• Tap \"Recording Reminder\" channel\n• Set importance to \"Urgent\" or \"High\"\n• Enable \"Banner notifications\", \"Sound\", \"Vibration\"\n• Security Center > App Management > Permissions > Auto-start\n\n🔒 Lock background methods:\n• Find Bee Accounting in recent tasks\n• Pull down app card to show lock icon\n• Tap lock icon to prevent cleanup';
 
   @override
   String get categoryDetailLoadFailed => 'Load failed';

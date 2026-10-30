@@ -4121,6 +4121,24 @@ abstract class AppLocalizations {
   /// **'Open App Settings'**
   String get reminderOpenAppSettings;
 
+  /// No description provided for @reminderAutoStartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow background autostart'**
+  String get reminderAutoStartTitle;
+
+  /// No description provided for @reminderAutoStartHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Some phones stop reminders when the app is cleared from Recents. Allow autostart for more reliable daily reminders.'**
+  String get reminderAutoStartHint;
+
+  /// No description provided for @reminderAutoStartAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get reminderAutoStartAction;
+
   /// No description provided for @reminderAppSettingsMessage.
   ///
   /// In en, this message translates to:
@@ -4136,13 +4154,13 @@ abstract class AppLocalizations {
   /// No description provided for @reminderIOSInstructions.
   ///
   /// In en, this message translates to:
-  /// **'🍎 iOS notification settings:\n• Settings > Notifications > Bee Accounting\n• Enable \"Allow Notifications\"\n• Set notification style: Banner or Alert\n• Enable sound and vibration\n\n⚠️ Important Note:\n• iOS local notifications depend on app process\n• Do not force quit app from task manager\n• Notifications work when app is in background or foreground\n• Force quitting will disable notifications\n\n💡 Usage Tips:\n• Simply press Home button to exit app\n• iOS will manage background apps automatically\n• Keep app in background to receive reminders'**
+  /// **'Allow Bee Accounting notifications in system settings, with banners and sound enabled. The system delivers scheduled local reminders after the app is closed.'**
   String get reminderIOSInstructions;
 
   /// No description provided for @reminderAndroidInstructions.
   ///
   /// In en, this message translates to:
-  /// **'If notifications don\'t work properly, check:\n• App is allowed to send notifications\n• Disable battery optimization/power saving for app\n• Allow app to run in background and auto-start\n• Android 12+ needs exact alarm permission\n\n📱 Xiaomi phone special settings:\n• Settings > App Management > Bee Accounting > Notification Management\n• Tap \"Recording Reminder\" channel\n• Set importance to \"Urgent\" or \"High\"\n• Enable \"Banner notifications\", \"Sound\", \"Vibration\"\n• Security Center > App Management > Permissions > Auto-start\n\n🔒 Lock background methods:\n• Find Bee Accounting in recent tasks\n• Pull down app card to show lock icon\n• Tap lock icon to prevent cleanup'**
+  /// **'If notifications don\'t work properly, check:\n• App is allowed to send notifications\n• Disable battery optimization/power saving for app\n• Allow app to run in background and auto-start\n• On Android 12+, exact alarm access improves timing accuracy\n\n📱 Xiaomi phone special settings:\n• Settings > App Management > Bee Accounting > Notification Management\n• Tap \"Recording Reminder\" channel\n• Set importance to \"Urgent\" or \"High\"\n• Enable \"Banner notifications\", \"Sound\", \"Vibration\"\n• Security Center > App Management > Permissions > Auto-start\n\n🔒 Lock background methods:\n• Find Bee Accounting in recent tasks\n• Pull down app card to show lock icon\n• Tap lock icon to prevent cleanup'**
   String get reminderAndroidInstructions;
 
   /// No description provided for @categoryDetailLoadFailed.

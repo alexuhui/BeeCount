@@ -217,6 +217,9 @@ class MainActivity: FlutterActivity() {
                     openAppSettings()
                     result.success(true)
                 }
+                "openAutoStartSettings" -> {
+                    result.success(openAutoStartSettings())
+                }
                 "getBatteryOptimizationInfo" -> {
                     result.success(getBatteryOptimizationInfo())
                 }
@@ -282,11 +285,6 @@ class MainActivity: FlutterActivity() {
         notificationId: Int,
     ): Boolean {
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-            android.util.Log.w("MainActivity", "没有精确闹钟权限，备用提醒未登记")
-            return false
-        }
-
         fallbackPrefs().edit()
             .putBoolean("active", true)
             .putInt("hour", hour)
@@ -298,7 +296,9 @@ class MainActivity: FlutterActivity() {
 
         val triggerAt = nextTriggerMillis(hour, minute)
         val pendingIntent = fallbackPendingIntent(title, body, hour, minute, notificationId)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
         } else {
             alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
@@ -350,6 +350,22 @@ class MainActivity: FlutterActivity() {
             data = Uri.parse("package:$packageName")
         }
         startActivity(intent)
+    }
+
+    private fun openAutoStartSettings(): Boolean {
+        if (Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) {
+            val intent = Intent("miui.intent.action.OP_AUTO_START").apply {
+                addCategory(Intent.CATEGORY_DEFAULT)
+            }
+            try {
+                startActivity(intent)
+                return true
+            } catch (e: Exception) {
+                android.util.Log.w("MainActivity", "打开小米自启动设置失败", e)
+            }
+        }
+        openAppSettings()
+        return false
     }
 
     private fun getBatteryOptimizationInfo(): Map<String, Any> {

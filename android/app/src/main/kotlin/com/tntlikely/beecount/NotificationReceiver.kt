@@ -29,10 +29,13 @@ class NotificationReceiver : BroadcastReceiver() {
         val hour = intent.getIntExtra("hour", 21)
         val minute = intent.getIntExtra("minute", 0)
         val notificationId = intent.getIntExtra("notificationId", 1101)
-        showNotification(context, title, body, notificationId)
-        // 旧闹钟没有 hour，只弹出这一次，避免按默认 21:00 再登记一条。
-        if (intent.hasExtra("hour")) {
-            armNext(context, title, body, hour, minute, notificationId)
+        try {
+            showNotification(context, title, body, notificationId)
+        } finally {
+            // 旧闹钟没有 hour，只弹出这一次，避免按默认 21:00 再登记一条。
+            if (intent.hasExtra("hour")) {
+                armNext(context, title, body, hour, minute, notificationId)
+            }
         }
     }
 
@@ -59,11 +62,6 @@ class NotificationReceiver : BroadcastReceiver() {
         notificationId: Int,
     ) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-            Log.w(TAG, "没有精确闹钟权限，无法预约下一次备用提醒")
-            return
-        }
-
         val calendar = java.util.Calendar.getInstance().apply {
             set(java.util.Calendar.SECOND, 0)
             set(java.util.Calendar.MILLISECOND, 0)
@@ -83,7 +81,13 @@ class NotificationReceiver : BroadcastReceiver() {
         }
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         val pendingIntent = PendingIntent.getBroadcast(context, notificationId, nextIntent, flags)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            alarmManager.setAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                pendingIntent,
+            )
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 calendar.timeInMillis,
@@ -147,6 +151,7 @@ class NotificationReceiver : BroadcastReceiver() {
         )
 
         val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

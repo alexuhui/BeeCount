@@ -57,12 +57,68 @@ class ReminderSettingsPage extends ConsumerWidget {
                 ),
               ),
               value: reminderSettings.isEnabled,
-              onChanged: (value) {
-                ref.read(reminderSettingsProvider.notifier).updateEnabled(value);
+              onChanged: (value) async {
+                try {
+                  await ref.read(reminderSettingsProvider.notifier).updateEnabled(value);
+                } catch (e) {
+                  if (context.mounted) {
+                    showToast(context, AppLocalizations.of(context).commonFailed);
+                  }
+                }
               },
               activeThumbColor: Theme.of(context).primaryColor,
             ),
           ),
+
+          if (Platform.isAndroid && reminderSettings.isEnabled) ...[
+            const SizedBox(height: 12),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: BeeTokens.surfaceSecondary(context),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: BeeTokens.border(context)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.notifications_active_outlined,
+                      color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          AppLocalizations.of(context).reminderAutoStartTitle,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: BeeTokens.textPrimary(context),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          AppLocalizations.of(context).reminderAutoStartHint,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: BeeTokens.textSecondary(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      final androidUtil = NotificationFactory.getInstance()
+                          as AndroidNotificationUtil;
+                      await androidUtil.openAutoStartSettings();
+                    },
+                    child: Text(AppLocalizations.of(context).reminderAutoStartAction),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           const SizedBox(height: 16),
 
@@ -104,10 +160,16 @@ class ReminderSettingsPage extends ConsumerWidget {
                 );
                 
                 if (selectedTime != null) {
-                  ref.read(reminderSettingsProvider.notifier).updateTime(
-                    selectedTime.hour,
-                    selectedTime.minute,
-                  );
+                  try {
+                    await ref.read(reminderSettingsProvider.notifier).updateTime(
+                      selectedTime.hour,
+                      selectedTime.minute,
+                    );
+                  } catch (e) {
+                    if (context.mounted) {
+                      showToast(context, AppLocalizations.of(context).commonFailed);
+                    }
+                  }
                 }
               },
             ),

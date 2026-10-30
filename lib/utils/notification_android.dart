@@ -85,18 +85,25 @@ class AndroidNotificationUtil implements util.NotificationUtil {
     const notificationDetails = NotificationDetails(android: androidDetails);
 
     try {
+      final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      final canScheduleExact =
+          await androidPlugin?.canScheduleExactNotifications() ?? false;
+      final scheduleMode = canScheduleExact
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle;
       await _plugin.zonedSchedule(
         id,
         title,
         body,
         tzScheduledDate,
         notificationDetails,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: scheduleMode,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
       );
-      developer.log('[Android] 每日提醒已登记: $hour:$minute 下次 $scheduledDate');
+      developer.log('[Android] 每日提醒已登记: $hour:$minute 下次 $scheduledDate, 模式 $scheduleMode');
     } catch (e) {
       developer.log('[Android] 插件登记失败，改用备用闹钟: $e');
       await _scheduleAlarmManagerBackup(
@@ -224,7 +231,7 @@ class AndroidNotificationUtil implements util.NotificationUtil {
     }
   }
 
-  /// 插件登记失败时，用原生精确闹钟登记下一次。
+  /// 插件登记失败时，用原生闹钟登记下一次。
   Future<void> _scheduleAlarmManagerBackup({
     required int id,
     required String title,
@@ -232,18 +239,17 @@ class AndroidNotificationUtil implements util.NotificationUtil {
     required int hour,
     required int minute,
   }) async {
-    try {
-      final scheduled = await _channel.invokeMethod<bool>('scheduleFallbackReminder', {
-        'title': title,
-        'body': body,
-        'hour': hour,
-        'minute': minute,
-        'notificationId': id + 100,
-      });
-      developer.log('[Android] 备用提醒登记结果: $scheduled');
-    } catch (e) {
-      developer.log('[Android] 备用提醒登记失败: $e');
+    final scheduled = await _channel.invokeMethod<bool>('scheduleFallbackReminder', {
+      'title': title,
+      'body': body,
+      'hour': hour,
+      'minute': minute,
+      'notificationId': id + 100,
+    });
+    if (scheduled != true) {
+      throw StateError('备用记账提醒登记失败');
     }
+    developer.log('[Android] 备用提醒已登记');
   }
 
   /// 检查电池优化状态（Android 特有）
@@ -274,6 +280,17 @@ class AndroidNotificationUtil implements util.NotificationUtil {
       await _channel.invokeMethod('openAppSettings');
     } catch (e) {
       developer.log('[Android] 打开应用设置失败: $e');
+    }
+  }
+
+  /// 打开厂商自启动管理页；不可用时由原生侧打开应用设置页。
+  Future<bool> openAutoStartSettings() async {
+    try {
+      return await _channel.invokeMethod<bool>('openAutoStartSettings') ?? false;
+    } catch (e) {
+      developer.log('[Android] 打开自启动设置失败: $e');
+      await openAppSettings();
+      return false;
     }
   }
 

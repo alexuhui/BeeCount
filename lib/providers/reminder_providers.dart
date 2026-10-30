@@ -90,9 +90,6 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
   }
 
   Future<void> updateEnabled(bool enabled) async {
-    state = state.copyWith(isEnabled: enabled);
-    await _saveSettings();
-
     final notificationUtil = NotificationFactory.getInstance();
     if (enabled) {
       await notificationUtil.scheduleDailyReminder(
@@ -105,12 +102,11 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
     } else {
       await notificationUtil.cancelNotification(1001);
     }
+    state = state.copyWith(isEnabled: enabled);
+    await _saveSettings();
   }
 
   Future<void> updateTime(int hour, int minute) async {
-    state = state.copyWith(hour: hour, minute: minute);
-    await _saveSettings();
-
     if (state.isEnabled) {
       final notificationUtil = NotificationFactory.getInstance();
       await notificationUtil.scheduleDailyReminder(
@@ -121,12 +117,11 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
         minute: minute,
       );
     }
+    state = state.copyWith(hour: hour, minute: minute);
+    await _saveSettings();
   }
 
   Future<void> updateSettings(ReminderSettings settings) async {
-    state = settings;
-    await _saveSettings();
-
     final notificationUtil = NotificationFactory.getInstance();
     if (settings.isEnabled) {
       await notificationUtil.scheduleDailyReminder(
@@ -139,6 +134,8 @@ class ReminderSettingsNotifier extends StateNotifier<ReminderSettings> {
     } else {
       await notificationUtil.cancelNotification(1001);
     }
+    state = settings;
+    await _saveSettings();
   }
 }
 

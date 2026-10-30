@@ -29,6 +29,11 @@
 -keepattributes InnerClasses
 -keepattributes EnclosingMethod
 
+# flutter_local_notifications 17 uses Gson TypeToken to read scheduled alarms.
+# R8 must retain the type argument on the anonymous TypeToken subclass.
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
+
 # Keep timezone data for notifications
 -keep class net.danlew.android.joda.** { *; }
 

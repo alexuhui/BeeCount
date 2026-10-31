@@ -17,14 +17,8 @@ enum AIServiceProvider {
 
 /// AI 执行策略
 enum AIStrategy {
-  /// 本地优先
-  localFirst,
-
   /// 云端优先
   cloudFirst,
-
-  /// 仅本地
-  localOnly,
 
   /// 仅云端
   cloudOnly,
@@ -245,11 +239,11 @@ class AIConfigNotifier extends StateNotifier<AIConfigData> {
   AIStrategy _parseStrategy(String str) {
     switch (str) {
       case 'local_first':
-        return AIStrategy.localFirst;
+        return AIStrategy.cloudFirst;
       case 'cloud_first':
         return AIStrategy.cloudFirst;
       case 'local_only':
-        return AIStrategy.localOnly;
+        return AIStrategy.cloudFirst;
       case 'cloud_only':
         return AIStrategy.cloudOnly;
       default:
@@ -259,12 +253,8 @@ class AIConfigNotifier extends StateNotifier<AIConfigData> {
 
   String _strategyToString(AIStrategy strategy) {
     switch (strategy) {
-      case AIStrategy.localFirst:
-        return 'local_first';
       case AIStrategy.cloudFirst:
         return 'cloud_first';
-      case AIStrategy.localOnly:
-        return 'local_only';
       case AIStrategy.cloudOnly:
         return 'cloud_only';
     }

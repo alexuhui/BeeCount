@@ -130,9 +130,9 @@ class OpenAIChatProvider implements AIProvider<String, String> {
 
   @override
   Future<double> estimateCost(AITask<String, String> task) async {
-    // 基于模型定价估算成本
-    // TODO: 实现详细的成本估算逻辑
-    return 0.0001; // 示例值
+    // OpenAI 兼容服务的模型及价格由服务商自行定义，无法仅凭模型名可靠计算。
+    // 返回固定估值，仅用于成本策略中的相对排序。
+    return 0.0001;
   }
 
   String _parseError(DioException e) {

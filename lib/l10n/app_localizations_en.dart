@@ -3975,26 +3975,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiStrategyTitle => 'Execution Strategy';
 
   @override
-  String get aiStrategyLocalFirst => 'Local First (Recommended)';
-
-  @override
   String get aiStrategyCloudFirst => 'Cloud First';
 
   @override
-  String get aiStrategyCloudFirstDesc =>
-      'Use cloud API first, downgrade to local if failed';
-
-  @override
-  String get aiStrategyLocalOnly => 'Local Only';
+  String get aiStrategyCloudFirstDesc => 'Prefer the configured cloud API';
 
   @override
   String get aiStrategyCloudOnly => 'Cloud Only';
 
   @override
   String get aiStrategyCloudOnlyDesc => 'Use cloud API only, no model download';
-
-  @override
-  String get aiStrategyUnavailable => 'Local model in training, coming soon';
 
   @override
   String aiStrategySwitched(String strategy) {
@@ -4025,16 +4015,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiChatGoToSettings => 'Go to Settings';
-
-  @override
-  String get aiLocalModelTitle => 'Local Model';
-
-  @override
-  String get aiLocalModelTraining => 'Training';
-
-  @override
-  String get aiLocalModelUnavailable =>
-      'Local model in training, not available yet';
 
   @override
   String get aiOcrRecognizing => 'Recognizing bill...';
@@ -4922,8 +4902,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiPromptAdvancedSettings => 'Advanced Settings';
 
   @override
-  String get aiAdvancedSettingsDesc =>
-      'Model selection, strategy, local model, prompt';
+  String get aiAdvancedSettingsDesc => 'Model selection, strategy, prompt';
 
   @override
   String get aiPromptEditEntry => 'Prompt Editor';

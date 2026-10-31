@@ -473,64 +473,7 @@ class _AISettingsPageState extends ConsumerState<AISettingsPage> {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                   dense: true,
                 ),
-                RadioListTile<AIStrategy>(
-                  value: AIStrategy.localFirst,
-                  enabled: false,
-                  title: Text(l10n.aiStrategyLocalFirst,
-                      style: const TextStyle(fontSize: 14)),
-                  subtitle: Text(l10n.aiStrategyUnavailable,
-                      style: const TextStyle(fontSize: 12)),
-                  activeColor: primaryColor,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                  dense: true,
-                ),
-                RadioListTile<AIStrategy>(
-                  value: AIStrategy.localOnly,
-                  enabled: false,
-                  title: Text(l10n.aiStrategyLocalOnly,
-                      style: const TextStyle(fontSize: 14)),
-                  subtitle: Text(l10n.aiStrategyUnavailable,
-                      style: const TextStyle(fontSize: 12)),
-                  activeColor: primaryColor,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                  dense: true,
-                ),
               ]),
-            ),
-
-            BeeTokens.cardDivider(context),
-
-            // === 本地模型（禁用） ===
-            ListTile(
-              dense: true,
-              leading: Icon(
-                Icons.smartphone,
-                size: 20,
-                color: BeeTokens.textTertiary(context),
-              ),
-              title: Text(
-                l10n.aiLocalModelTitle,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: BeeTokens.textTertiary(context),
-                ),
-              ),
-              subtitle: Text(
-                l10n.aiLocalModelUnavailable,
-                style: const TextStyle(fontSize: 12),
-              ),
-              trailing: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  l10n.aiLocalModelTraining,
-                  style: TextStyle(fontSize: 10, color: primaryColor),
-                ),
-              ),
-              enabled: false,
             ),
 
             BeeTokens.cardDivider(context),

@@ -3819,25 +3819,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiStrategyTitle => '执行策略';
 
   @override
-  String get aiStrategyLocalFirst => '本地优先（推荐）';
-
-  @override
   String get aiStrategyCloudFirst => '云端优先';
 
   @override
-  String get aiStrategyCloudFirstDesc => '优先使用云端API，失败后降级到本地';
-
-  @override
-  String get aiStrategyLocalOnly => '仅本地';
+  String get aiStrategyCloudFirstDesc => '优先使用已配置的云端API';
 
   @override
   String get aiStrategyCloudOnly => '仅云端';
 
   @override
   String get aiStrategyCloudOnlyDesc => '只使用云端API，不下载模型';
-
-  @override
-  String get aiStrategyUnavailable => '本地模型训练中，敬请期待';
 
   @override
   String aiStrategySwitched(String strategy) {
@@ -3867,15 +3858,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiChatGoToSettings => '去设置';
-
-  @override
-  String get aiLocalModelTitle => '本地模型';
-
-  @override
-  String get aiLocalModelTraining => '训练中';
-
-  @override
-  String get aiLocalModelUnavailable => '本地模型训练中，暂不可用';
 
   @override
   String get aiOcrRecognizing => '正在识别账单...';
@@ -4720,7 +4702,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiPromptAdvancedSettings => '高级设置';
 
   @override
-  String get aiAdvancedSettingsDesc => '模型选择、执行策略、本地模型、提示词';
+  String get aiAdvancedSettingsDesc => '模型选择、执行策略、提示词';
 
   @override
   String get aiPromptEditEntry => '提示词编辑';
@@ -9763,25 +9745,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aiStrategyTitle => '執行策略';
 
   @override
-  String get aiStrategyLocalFirst => '本機優先（推薦）';
-
-  @override
   String get aiStrategyCloudFirst => '雲端優先';
 
   @override
-  String get aiStrategyCloudFirstDesc => '優先使用雲端 API，失敗後降級到本機';
-
-  @override
-  String get aiStrategyLocalOnly => '僅本機';
+  String get aiStrategyCloudFirstDesc => '優先使用已設定的雲端 API';
 
   @override
   String get aiStrategyCloudOnly => '僅雲端';
 
   @override
   String get aiStrategyCloudOnlyDesc => '只使用雲端 API，不下載模型';
-
-  @override
-  String get aiStrategyUnavailable => '本機模型訓練中，敬請期待';
 
   @override
   String aiStrategySwitched(String strategy) {
@@ -9811,15 +9784,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiChatGoToSettings => '前往設定';
-
-  @override
-  String get aiLocalModelTitle => '本機模型';
-
-  @override
-  String get aiLocalModelTraining => '訓練中';
-
-  @override
-  String get aiLocalModelUnavailable => '本機模型訓練中，暫不可用';
 
   @override
   String get aiOcrRecognizing => '正在識別帳單...';
@@ -10664,7 +10628,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aiPromptAdvancedSettings => '進階設定';
 
   @override
-  String get aiAdvancedSettingsDesc => '模型選擇、執行策略、本地模型、提示詞';
+  String get aiAdvancedSettingsDesc => '模型選擇、執行策略、提示詞';
 
   @override
   String get aiPromptEditEntry => '提示詞編輯';

@@ -56,8 +56,6 @@ dependencies:
     path: packages/flutter_ai_kit
   flutter_ai_kit_zhipu:
     path: packages/flutter_ai_kit_zhipu
-  flutter_ai_kit_tflite:
-    path: packages/flutter_ai_kit_tflite
   flutter_ai_kit_openai:
     path: packages/flutter_ai_kit_openai
   quick_actions: ^1.1.0

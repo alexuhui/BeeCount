@@ -7208,12 +7208,6 @@ abstract class AppLocalizations {
   /// **'Execution Strategy'**
   String get aiStrategyTitle;
 
-  /// No description provided for @aiStrategyLocalFirst.
-  ///
-  /// In en, this message translates to:
-  /// **'Local First (Recommended)'**
-  String get aiStrategyLocalFirst;
-
   /// No description provided for @aiStrategyCloudFirst.
   ///
   /// In en, this message translates to:
@@ -7223,14 +7217,8 @@ abstract class AppLocalizations {
   /// No description provided for @aiStrategyCloudFirstDesc.
   ///
   /// In en, this message translates to:
-  /// **'Use cloud API first, downgrade to local if failed'**
+  /// **'Prefer the configured cloud API'**
   String get aiStrategyCloudFirstDesc;
-
-  /// No description provided for @aiStrategyLocalOnly.
-  ///
-  /// In en, this message translates to:
-  /// **'Local Only'**
-  String get aiStrategyLocalOnly;
 
   /// No description provided for @aiStrategyCloudOnly.
   ///
@@ -7243,12 +7231,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use cloud API only, no model download'**
   String get aiStrategyCloudOnlyDesc;
-
-  /// No description provided for @aiStrategyUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'Local model in training, coming soon'**
-  String get aiStrategyUnavailable;
 
   /// No description provided for @aiStrategySwitched.
   ///
@@ -7303,24 +7285,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go to Settings'**
   String get aiChatGoToSettings;
-
-  /// No description provided for @aiLocalModelTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Local Model'**
-  String get aiLocalModelTitle;
-
-  /// No description provided for @aiLocalModelTraining.
-  ///
-  /// In en, this message translates to:
-  /// **'Training'**
-  String get aiLocalModelTraining;
-
-  /// No description provided for @aiLocalModelUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'Local model in training, not available yet'**
-  String get aiLocalModelUnavailable;
 
   /// No description provided for @aiOcrRecognizing.
   ///
@@ -8915,7 +8879,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiAdvancedSettingsDesc.
   ///
   /// In en, this message translates to:
-  /// **'Model selection, strategy, local model, prompt'**
+  /// **'Model selection, strategy, prompt'**
   String get aiAdvancedSettingsDesc;
 
   /// No description provided for @aiPromptEditEntry.

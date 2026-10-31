@@ -4,7 +4,7 @@ A universal AI capability kit for Flutter supporting local models and cloud APIs
 
 ## Features
 
-- ✅ **Provider-agnostic**: Support any local model (TFLite, ONNX) or cloud API
+- ✅ **Provider-agnostic**: Support multiple cloud APIs
 - ✅ **Strategy-based execution**: Local-first, cloud-first, local-only, cloud-only, cost-optimized, custom priority
 - ✅ **Type-safe**: Generic task and result types
 - ✅ **Extensible**: Easy to add new providers and strategies
@@ -214,7 +214,6 @@ Flutter AI Kit uses a modular architecture. Core package contains only interface
 
 Provider implementations are in separate packages:
 
-- `flutter_ai_kit_tflite` - TensorFlow Lite local models
 - `flutter_ai_kit_zhipu` - Zhipu GLM cloud API
 - `flutter_ai_kit_qwen` - Qwen cloud API
 - `flutter_ai_kit_openai` - OpenAI cloud API
